@@ -1,0 +1,39 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { GoldenTemplate } from './entities/golden-template.entity';
+import { AgentSession } from './entities/agent-session.entity';
+import { Ticket } from '../tickets/entities/ticket.entity';
+import { TintaAgentGateway } from './tinta-agent.gateway';
+import { EntityMapperService } from './entity-mapper.service';
+import { GoldenTemplateService } from './golden-template.service';
+import { GoldenTemplateSeedService } from './golden-template-seed.service';
+import { TintaCoreService } from './tinta-core.service';
+import { TintaCoreController } from './tinta-core.controller';
+import { AgentMonitorScheduler } from './agent-monitor.scheduler';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([GoldenTemplate, AgentSession, Ticket]),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('AGENT_JWT_SECRET', config.get('JWT_SECRET')),
+        signOptions: { expiresIn: '365d' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [
+    TintaAgentGateway,
+    EntityMapperService,
+    GoldenTemplateService,
+    GoldenTemplateSeedService,
+    TintaCoreService,
+    AgentMonitorScheduler,
+  ],
+  controllers: [TintaCoreController],
+  exports: [TintaCoreService, TintaAgentGateway, GoldenTemplateService],
+})
+export class TintaCoreModule {}

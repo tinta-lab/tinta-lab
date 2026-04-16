@@ -1,0 +1,35 @@
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tinta-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: tinta_lab
+      POSTGRES_USER: tinta
+      POSTGRES_PASSWORD: TintaSecure2026!
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: tinta-redis
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - ./data/redis:/data
+    ports:
+      - "6379:6379"
+
+  adminer:
+    image: adminer
+    container_name: tinta-adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+networks:
+  default:
+    name: tinta-network

@@ -1,0 +1,54 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { ClientsModule } from './clients/clients.module';
+import { ServersModule } from './servers/servers.module';
+import { AccessModule } from './access/access.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { TintaCoreModule } from './tinta-core/tinta-core.module';
+import { ProvisioningModule } from './provisioning/provisioning.module';
+import { User } from './users/entities/user.entity';
+import { Client } from './clients/entities/client.entity';
+import { Server } from './servers/entities/server.entity';
+import { AccessLog } from './access/entities/access-log.entity';
+import { Ticket } from './tickets/entities/ticket.entity';
+import { GoldenTemplate } from './tinta-core/entities/golden-template.entity';
+import { AgentSession } from './tinta-core/entities/agent-session.entity';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get('DB_HOST', 'localhost'),
+        port: config.get<number>('DB_PORT', 5432),
+        username: config.get('DB_USERNAME', 'tinta'),
+        password: config.get('DB_PASSWORD'),
+        database: config.get('DB_NAME', 'tinta_smart'),
+        entities: [User, Client, Server, AccessLog, Ticket, GoldenTemplate, AgentSession],
+        synchronize: true, // только для dev! в prod = false + migrations
+        logging: false,
+      }),
+      inject: [ConfigService],
+    }),
+    AuthModule,
+    UsersModule,
+    ClientsModule,
+    ServersModule,
+    AccessModule,
+    TicketsModule,
+    TintaCoreModule,
+    ProvisioningModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}

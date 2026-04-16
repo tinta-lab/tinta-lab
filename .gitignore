@@ -1,0 +1,11 @@
+.env
+backend/.env
+backend/dist/
+backend/node_modules/
+frontend/.next/
+frontend/node_modules/
+tinta-agent/node_modules/
+tinta-agent/dist/
+data/
+*.log
+.DS_Store

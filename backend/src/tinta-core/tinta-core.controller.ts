@@ -1,0 +1,74 @@
+import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/entities/user.entity';
+import { TintaCoreService } from './tinta-core.service';
+import { GoldenTemplateService } from './golden-template.service';
+
+@Controller('tinta-core')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class TintaCoreController {
+  constructor(
+    private readonly coreService: TintaCoreService,
+    private readonly templateService: GoldenTemplateService,
+  ) {}
+
+  // Admin: provision agent for a client → returns JWT token
+  @Post('provision/:clientId')
+  @Roles(UserRole.ADMIN)
+  async provision(@Param('clientId') clientId: string) {
+    return this.coreService.provisionAgent(clientId);
+  }
+
+  // Admin: get all agent sessions
+  @Get('sessions')
+  @Roles(UserRole.ADMIN)
+  async getSessions() {
+    return this.coreService.getAllSessions();
+  }
+
+  // Admin: get connected agents
+  @Get('connected')
+  @Roles(UserRole.ADMIN)
+  async getConnected() {
+    const ids = this.coreService.getConnectedAgents();
+    return { count: ids.length, clientIds: ids };
+  }
+
+  // Admin: execute action on an agent
+  @Post('execute/:clientId')
+  @Roles(UserRole.ADMIN)
+  async execute(@Param('clientId') clientId: string, @Body() command: Record<string, any>) {
+    return this.coreService.executeAction(clientId, command as any);
+  }
+
+  // Admin: apply golden template to a client
+  @Post('template/:clientId/:slug')
+  @Roles(UserRole.ADMIN)
+  async applyTemplate(@Param('clientId') clientId: string, @Param('slug') slug: string) {
+    return this.coreService.applyGoldenTemplate(clientId, slug);
+  }
+
+  // Admin: list all golden templates
+  @Get('templates')
+  @Roles(UserRole.ADMIN)
+  async getTemplates() {
+    return this.templateService.findAll();
+  }
+
+  // Admin: create golden template
+  @Post('templates')
+  @Roles(UserRole.ADMIN)
+  async createTemplate(
+    @Body() body: {
+      slug: string;
+      name: string;
+      description?: string;
+      automation: Record<string, any>;
+      requiredEntities?: string[];
+    },
+  ) {
+    return this.templateService.create(body);
+  }
+}
