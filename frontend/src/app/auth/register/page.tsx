@@ -68,7 +68,7 @@ export default function RegisterPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tinta Smart" className="w-16 h-16 rounded-2xl mb-4 mx-auto" />
+          <img src="/logo.png" alt="Tinta Smart" className="w-24 h-24 rounded-3xl mb-4 mx-auto shadow-lg shadow-teal-500/20" />
           <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Smart</h1>
           <p className="text-slate-400 text-sm mt-1">Регистрация клиентского аккаунта</p>
         </div>
