@@ -117,12 +117,7 @@ export default function SalesDashboard() {
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 flex-shrink-0">
         <div className="max-w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-teal-500/20 border border-teal-500/30 flex items-center justify-center">
-              <svg width="16" height="16" viewBox="0 0 32 32" fill="none">
-                <path d="M16 4L4 10V22L16 28L28 22V10L16 4Z" stroke="#2dd4bf" strokeWidth="2" strokeLinejoin="round"/>
-                <circle cx="16" cy="16" r="3" fill="#2dd4bf"/>
-              </svg>
-            </div>
+            <img src="/logo.png" alt="Tinta Smart" className="w-8 h-8 rounded-lg" />
             <span className="font-semibold">Tinta Smart</span>
             <span className="text-slate-500 text-sm">/ Sales</span>
           </div>

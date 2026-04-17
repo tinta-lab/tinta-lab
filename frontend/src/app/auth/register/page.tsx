@@ -68,13 +68,7 @@ export default function RegisterPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-500/20 border border-teal-500/30 mb-4">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <path d="M16 4L4 10V22L16 28L28 22V10L16 4Z" stroke="#2dd4bf" strokeWidth="2" strokeLinejoin="round"/>
-              <path d="M16 4V28M4 10L28 22M28 10L4 22" stroke="#2dd4bf" strokeWidth="1.5" opacity="0.4"/>
-              <circle cx="16" cy="16" r="3" fill="#2dd4bf"/>
-            </svg>
-          </div>
+          <img src="/logo.png" alt="Tinta Smart" className="w-16 h-16 rounded-2xl mb-4 mx-auto" />
           <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Smart</h1>
           <p className="text-slate-400 text-sm mt-1">Регистрация клиентского аккаунта</p>
         </div>
