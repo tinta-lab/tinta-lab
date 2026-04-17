@@ -4,6 +4,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import { CreateClientDto } from './dto/create-client.dto';
+import { UpdateClientDto } from './dto/update-client.dto';
 
 @Controller('clients')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -12,8 +14,8 @@ export class ClientsController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  create(@Body() body: any) {
-    return this.clientsService.create(body);
+  create(@Body() dto: CreateClientDto) {
+    return this.clientsService.create(dto);
   }
 
   @Get()
@@ -36,7 +38,7 @@ export class ClientsController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.clientsService.update(id, body);
+  update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
+    return this.clientsService.update(id, dto);
   }
 }

@@ -27,13 +27,13 @@ export class TintaCoreService {
     return this.jwtService.sign(
       { sub: clientId, type: 'tinta-agent' },
       {
-        secret: this.config.get('AGENT_JWT_SECRET', this.config.get('JWT_SECRET')),
+        secret: this.config.get<string>('AGENT_JWT_SECRET') ?? this.config.get<string>('JWT_SECRET'),
         expiresIn: '365d',
       },
     );
   }
 
-  // Provision: create agent session + generate token
+  // Provision: create/rotate agent token — disconnects any running agent with old token
   async provisionAgent(clientId: string): Promise<{ agentToken: string }> {
     const existing = await this.sessionRepo.findOne({ where: { clientId } });
     const agentToken = this.generateAgentToken(clientId);
@@ -48,9 +48,15 @@ export class TintaCoreService {
       } as any);
       await this.sessionRepo.save(newSession as any);
     } else {
-      await this.sessionRepo.update({ clientId }, { agentToken });
+      // Rotate token: disconnect currently running agent so it must re-authenticate
+      this.gateway.disconnectAgent(clientId, 'Token rotated — re-provision required');
+      await this.sessionRepo.update({ clientId }, {
+        agentToken,
+        status: AgentStatus.DISCONNECTED,
+      });
     }
-    this.logger.log(`Agent provisioned for client ${clientId}`);
+
+    this.logger.log(`Agent provisioned for client ${clientId}${existing ? ' (token rotated)' : ''}`);
     return { agentToken };
   }
 
@@ -59,7 +65,7 @@ export class TintaCoreService {
   }
 
   async getAllSessions(): Promise<AgentSession[]> {
-    return this.sessionRepo.find({ relations: ['client'] });
+    return this.sessionRepo.find({ relations: ['client', 'client.user'] });
   }
 
   async executeAction(clientId: string, command: TintaCommand): Promise<{ sent: boolean }> {

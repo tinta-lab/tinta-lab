@@ -146,7 +146,7 @@ export default function ClientDashboard() {
                 <circle cx="16" cy="16" r="3" fill="#2dd4bf"/>
               </svg>
             </div>
-            <span className="font-semibold">Tinta Smart</span>
+            <span className="font-semibold">Tinta Lab</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-slate-400">{user.firstName} {user.lastName}</span>

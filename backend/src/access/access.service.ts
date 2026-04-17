@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { Injectable, Optional, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AccessLog } from './entities/access-log.entity';
@@ -15,6 +15,14 @@ export class AccessService {
     private configService: ConfigService,
     @Optional() private notifications: NotificationsService,
   ) {}
+
+  // Throws ForbiddenException if the server does not belong to the given user
+  async assertOwnership(serverId: string, userId: string): Promise<void> {
+    const server = await this.serversService.findById(serverId);
+    if (server.client?.user?.id !== userId) {
+      throw new ForbiddenException('Server does not belong to this account');
+    }
+  }
 
   async grantAccess(serverId: string, grantedByUserId: string): Promise<AccessLog> {
     const timeoutMinutes = this.configService.get<number>('SUPPORT_ACCESS_TIMEOUT', 60);

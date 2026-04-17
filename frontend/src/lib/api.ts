@@ -1,7 +1,17 @@
 import axios from 'axios';
 
+const baseURL = process.env.NEXT_PUBLIC_API_URL;
+
+if (!baseURL && typeof window !== 'undefined') {
+  console.error(
+    '[Tinta] NEXT_PUBLIC_API_URL is not set. ' +
+    'Add NEXT_PUBLIC_API_URL=https://api.tinta-lab.de to frontend/.env.local',
+  );
+}
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://192.168.2.63:3000',
+  baseURL: baseURL ?? '',
+  timeout: 15_000,
 });
 
 api.interceptors.request.use((config) => {
@@ -20,10 +30,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
-      window.location.href = '/auth/login';
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login';
+      }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

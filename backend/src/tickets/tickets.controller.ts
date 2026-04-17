@@ -5,14 +5,16 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { TicketStatus } from './entities/ticket.entity';
+import { CreateTicketDto } from './dto/create-ticket.dto';
+import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 
 @Controller('tickets')
 export class TicketsController {
   constructor(private ticketsService: TicketsService) {}
 
   @Post('public')
-  createPublic(@Body() body: any) {
-    return this.ticketsService.create(body);
+  createPublic(@Body() dto: CreateTicketDto) {
+    return this.ticketsService.create(dto);
   }
 
   @Get()
@@ -32,15 +34,7 @@ export class TicketsController {
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  updateStatus(
-    @Param('id') id: string,
-    @Body()
-    body: {
-      status: TicketStatus;
-      assignedToId?: string;
-      internalNotes?: string;
-    },
-  ) {
-    return this.ticketsService.updateStatus(id, body.status, body.assignedToId, body.internalNotes);
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateTicketStatusDto) {
+    return this.ticketsService.updateStatus(id, dto.status, dto.assignedToId, dto.internalNotes);
   }
 }

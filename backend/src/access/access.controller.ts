@@ -10,21 +10,29 @@ import { UserRole } from '../users/entities/user.entity';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AccessController {
   constructor(
-    private accessService: AccessService,
-    private clientsService: ClientsService,
+    private readonly accessService: AccessService,
+    private readonly clientsService: ClientsService,
   ) {}
 
-  // CLIENT grants access to their own server
+  // CLIENT grants access to their own server (ownership enforced)
+  // ADMIN can grant access to any server
   @Post('grant/:serverId')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
-  grantAccess(@Param('serverId') serverId: string, @Request() req: any) {
+  async grantAccess(@Param('serverId') serverId: string, @Request() req: any) {
+    if (req.user.role === UserRole.CLIENT) {
+      await this.accessService.assertOwnership(serverId, req.user.id);
+    }
     return this.accessService.grantAccess(serverId, req.user.id);
   }
 
-  // CLIENT or ADMIN can revoke; SUPPORT cannot grant or revoke
+  // CLIENT revokes access to their own server (ownership enforced)
+  // ADMIN can revoke access to any server
   @Delete('revoke/:serverId')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
-  revokeAccess(@Param('serverId') serverId: string) {
+  async revokeAccess(@Param('serverId') serverId: string, @Request() req: any) {
+    if (req.user.role === UserRole.CLIENT) {
+      await this.accessService.assertOwnership(serverId, req.user.id);
+    }
     return this.accessService.revokeAccess(serverId);
   }
 
@@ -35,14 +43,14 @@ export class AccessController {
     return this.accessService.recordConnection(serverId, req.user.id);
   }
 
-  // Admin/Support see logs for any server
+  // ADMIN/SUPPORT see access logs for any server
   @Get('logs/:serverId')
   @Roles(UserRole.ADMIN, UserRole.SUPPORT)
   getLogs(@Param('serverId') serverId: string) {
     return this.accessService.getLogsForServer(serverId);
   }
 
-  // Client sees their own access history
+  // CLIENT sees their own access history
   @Get('my-logs')
   @Roles(UserRole.CLIENT)
   async getMyLogs(@Request() req: any) {

@@ -5,6 +5,8 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ClientsService } from '../clients/clients.service';
+import { CreateServerDto } from './dto/create-server.dto';
+import { UpdateServerDto } from './dto/update-server.dto';
 
 @Controller('servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -16,8 +18,8 @@ export class ServersController {
 
   @Post()
   @Roles(UserRole.ADMIN)
-  create(@Body() body: any) {
-    return this.serversService.create(body);
+  create(@Body() dto: CreateServerDto) {
+    return this.serversService.create(dto);
   }
 
   @Get()
@@ -41,8 +43,8 @@ export class ServersController {
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.serversService.update(id, body);
+  update(@Param('id') id: string, @Body() dto: UpdateServerDto) {
+    return this.serversService.update(id, dto);
   }
 
   @Delete(':id')
@@ -52,7 +54,6 @@ export class ServersController {
     return this.serversService.delete(id);
   }
 
-  // Called by HA server to report it's alive
   @Post(':id/heartbeat')
   @HttpCode(200)
   @Roles(UserRole.ADMIN, UserRole.SUPPORT, UserRole.CLIENT)

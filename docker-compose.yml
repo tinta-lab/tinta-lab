@@ -30,6 +30,28 @@ services:
     ports:
       - "8080:8080"
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tinta-grafana
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: TintaGrafana2026!
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: https://monitor.tinta-lab.de
+      GF_INSTALL_PLUGINS: ""
+    volumes:
+      - ./data/grafana/provisioning:/etc/grafana/provisioning
+      - ./data/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3003:3000"
+    depends_on:
+      - postgres
+
+volumes:
+  grafana-data:
+
 networks:
   default:
     name: tinta-network

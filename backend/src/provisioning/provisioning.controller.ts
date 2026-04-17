@@ -4,7 +4,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ProvisioningService } from './provisioning.service';
-import type { ProvisionClientDto } from './provisioning.service';
+import { ProvisionClientDto } from './dto/provision-client.dto';
 
 @Controller('provisioning')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -12,12 +12,8 @@ import type { ProvisionClientDto } from './provisioning.service';
 export class ProvisioningController {
   constructor(private readonly provisioningService: ProvisioningService) {}
 
-  /**
-   * One-click: create client + server + Cloudflare tunnel + agent token + notification
-   * POST /provisioning/client
-   */
   @Post('client')
-  async provisionClient(@Body() dto: Record<string, any>) {
+  async provisionClient(@Body() dto: ProvisionClientDto) {
     return this.provisioningService.provisionClient(dto as any);
   }
 }

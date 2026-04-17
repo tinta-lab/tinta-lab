@@ -8,13 +8,14 @@ import { ServersGateway } from './servers.gateway';
 import { Server } from './entities/server.entity';
 import { ClientsModule } from '../clients/clients.module';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Server]),
     ClientsModule,
     CloudflareModule,
-    // JwtModule needed for WsJwtGuard in ServersGateway
+    AuthModule,  // provides TokenBlacklistService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

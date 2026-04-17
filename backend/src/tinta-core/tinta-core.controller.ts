@@ -5,6 +5,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { TintaCoreService } from './tinta-core.service';
 import { GoldenTemplateService } from './golden-template.service';
+import { CreateTemplateDto } from './dto/create-template.dto';
+import { ExecuteCommandDto } from './dto/execute-command.dto';
 
 @Controller('tinta-core')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -36,39 +38,27 @@ export class TintaCoreController {
     return { count: ids.length, clientIds: ids };
   }
 
-  // Admin: execute action on an agent
   @Post('execute/:clientId')
   @Roles(UserRole.ADMIN)
-  async execute(@Param('clientId') clientId: string, @Body() command: Record<string, any>) {
-    return this.coreService.executeAction(clientId, command as any);
+  async execute(@Param('clientId') clientId: string, @Body() dto: ExecuteCommandDto) {
+    return this.coreService.executeAction(clientId, dto as any);
   }
 
-  // Admin: apply golden template to a client
   @Post('template/:clientId/:slug')
   @Roles(UserRole.ADMIN)
   async applyTemplate(@Param('clientId') clientId: string, @Param('slug') slug: string) {
     return this.coreService.applyGoldenTemplate(clientId, slug);
   }
 
-  // Admin: list all golden templates
   @Get('templates')
   @Roles(UserRole.ADMIN)
   async getTemplates() {
     return this.templateService.findAll();
   }
 
-  // Admin: create golden template
   @Post('templates')
   @Roles(UserRole.ADMIN)
-  async createTemplate(
-    @Body() body: {
-      slug: string;
-      name: string;
-      description?: string;
-      automation: Record<string, any>;
-      requiredEntities?: string[];
-    },
-  ) {
-    return this.templateService.create(body);
+  async createTemplate(@Body() dto: CreateTemplateDto) {
+    return this.templateService.create(dto);
   }
 }

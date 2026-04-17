@@ -91,6 +91,9 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
       return { success: false, error: 'Token revoked' };
     }
 
+    // Bind clientId to socket data — used by heartbeat/metrics to avoid spoofing
+    client.data.clientId = clientId;
+
     // Register in memory
     this.agents.set(clientId, client);
 
@@ -125,26 +128,22 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   @SubscribeMessage('heartbeat')
-  async handleHeartbeat(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { clientId: string; haVersion?: string },
-  ) {
-    const { clientId, haVersion } = payload;
+  async handleHeartbeat(@ConnectedSocket() client: Socket) {
+    // clientId is taken from socket.data (set during register) — prevents spoofing
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId) return { ok: false };
+
     await this.sessionRepo.update(
       { clientId },
-      {
-        lastHeartbeatAt: new Date(),
-        status: AgentStatus.CONNECTED,
-        ...(haVersion ? { haVersion } : {}),
-      },
+      { lastHeartbeatAt: new Date(), status: AgentStatus.CONNECTED },
     );
     return { ok: true };
   }
 
   @SubscribeMessage('metrics')
   async handleMetrics(
+    @ConnectedSocket() client: Socket,
     @MessageBody() payload: {
-      clientId: string;
       cpuPercent: number;
       memPercent: number;
       diskPercent: number;
@@ -153,17 +152,33 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
       uptimeSeconds: number;
     },
   ) {
-    const { clientId, ...metrics } = payload;
-    await this.sessionRepo.update({ clientId }, { metrics } as any);
-    this.server.to('dashboard').emit('agent:metrics', payload);
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId) return;
+
+    await this.sessionRepo.update({ clientId }, { metrics: payload } as any);
+    this.server.to('dashboard').emit('agent:metrics', { clientId, ...payload });
   }
 
   @SubscribeMessage('state_update')
   async handleStateUpdate(
-    @MessageBody() payload: { clientId: string; entities: Record<string, any> },
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { entities: Record<string, any> },
   ) {
-    // Broadcast to frontend dashboard subscribers
-    this.server.to('dashboard').emit('agent:state', payload);
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId) return;
+
+    this.server.to('dashboard').emit('agent:state', { clientId, ...payload });
+  }
+
+  // Forcefully disconnect a running agent (called on token rotation)
+  disconnectAgent(clientId: string, reason = 'Disconnected by server'): void {
+    const socket = this.agents.get(clientId);
+    if (socket) {
+      socket.emit('reconnect_required', { reason });
+      socket.disconnect();
+      this.agents.delete(clientId);
+      this.logger.log(`Agent ${clientId} force-disconnected: ${reason}`);
+    }
   }
 
   // Called from TintaCoreService to send a command to an agent
