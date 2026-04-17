@@ -158,8 +158,6 @@ export default function SupportDashboard() {
 
   if (!user) return null;
 
-  return (
-
   const online = servers.filter(s => s.status === 'online').length;
   const withAccess = servers.filter(s => s.accessEnabled).length;
 
