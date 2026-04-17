@@ -7,9 +7,10 @@ import { AccessLog } from './entities/access-log.entity';
 import { ServersModule } from '../servers/servers.module';
 import { ClientsModule } from '../clients/clients.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { TintaCoreModule } from '../tinta-core/tinta-core.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AccessLog]), ServersModule, ClientsModule, NotificationsModule],
+  imports: [TypeOrmModule.forFeature([AccessLog]), ServersModule, ClientsModule, NotificationsModule, TintaCoreModule],
   providers: [AccessService, AccessScheduler],
   controllers: [AccessController],
   exports: [AccessService],

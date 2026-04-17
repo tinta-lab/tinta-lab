@@ -5,8 +5,8 @@ import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, RefreshCw, LogOut, Cpu, HardDrive, MemoryStick,
-  Wifi, WifiOff, Play, BookTemplate, X, ChevronRight, Loader2,
+  ArrowLeft, RefreshCw, LogOut, Cpu,
+  Wifi, WifiOff, Play, BookTemplate, X, ChevronRight, Loader2, Copy, Check,
 } from 'lucide-react';
 import { AgentSession, GoldenTemplate } from '@/types';
 
@@ -33,16 +33,40 @@ function MetricBar({ value, label, color }: { value: number; label: string; colo
   );
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+      <div className={`bg-slate-800 border border-slate-700 rounded-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-lg'} max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 sticky top-0 bg-slate-800">
           <h2 className="font-semibold">{title}</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={18} /></button>
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
+    </div>
+  );
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button onClick={copy} className="shrink-0 p-1 rounded text-slate-500 hover:text-slate-300 transition-colors">
+      {copied ? <Check size={13} className="text-green-400" /> : <Copy size={13} />}
+    </button>
+  );
+}
+
+function CopyRow({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 bg-slate-900/50 rounded-lg px-3 py-2">
+      <span className="text-slate-500 text-xs w-32 shrink-0">{label}</span>
+      <span className={`flex-1 text-xs text-slate-300 truncate ${mono ? 'font-mono' : ''}`}>{value}</span>
+      <CopyButton value={value} />
     </div>
   );
 }
@@ -345,28 +369,78 @@ export default function AgentsPage() {
 
       {/* One-Click Provision Modal */}
       {showProvision && (
-        <Modal title="Новый клиент — One-Click Provision" onClose={() => { setShowProvision(false); setProvisionResult(null); }}>
+        <Modal title="Новый клиент — One-Click Provision" wide={!!provisionResult} onClose={() => { setShowProvision(false); setProvisionResult(null); }}>
           {provisionResult ? (
-            <div className="space-y-4">
-              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-green-400 text-sm font-medium">
-                Клиент успешно провижинен
+            <div className="space-y-5">
+              {/* Success banner */}
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 text-green-400 text-sm font-medium flex items-center gap-2">
+                <Check size={15} /> Клиент успешно провижинен
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Client ID</span>
-                  <span className="font-mono text-xs text-slate-300">{provisionResult.clientId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Dashboard URL</span>
-                  <span className="text-teal-400">{provisionResult.dashboardUrl}</span>
-                </div>
-              </div>
+
+              {/* Step 1 */}
               <div>
-                <div className="text-xs text-slate-400 mb-1.5">Команда установки агента</div>
-                <pre className="bg-slate-900 rounded-lg p-3 text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap">
-                  {provisionResult.agentInstallCommand}
-                </pre>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                  <span className="text-sm font-medium">Добавьте репозиторий в Home Assistant</span>
+                </div>
+                <p className="text-xs text-slate-400 mb-2 ml-7">
+                  Настройки → Аддоны → Магазин → ⋮ (три точки) → Репозитории
+                </p>
+                <div className="ml-7">
+                  <CopyRow label="Репозиторий" value="https://github.com/tinta-lab/tinta-agent" mono={false} />
+                </div>
               </div>
+
+              {/* Step 2 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                  <span className="text-sm font-medium">Установите аддон Tinta Agent</span>
+                </div>
+                <p className="text-xs text-slate-400 ml-7">Найдите «Tinta Agent» в магазине аддонов и нажмите «Установить».</p>
+              </div>
+
+              {/* Step 3 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                  <span className="text-sm font-medium">Заполните конфигурацию аддона</span>
+                </div>
+                <div className="ml-7 space-y-1.5">
+                  <CopyRow label="tinta_client_id" value={provisionResult.clientId} />
+                  <CopyRow label="tinta_agent_token" value={provisionResult.agentToken} />
+                  <CopyRow label="tinta_core_ws" value="wss://api.tinta-lab.de/tinta/ws" />
+                  <CopyRow label="tinta_external_url" value={provisionResult.subdomain ? `https://${provisionResult.subdomain}` : ''} />
+                </div>
+              </div>
+
+              {/* Step 4 */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">4</span>
+                  <span className="text-sm font-medium">Нажмите «Запустить»</span>
+                </div>
+                <p className="text-xs text-slate-400 ml-7">Аддон подключится к Home Assistant и к платформе Tinta Lab автоматически.</p>
+              </div>
+
+              {/* Dashboard link */}
+              {provisionResult.dashboardUrl && (
+                <div className="bg-slate-900/50 rounded-xl p-3 flex items-center justify-between text-sm">
+                  <span className="text-slate-400 text-xs">Dashboard клиента</span>
+                  <a href={provisionResult.dashboardUrl} target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:underline text-xs">{provisionResult.dashboardUrl}</a>
+                </div>
+              )}
+
+              {/* Docker alternative (collapsed) */}
+              {provisionResult.agentInstallCommand && (
+                <details className="group">
+                  <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 transition-colors">Альтернатива: Docker-команда</summary>
+                  <pre className="mt-2 bg-slate-900 rounded-lg p-3 text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap">
+                    {provisionResult.agentInstallCommand}
+                  </pre>
+                </details>
+              )}
+
               <button
                 onClick={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '', city: '', serverName: '', subdomain: '' }); }}
                 className="w-full py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors"

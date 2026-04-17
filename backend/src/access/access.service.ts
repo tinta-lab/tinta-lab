@@ -5,6 +5,7 @@ import { AccessLog } from './entities/access-log.entity';
 import { ServersService } from '../servers/servers.service';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
+import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
 
 @Injectable()
 export class AccessService {
@@ -14,6 +15,7 @@ export class AccessService {
     private serversService: ServersService,
     private configService: ConfigService,
     @Optional() private notifications: NotificationsService,
+    @Optional() private agentGateway: TintaAgentGateway,
   ) {}
 
   // Throws ForbiddenException if the server does not belong to the given user
@@ -39,6 +41,9 @@ export class AccessService {
     });
     const saved = await this.accessLogRepository.save(log);
 
+    // Enable tinta-support user on the client's HA
+    this.agentGateway?.setSupportAccess(server.client?.id, true);
+
     // Telegram: notify support team
     if (server.client?.user) {
       this.notifications?.notifyAccessGranted({
@@ -59,6 +64,12 @@ export class AccessService {
       { server: { id: serverId }, isRevoked: false },
       { isRevoked: true, revokedAt: new Date() },
     );
+
+    // Disable tinta-support user on the client's HA
+    try {
+      const serverForAccess = await this.serversService.findById(serverId);
+      this.agentGateway?.setSupportAccess(serverForAccess.client?.id, false);
+    } catch { /* agent may be offline — user will be disabled on next reconnect */ }
 
     // Telegram: notify support team
     try {
