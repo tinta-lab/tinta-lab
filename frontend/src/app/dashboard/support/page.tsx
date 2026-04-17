@@ -5,7 +5,74 @@ import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
 import api from '@/lib/api';
 import { Server } from '@/types';
-import { LogOut, RefreshCw, Wifi, WifiOff, Clock, Shield, ExternalLink, AlertCircle } from 'lucide-react';
+import { LogOut, RefreshCw, Wifi, WifiOff, Clock, Shield, ExternalLink, AlertCircle, Copy, Check, X, KeyRound } from 'lucide-react';
+
+interface AccessCredentials {
+  serverId: string;
+  url: string;
+  password: string;
+}
+
+function CredentialsModal({ creds, onClose }: { creds: AccessCredentials; onClose: () => void }) {
+  const [copied, setCopied] = useState<'url' | 'pass' | null>(null);
+
+  const copy = (text: string, field: 'url' | 'pass') => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(field);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
+  const openHA = () => {
+    window.open(creds.url, '_blank', 'noopener,noreferrer');
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 w-full max-w-md shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            <KeyRound size={18} className="text-amber-400" />
+            <span className="font-semibold">Данные для входа</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <X size={18} />
+          </button>
+        </div>
+        <p className="text-sm text-slate-400 mb-5">
+          Используйте логин <span className="font-mono text-white">tinta-support</span> и временный пароль ниже. Пароль меняется при каждом открытии доступа.
+        </p>
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 rounded-lg px-4 py-3">
+            <div>
+              <div className="text-xs text-slate-500 mb-0.5">Адрес</div>
+              <div className="font-mono text-sm text-white">{creds.url}</div>
+            </div>
+            <button onClick={() => copy(creds.url, 'url')} className="text-slate-400 hover:text-white ml-3 flex-shrink-0">
+              {copied === 'url' ? <Check size={15} className="text-green-400" /> : <Copy size={15} />}
+            </button>
+          </div>
+          <div className="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 rounded-lg px-4 py-3">
+            <div>
+              <div className="text-xs text-slate-500 mb-0.5">Пароль</div>
+              <div className="font-mono text-sm text-white tracking-wider">{creds.password}</div>
+            </div>
+            <button onClick={() => copy(creds.password, 'pass')} className="text-slate-400 hover:text-white ml-3 flex-shrink-0">
+              {copied === 'pass' ? <Check size={15} className="text-green-400" /> : <Copy size={15} />}
+            </button>
+          </div>
+        </div>
+        <button
+          onClick={openHA}
+          className="w-full py-2.5 rounded-xl bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 font-medium flex items-center justify-center gap-2 transition-all"
+        >
+          <ExternalLink size={15} /> Открыть Home Assistant
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function StatusDot({ status }: { status: Server['status'] }) {
   const map = {
@@ -47,6 +114,7 @@ export default function SupportDashboard() {
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<AccessCredentials | null>(null);
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
@@ -77,20 +145,27 @@ export default function SupportDashboard() {
   const handleConnect = async (server: Server) => {
     setConnecting(server.id);
     try {
-      await api.post(`/access/connect/${server.id}`);
+      const { data } = await api.post(`/access/connect/${server.id}`);
+      const url = server.localUrl || `https://${server.subdomain}`;
+      setCredentials({
+        serverId: server.id,
+        url,
+        password: data?.supportPassword ?? '',
+      });
     } catch { /* log silently */ }
-    const url = server.localUrl || `https://${server.subdomain}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
     setConnecting(null);
   };
 
   if (!user) return null;
+
+  return (
 
   const online = servers.filter(s => s.status === 'online').length;
   const withAccess = servers.filter(s => s.accessEnabled).length;
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
+      {credentials && <CredentialsModal creds={credentials} onClose={() => setCredentials(null)} />}
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -214,7 +289,7 @@ export default function SupportDashboard() {
                   >
                     {connecting === server.id
                       ? <RefreshCw size={14} className="animate-spin" />
-                      : <><ExternalLink size={14} /> Подключиться к HA{server.localUrl && <span className="text-xs opacity-60 ml-1">(локально)</span>}</>
+                      : <><KeyRound size={14} /> Получить доступ{server.localUrl && <span className="text-xs opacity-60 ml-1">(локально)</span>}</>
                     }
                   </button>
                 ) : (

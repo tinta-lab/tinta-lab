@@ -35,6 +35,9 @@ export class AccessLog {
   isRevoked: boolean;
 
   @Column({ nullable: true, type: 'text' })
+  supportPassword: string;
+
+  @Column({ nullable: true, type: 'text' })
   notes: string;
 
   @CreateDateColumn()

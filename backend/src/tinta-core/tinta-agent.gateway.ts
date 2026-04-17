@@ -202,10 +202,10 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   // Enable or disable the tinta-support HA user on the agent's Home Assistant
-  setSupportAccess(clientId: string, enabled: boolean): void {
+  setSupportAccess(clientId: string, enabled: boolean, password?: string): void {
     const socket = this.agents.get(clientId);
     if (socket) {
-      socket.emit('set_support_access', { enabled });
+      socket.emit('set_support_access', { enabled, password });
       this.logger.log(`Support access ${enabled ? 'ENABLED' : 'DISABLED'} → agent ${clientId}`);
     }
   }

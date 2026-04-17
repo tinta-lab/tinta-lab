@@ -1,4 +1,5 @@
 import { Injectable, Optional, ForbiddenException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AccessLog } from './entities/access-log.entity';
@@ -30,6 +31,8 @@ export class AccessService {
     const timeoutMinutes = this.configService.get<number>('SUPPORT_ACCESS_TIMEOUT', 60);
     const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
 
+    const supportPassword = randomBytes(9).toString('base64url'); // 12-char URL-safe random
+
     await this.serversService.setAccessEnabled(serverId, true, expiresAt);
 
     const server = await this.serversService.findById(serverId);
@@ -38,11 +41,12 @@ export class AccessService {
       grantedBy: { id: grantedByUserId } as any,
       grantedAt: new Date(),
       expiresAt,
+      supportPassword,
     });
     const saved = await this.accessLogRepository.save(log);
 
-    // Enable tinta-support user on the client's HA
-    this.agentGateway?.setSupportAccess(server.client?.id, true);
+    // Enable tinta-support user with fresh password on the client's HA
+    this.agentGateway?.setSupportAccess(server.client?.id, true, supportPassword);
 
     // Telegram: notify support team
     if (server.client?.user) {
@@ -65,10 +69,11 @@ export class AccessService {
       { isRevoked: true, revokedAt: new Date() },
     );
 
-    // Disable tinta-support user on the client's HA
+    // Disable tinta-support user and scramble password so old credentials stop working
     try {
       const serverForAccess = await this.serversService.findById(serverId);
-      this.agentGateway?.setSupportAccess(serverForAccess.client?.id, false);
+      const scramble = randomBytes(16).toString('hex');
+      this.agentGateway?.setSupportAccess(serverForAccess.client?.id, false, scramble);
     } catch { /* agent may be offline — user will be disabled on next reconnect */ }
 
     // Telegram: notify support team
@@ -102,6 +107,13 @@ export class AccessService {
         await this.revokeAccess(server.id, 'expired');
       }
     }
+  }
+
+  async getActiveAccessForServer(serverId: string): Promise<AccessLog | null> {
+    return this.accessLogRepository.findOne({
+      where: { server: { id: serverId }, isRevoked: false },
+      order: { grantedAt: 'DESC' },
+    });
   }
 
   async getLogsForServer(serverId: string): Promise<AccessLog[]> {

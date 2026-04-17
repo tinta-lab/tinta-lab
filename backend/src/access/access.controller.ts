@@ -36,11 +36,12 @@ export class AccessController {
     return this.accessService.revokeAccess(serverId);
   }
 
-  // SUPPORT records their connection (called before opening HA URL)
+  // SUPPORT records their connection and gets credentials
   @Post('connect/:serverId')
   @Roles(UserRole.SUPPORT, UserRole.ADMIN)
-  recordConnection(@Param('serverId') serverId: string, @Request() req: any) {
-    return this.accessService.recordConnection(serverId, req.user.id);
+  async recordConnection(@Param('serverId') serverId: string, @Request() req: any) {
+    await this.accessService.recordConnection(serverId, req.user.id);
+    return this.accessService.getActiveAccessForServer(serverId);
   }
 
   // ADMIN/SUPPORT see access logs for any server
