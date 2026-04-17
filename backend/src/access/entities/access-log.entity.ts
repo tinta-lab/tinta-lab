@@ -37,6 +37,9 @@ export class AccessLog {
   @Column({ nullable: true, type: 'text' })
   supportPassword: string;
 
+  @Column({ nullable: true, type: 'simple-json' })
+  activityLog: string[] | null;
+
   @Column({ nullable: true, type: 'text' })
   notes: string;
 

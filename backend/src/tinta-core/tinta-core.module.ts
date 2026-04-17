@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { GoldenTemplate } from './entities/golden-template.entity';
 import { AgentSession } from './entities/agent-session.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
+import { AccessLog } from '../access/entities/access-log.entity';
 import { TintaAgentGateway } from './tinta-agent.gateway';
 import { EntityMapperService } from './entity-mapper.service';
 import { GoldenTemplateService } from './golden-template.service';
@@ -15,7 +16,7 @@ import { AgentMonitorScheduler } from './agent-monitor.scheduler';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([GoldenTemplate, AgentSession, Ticket]),
+    TypeOrmModule.forFeature([GoldenTemplate, AgentSession, Ticket, AccessLog]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

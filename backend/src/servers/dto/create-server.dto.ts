@@ -7,7 +7,8 @@ export class CreateServerDto {
   name: string;
 
   @IsString()
-  @Matches(/^[a-z0-9-]{2,63}$/, { message: 'subdomain must be lowercase alphanumeric with hyphens' })
+  @MaxLength(253)
+  @Matches(/^[a-z0-9][a-z0-9.\-]{0,251}[a-z0-9]$/, { message: 'subdomain must be a valid hostname or full domain' })
   subdomain: string;
 
   @IsString()

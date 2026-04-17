@@ -15,6 +15,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaCommand } from './entity-mapper.service';
+import { AccessLog } from '../access/entities/access-log.entity';
 
 interface AgentRegisterPayload {
   clientId: string;
@@ -38,6 +39,8 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
   constructor(
     @InjectRepository(AgentSession)
     private readonly sessionRepo: Repository<AgentSession>,
+    @InjectRepository(AccessLog)
+    private readonly accessLogRepo: Repository<AccessLog>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
   ) {}
@@ -202,12 +205,26 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
   }
 
   // Enable or disable the tinta-support HA user on the agent's Home Assistant
-  setSupportAccess(clientId: string, enabled: boolean, password?: string): void {
+  setSupportAccess(clientId: string, enabled: boolean, password?: string, grantedAt?: string, accessLogId?: string): void {
     const socket = this.agents.get(clientId);
     if (socket) {
-      socket.emit('set_support_access', { enabled, password });
+      socket.emit('set_support_access', { enabled, password, grantedAt, accessLogId });
       this.logger.log(`Support access ${enabled ? 'ENABLED' : 'DISABLED'} → agent ${clientId}`);
     }
+  }
+
+  @SubscribeMessage('activity_log')
+  async handleActivityLog(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { accessLogId: string; entries: string[] },
+  ) {
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId || !payload?.accessLogId) return;
+    await this.accessLogRepo.update(
+      { id: payload.accessLogId },
+      { activityLog: payload.entries ?? [] } as any,
+    );
+    this.logger.log(`Activity log stored for ${payload.accessLogId}: ${payload.entries?.length ?? 0} entries`);
   }
 
   isConnected(clientId: string): boolean {

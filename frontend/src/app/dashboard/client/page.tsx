@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
 import api from '@/lib/api';
 import { Server } from '@/types';
-import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, Wifi, WifiOff, CheckCircle, XCircle } from 'lucide-react';
+import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, Wifi, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface AccessLog {
@@ -18,6 +18,7 @@ interface AccessLog {
   grantedBy: { firstName: string; lastName: string };
   accessedBy: { firstName: string; lastName: string } | null;
   server: { name: string };
+  activityLog: string[] | null;
 }
 
 function StatusDot({ status }: { status: Server['status'] }) {
@@ -59,6 +60,34 @@ function AccessCountdown({ expiresAt, onExpire }: { expiresAt: string; onExpire:
       <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
       </div>
+    </div>
+  );
+}
+
+function ActivityLogSection({ entries }: { entries: string[] }) {
+  const [open, setOpen] = useState(false);
+  if (!entries || entries.length === 0) {
+    return <p className="text-xs text-slate-600 italic pl-5 mt-1">Действий не зафиксировано</p>;
+  }
+  return (
+    <div className="pl-5 mt-2">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+      >
+        <Activity size={11} className="text-teal-500" />
+        Действия саппорта ({entries.length})
+        {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+      </button>
+      {open && (
+        <ul className="mt-2 space-y-0.5">
+          {entries.map((e, i) => (
+            <li key={i} className="text-xs text-slate-400 font-mono bg-slate-800/40 rounded px-2 py-1">
+              {e}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -346,6 +375,11 @@ export default function ClientDashboard() {
                         </>
                       )}
                     </div>
+
+                    {/* Activity log — only for completed sessions */}
+                    {!isActive && log.activityLog !== undefined && (
+                      <ActivityLogSection entries={log.activityLog ?? []} />
+                    )}
                   </div>
                 );
               })}

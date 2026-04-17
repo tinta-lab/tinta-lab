@@ -63,18 +63,30 @@ export class AccessService {
   }
 
   async revokeAccess(serverId: string, reason: 'manual' | 'expired' = 'manual'): Promise<void> {
+    // Capture active log BEFORE marking as revoked (needed for activity log fetch)
+    const activeLog = await this.accessLogRepository.findOne({
+      where: { server: { id: serverId }, isRevoked: false },
+      order: { grantedAt: 'DESC' },
+    });
+
     await this.serversService.setAccessEnabled(serverId, false);
     await this.accessLogRepository.update(
       { server: { id: serverId }, isRevoked: false },
       { isRevoked: true, revokedAt: new Date() },
     );
 
-    // Disable tinta-support user and scramble password so old credentials stop working
+    // Disable tinta-support user, scramble password, request activity log from agent
     try {
       const serverForAccess = await this.serversService.findById(serverId);
       const scramble = randomBytes(16).toString('hex');
-      this.agentGateway?.setSupportAccess(serverForAccess.client?.id, false, scramble);
-    } catch { /* agent may be offline — user will be disabled on next reconnect */ }
+      this.agentGateway?.setSupportAccess(
+        serverForAccess.client?.id,
+        false,
+        scramble,
+        activeLog?.grantedAt?.toISOString(),
+        activeLog?.id,
+      );
+    } catch { /* agent may be offline */ }
 
     // Telegram: notify support team
     try {
