@@ -39,7 +39,7 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
         password: config.get('DB_PASSWORD'),
         database: config.get('DB_NAME', 'tinta_smart'),
         entities: [User, Client, Server, AccessLog, Ticket, GoldenTemplate, AgentSession],
-        synchronize: true, // только для dev! в prod = false + migrations
+        synchronize: config.get('NODE_ENV') !== 'production',
         logging: false,
       }),
       inject: [ConfigService],

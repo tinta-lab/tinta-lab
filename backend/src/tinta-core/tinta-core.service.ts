@@ -1,11 +1,12 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, GoneException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaAgentGateway } from './tinta-agent.gateway';
-import { EntityMapperService, TintaCommand } from './entity-mapper.service';
+import { TintaCommand } from './entity-mapper.service';
 import { GoldenTemplateService } from './golden-template.service';
 
 @Injectable()
@@ -16,7 +17,6 @@ export class TintaCoreService {
     @InjectRepository(AgentSession)
     private readonly sessionRepo: Repository<AgentSession>,
     private readonly gateway: TintaAgentGateway,
-    private readonly entityMapper: EntityMapperService,
     private readonly templateService: GoldenTemplateService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
@@ -34,9 +34,11 @@ export class TintaCoreService {
   }
 
   // Provision: create/rotate agent token — disconnects any running agent with old token
-  async provisionAgent(clientId: string): Promise<{ agentToken: string }> {
+  async provisionAgent(clientId: string): Promise<{ agentToken: string; installToken: string }> {
     const existing = await this.sessionRepo.findOne({ where: { clientId } });
     const agentToken = this.generateAgentToken(clientId);
+    const installToken = randomUUID();
+    const installTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
 
     if (!existing) {
       const newSession = this.sessionRepo.create({
@@ -44,6 +46,8 @@ export class TintaCoreService {
         client: { id: clientId } as any,
         status: AgentStatus.DISCONNECTED,
         agentToken,
+        installToken,
+        installTokenExpiresAt,
         appliedTemplates: [],
       } as any);
       await this.sessionRepo.save(newSession as any);
@@ -53,23 +57,38 @@ export class TintaCoreService {
       await this.sessionRepo.update({ clientId }, {
         agentToken,
         status: AgentStatus.DISCONNECTED,
+        installToken,
+        installTokenExpiresAt,
       });
     }
 
     this.logger.log(`Agent provisioned for client ${clientId}${existing ? ' (token rotated)' : ''}`);
-    return { agentToken };
+    return { agentToken, installToken };
+  }
+
+  async getSessionByInstallToken(token: string): Promise<{ clientId: string; agentToken: string; installTokenExpiresAt: Date }> {
+    const session = await this.sessionRepo.findOne({ where: { installToken: token } });
+    if (!session) throw new NotFoundException('Install link not found');
+    if (!session.installTokenExpiresAt || session.installTokenExpiresAt < new Date()) {
+      throw new GoneException('Install link has expired');
+    }
+    return {
+      clientId: session.clientId,
+      agentToken: session.agentToken!,
+      installTokenExpiresAt: session.installTokenExpiresAt,
+    };
   }
 
   async getSession(clientId: string): Promise<AgentSession | null> {
     return this.sessionRepo.findOne({ where: { clientId }, relations: ['client'] });
   }
 
-  async getAllSessions(): Promise<AgentSession[]> {
-    return this.sessionRepo.find({ relations: ['client', 'client.user'] });
+  async getAllSessions(): Promise<Partial<AgentSession>[]> {
+    const sessions = await this.sessionRepo.find({ relations: ['client', 'client.user'] });
+    return sessions.map(({ agentToken, installToken, ...safe }) => safe);
   }
 
   async executeAction(clientId: string, command: TintaCommand): Promise<{ sent: boolean }> {
-    const haCommand = this.entityMapper.toHA(command);
     const sent = await this.gateway.executeCommand(clientId, command);
     if (!sent) this.logger.warn(`Client ${clientId} agent offline, command queued`);
     return { sent };

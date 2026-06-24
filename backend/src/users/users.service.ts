@@ -30,7 +30,19 @@ export class UsersService {
       role,
     });
 
-    return this.usersRepository.save(user);
+    const saved = await this.usersRepository.save(user);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...result } = saved;
+    return result as User;
+  }
+
+  // Only used by AuthService for login — explicitly selects password for comparison
+  async findByEmailWithPassword(email: string): Promise<User | null> {
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.password')
+      .where('user.email = :email', { email })
+      .getOne();
   }
 
   async findByEmail(email: string): Promise<User | null> {

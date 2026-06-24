@@ -13,10 +13,12 @@ import { GoldenTemplateSeedService } from './golden-template-seed.service';
 import { TintaCoreService } from './tinta-core.service';
 import { TintaCoreController } from './tinta-core.controller';
 import { AgentMonitorScheduler } from './agent-monitor.scheduler';
+import { ServersModule } from '../servers/servers.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([GoldenTemplate, AgentSession, Ticket, AccessLog]),
+    ServersModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

@@ -46,7 +46,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-xs text-slate-400 mb-1.5">{label}</label>
@@ -55,7 +55,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = 'w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500';
+const inputCls = (hasError = false) =>
+  `w-full bg-slate-900 border rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+    hasError ? 'border-red-500 focus:border-red-400' : 'border-slate-600 focus:border-teal-500'
+  }`;
 const selectCls = 'w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500';
 
 export default function AdminUsersPage() {
@@ -69,9 +72,11 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false);
 
   // form states
-  const [form, setForm] = useState({ email: '', firstName: '', lastName: '', role: 'client' as Role, password: '' });
+  const [form, setForm] = useState({ email: '', firstName: '', lastName: '', role: 'support' as Role, password: '' });
+  const [formErrors, setFormErrors] = useState<Partial<Record<'email'|'firstName'|'lastName'|'password', string>>>({});
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', role: 'client' as Role, isActive: true });
   const [newPassword, setNewPassword] = useState('');
+  const [pwError, setPwError] = useState('');
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
@@ -87,20 +92,32 @@ export default function AdminUsersPage() {
     } finally { setLoading(false); }
   };
 
+  const validateForm = () => {
+    const errs: typeof formErrors = {};
+    if (!form.firstName.trim()) errs.firstName = 'Обязательное поле';
+    if (!form.lastName.trim())  errs.lastName  = 'Обязательное поле';
+    if (!form.email.trim())     errs.email     = 'Обязательное поле';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Некорректный email';
+    if (!form.password)         errs.password  = 'Обязательное поле';
+    else if (form.password.length < 8) errs.password = 'Минимум 8 символов';
+    setFormErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleCreate = async () => {
-    if (!form.email || !form.password || !form.firstName || !form.lastName) {
-      toast.error('Заполните все поля');
-      return;
-    }
+    if (!validateForm()) return;
     setSaving(true);
     try {
       await api.post('/users', form);
       toast.success('Пользователь создан');
       setShowCreate(false);
-      setForm({ email: '', firstName: '', lastName: '', role: 'client', password: '' });
+      setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' });
+      setFormErrors({});
       await load();
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Ошибка создания');
+      const msg = e.response?.data?.message;
+      if (msg === 'Email already exists') toast.error('Email уже занят');
+      else toast.error(msg || 'Ошибка создания');
     } finally { setSaving(false); }
   };
 
@@ -117,13 +134,16 @@ export default function AdminUsersPage() {
   };
 
   const handleResetPassword = async () => {
-    if (!resetUser || !newPassword) { toast.error('Введите новый пароль'); return; }
+    if (!resetUser) return;
+    if (!newPassword) { setPwError('Введите новый пароль'); return; }
+    if (newPassword.length < 8) { setPwError('Минимум 8 символов'); return; }
     setSaving(true);
     try {
       await api.patch(`/users/${resetUser.id}/reset-password`, { password: newPassword });
       toast.success('Пароль изменён');
       setResetUser(null);
       setNewPassword('');
+      setPwError('');
     } catch { toast.error('Ошибка'); }
     finally { setSaving(false); }
   };
@@ -146,7 +166,7 @@ export default function AdminUsersPage() {
             <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors">
               <ArrowLeft size={18} />
             </button>
-            <span className="font-semibold">Tinta Smart</span>
+            <span className="font-semibold">Tinta Lab</span>
             <span className="text-slate-500 text-sm">/ Admin / Пользователи</span>
           </div>
           <div className="flex items-center gap-3">
@@ -235,37 +255,71 @@ export default function AdminUsersPage() {
 
       {/* Create modal */}
       {showCreate && (
-        <Modal title="Новый пользователь" onClose={() => setShowCreate(false)}>
-          <div className="space-y-4">
+        <Modal title="Новый пользователь" onClose={() => { setShowCreate(false); setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' }); setFormErrors({}); }}>
+          {/* autoComplete="off" + type="text" for email prevent browser from injecting saved admin credentials */}
+          <form autoComplete="off" onSubmit={e => { e.preventDefault(); handleCreate(); }} className="space-y-3.5">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Имя">
-                <input className={inputCls} value={form.firstName} onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))} placeholder="Имя" />
+              <Field label={<>Имя <span className="text-red-400">*</span></>}>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  className={inputCls(!!formErrors.firstName)}
+                  value={form.firstName}
+                  onChange={e => { setForm(f => ({ ...f, firstName: e.target.value })); setFormErrors(err => ({ ...err, firstName: '' })); }}
+                  placeholder="Max"
+                />
+                {formErrors.firstName && <p className="text-red-400 text-xs mt-0.5">{formErrors.firstName}</p>}
               </Field>
-              <Field label="Фамилия">
-                <input className={inputCls} value={form.lastName} onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))} placeholder="Фамилия" />
+              <Field label={<>Фамилия <span className="text-red-400">*</span></>}>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  className={inputCls(!!formErrors.lastName)}
+                  value={form.lastName}
+                  onChange={e => { setForm(f => ({ ...f, lastName: e.target.value })); setFormErrors(err => ({ ...err, lastName: '' })); }}
+                  placeholder="Müller"
+                />
+                {formErrors.lastName && <p className="text-red-400 text-xs mt-0.5">{formErrors.lastName}</p>}
               </Field>
             </div>
-            <Field label="Email">
-              <input className={inputCls} type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="email@example.com" />
+            <Field label={<>Email <span className="text-red-400">*</span></>}>
+              <input
+                type="text"
+                inputMode="email"
+                autoComplete="off"
+                className={inputCls(!!formErrors.email)}
+                value={form.email}
+                onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setFormErrors(err => ({ ...err, email: '' })); }}
+                placeholder="max@beispiel.de"
+              />
+              {formErrors.email && <p className="text-red-400 text-xs mt-0.5">{formErrors.email}</p>}
             </Field>
-            <Field label="Пароль">
-              <input className={inputCls} type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Минимум 8 символов" />
+            <Field label={<>Пароль <span className="text-red-400">*</span></>}>
+              <input
+                type="password"
+                autoComplete="new-password"
+                className={inputCls(!!formErrors.password)}
+                value={form.password}
+                onChange={e => { setForm(f => ({ ...f, password: e.target.value })); setFormErrors(err => ({ ...err, password: '' })); }}
+                placeholder="Минимум 8 символов"
+              />
+              {formErrors.password && <p className="text-red-400 text-xs mt-0.5">{formErrors.password}</p>}
             </Field>
             <Field label="Роль">
               <select className={selectCls} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
-                <option value="client">Клиент</option>
                 <option value="support">Поддержка</option>
                 <option value="sales">Продажи</option>
                 <option value="admin">Администратор</option>
+                <option value="client">Клиент</option>
               </select>
             </Field>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowCreate(false)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
-              <button onClick={handleCreate} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => { setShowCreate(false); setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' }); setFormErrors({}); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
                 {saving ? 'Создание...' : 'Создать'}
               </button>
             </div>
-          </div>
+          </form>
         </Modal>
       )}
 
@@ -275,10 +329,10 @@ export default function AdminUsersPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Имя">
-                <input className={inputCls} value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} />
+                <input className={inputCls()} value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} />
               </Field>
               <Field label="Фамилия">
-                <input className={inputCls} value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} />
+                <input className={inputCls()} value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} />
               </Field>
             </div>
             <Field label="Роль">
@@ -307,18 +361,27 @@ export default function AdminUsersPage() {
 
       {/* Reset password modal */}
       {resetUser && (
-        <Modal title={`Пароль: ${resetUser.firstName} ${resetUser.lastName}`} onClose={() => { setResetUser(null); setNewPassword(''); }}>
-          <div className="space-y-4">
-            <Field label="Новый пароль">
-              <input className={inputCls} type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Минимум 8 символов" autoFocus />
+        <Modal title={`Пароль: ${resetUser.firstName} ${resetUser.lastName}`} onClose={() => { setResetUser(null); setNewPassword(''); setPwError(''); }}>
+          <form autoComplete="off" onSubmit={e => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
+            <Field label={<>Новый пароль <span className="text-red-400">*</span></>}>
+              <input
+                type="password"
+                autoComplete="new-password"
+                className={inputCls(!!pwError)}
+                value={newPassword}
+                onChange={e => { setNewPassword(e.target.value); setPwError(''); }}
+                placeholder="Минимум 8 символов"
+                autoFocus
+              />
+              {pwError && <p className="text-red-400 text-xs mt-0.5">{pwError}</p>}
             </Field>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => { setResetUser(null); setNewPassword(''); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
-              <button onClick={handleResetPassword} disabled={saving} className="flex-1 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={() => { setResetUser(null); setNewPassword(''); setPwError(''); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
                 {saving ? 'Сохранение...' : 'Сменить пароль'}
               </button>
             </div>
-          </div>
+          </form>
         </Modal>
       )}
     </div>

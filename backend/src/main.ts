@@ -7,7 +7,12 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  app.enableCors({ origin: process.env.FRONTEND_URL || '*' });
+
+  const frontendUrl = process.env.FRONTEND_URL;
+  app.enableCors({
+    origin: frontendUrl ? [frontendUrl] : false,
+    credentials: true,
+  });
 
   const config = new DocumentBuilder()
     .setTitle('Tinta Smart API')
@@ -19,8 +24,15 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Server running on http://localhost:${process.env.PORT ?? 3000}`);
-  console.log(`Swagger: http://localhost:${process.env.PORT ?? 3000}/api/docs`);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+  console.log(`Server running on http://localhost:${port}`);
+
+  // Graceful shutdown — close DB connections and flush pending messages
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received — shutting down gracefully');
+    await app.close();
+    process.exit(0);
+  });
 }
 bootstrap();

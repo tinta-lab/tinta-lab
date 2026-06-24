@@ -8,6 +8,7 @@ import { TintaCoreModule } from '../tinta-core/tinta-core.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ProvisioningService } from './provisioning.service';
 import { ProvisioningController } from './provisioning.controller';
+import { InstallController } from './install.controller';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { ProvisioningController } from './provisioning.controller';
     NotificationsModule,
   ],
   providers: [ProvisioningService],
-  controllers: [ProvisioningController],
+  controllers: [ProvisioningController, InstallController],
   exports: [ProvisioningService],
 })
 export class ProvisioningModule {}

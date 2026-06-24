@@ -1,11 +1,25 @@
+# ── Environment ───────────────────────────────────────
 .env
 backend/.env
+frontend/.env.local
+
+# ── Backend ───────────────────────────────────────────
 backend/dist/
 backend/node_modules/
+
+# ── Frontend ──────────────────────────────────────────
 frontend/.next/
 frontend/node_modules/
+
+# ── Landing ───────────────────────────────────────────
+landing/.next/
+landing/node_modules/
+
+# ── Agent ─────────────────────────────────────────────
 tinta-agent/node_modules/
 tinta-agent/dist/
+
+# ── Data & logs ───────────────────────────────────────
 data/
 *.log
 .DS_Store

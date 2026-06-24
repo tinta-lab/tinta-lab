@@ -10,17 +10,17 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 
 const schema = z.object({
-  email: z.string().email('Неверный email'),
-  password: z.string().min(6, 'Минимум 6 символов'),
+  email: z.string().email('Введите корректный email'),
+  password: z.string().min(1, 'Введите пароль'),
 });
 
 type FormData = z.infer<typeof schema>;
 
-const ROLE_REDIRECT = {
-  admin: '/dashboard/admin',
+const ROLE_REDIRECT: Record<string, string> = {
+  admin:   '/dashboard/admin',
   support: '/dashboard/support',
-  sales: '/dashboard/sales',
-  client: '/dashboard/client',
+  sales:   '/dashboard/sales',
+  client:  '/dashboard/client',
 };
 
 export default function LoginPage() {
@@ -33,31 +33,35 @@ export default function LoginPage() {
     resolver: zodResolver(schema),
   });
 
-  useEffect(() => {
-    init();
-  }, [init]);
+  useEffect(() => { init(); }, [init]);
 
   useEffect(() => {
-    if (user) {
-      router.push(ROLE_REDIRECT[user.role]);
-    }
+    if (user) router.push(ROLE_REDIRECT[user.role] ?? '/dashboard/client');
   }, [user, router]);
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
       await login(data.email, data.password);
-      toast.success('Добро пожаловать!');
       const currentUser = useAuth.getState().user;
       if (currentUser) {
-        router.push(ROLE_REDIRECT[currentUser.role]);
+        window.location.href = ROLE_REDIRECT[currentUser.role] ?? '/dashboard/client';
       }
-    } catch {
-      toast.error('Неверный email или пароль');
+    } catch (e: any) {
+      if (e.response?.status === 429) {
+        toast.error('Слишком много попыток входа. Подождите немного.');
+      } else {
+        toast.error('Неверный email или пароль');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const inputCls = (hasError: boolean) =>
+    `w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border ${
+      hasError ? 'border-red-500 focus:border-red-400 focus:ring-red-500/30' : 'border-slate-600 focus:border-teal-500 focus:ring-teal-500/50'
+    } text-white placeholder-slate-500 focus:outline-none focus:ring-1 transition-all text-sm`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
@@ -65,55 +69,53 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tinta Smart" className="w-24 h-24 rounded-3xl mb-4 mx-auto shadow-lg shadow-teal-500/20" />
-          <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Smart</h1>
+          <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 rounded-3xl mb-4 mx-auto shadow-lg shadow-teal-500/20" />
+          <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Lab</h1>
           <p className="text-slate-400 text-sm mt-1">Система управления умным домом</p>
         </div>
 
-        {/* Card */}
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
           <h2 className="text-lg font-semibold text-white mb-6">Вход в систему</h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
               <input
                 {...register('email')}
                 type="email"
-                placeholder="admin@tinta-lab.de"
-                className="w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/50 transition-all text-sm"
+                autoComplete="email"
+                inputMode="email"
+                placeholder="ihr@email.de"
+                className={inputCls(!!errors.email)}
               />
-              {errors.email && (
-                <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>
-              )}
+              {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Пароль
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-sm font-medium text-slate-300">Пароль</label>
+              </div>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full px-4 py-2.5 pr-10 rounded-lg bg-slate-900/50 border border-slate-600 text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/50 transition-all text-sm"
+                  className={`${inputCls(!!errors.password)} pr-10`}
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition-colors"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>
-              )}
+              {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
             {/* Submit */}
@@ -129,6 +131,13 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          <p className="text-center text-slate-500 text-xs mt-5">
+            Забыли пароль?{' '}
+            <a href="mailto:support@tinta-lab.de" className="text-teal-400 hover:text-teal-300 transition-colors">
+              Напишите нам
+            </a>
+          </p>
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-4">
@@ -139,7 +148,7 @@ export default function LoginPage() {
         </p>
 
         <p className="text-center text-slate-600 text-xs mt-4">
-          Tinta Smart &copy; {new Date().getFullYear()}
+          Tinta Lab &copy; {new Date().getFullYear()}
         </p>
       </div>
     </div>

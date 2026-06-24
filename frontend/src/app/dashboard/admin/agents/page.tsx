@@ -8,6 +8,7 @@ import {
   ArrowLeft, RefreshCw, LogOut, Cpu,
   Wifi, WifiOff, Play, BookTemplate, X, ChevronRight, Loader2, Copy, Check,
 } from 'lucide-react';
+import { PhoneInput } from '@/components/PhoneInput';
 import { AgentSession, GoldenTemplate } from '@/types';
 
 function StatusDot({ status }: { status: AgentSession['status'] }) {
@@ -90,9 +91,10 @@ export default function AgentsPage() {
   const [applyingSlug, setApplyingSlug] = useState<string | null>(null);
   const [showProvision, setShowProvision] = useState(false);
   const [provision, setProvision] = useState({
-    email: '', password: '', firstName: '', lastName: '', phone: '',
+    email: '', password: '', firstName: '', lastName: '', phone: '+49',
     city: '', serverName: '', subdomain: '',
   });
+  const [provisionErrors, setProvisionErrors] = useState<Partial<Record<keyof typeof provision, string>>>({});
   const [provisioning, setProvisioning] = useState(false);
   const [provisionResult, setProvisionResult] = useState<any>(null);
 
@@ -126,7 +128,25 @@ export default function AgentsPage() {
     finally { setApplyingSlug(null); }
   };
 
+  const validateProvision = () => {
+    const errs: Partial<Record<keyof typeof provision, string>> = {};
+    if (!provision.firstName.trim()) errs.firstName = 'Обязательное поле';
+    if (!provision.lastName.trim())  errs.lastName  = 'Обязательное поле';
+    if (!provision.email.trim())     errs.email     = 'Обязательное поле';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(provision.email)) errs.email = 'Некорректный email';
+    if (!provision.password)         errs.password  = 'Обязательное поле';
+    else if (provision.password.length < 8) errs.password = 'Минимум 8 символов';
+    const digits = (provision.phone || '').replace(/\D/g, '');
+    if (digits.length < 7)           errs.phone     = 'Введите номер телефона';
+    if (!provision.serverName.trim()) errs.serverName = 'Обязательное поле';
+    if (!provision.subdomain.trim()) errs.subdomain = 'Обязательное поле';
+    else if (!/^[a-z0-9-]+$/.test(provision.subdomain)) errs.subdomain = 'Только латиница, цифры, дефис';
+    setProvisionErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const provisionClient = async () => {
+    if (!validateProvision()) return;
     setProvisioning(true);
     try {
       const { data } = await api.post('/provisioning/client', provision);
@@ -369,7 +389,7 @@ export default function AgentsPage() {
 
       {/* One-Click Provision Modal */}
       {showProvision && (
-        <Modal title="Новый клиент — One-Click Provision" wide={!!provisionResult} onClose={() => { setShowProvision(false); setProvisionResult(null); }}>
+        <Modal title="Новый клиент — One-Click Provision" wide={!!provisionResult} onClose={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '+49', city: '', serverName: '', subdomain: '' }); setProvisionErrors({}); }}>
           {provisionResult ? (
             <div className="space-y-5">
               {/* Success banner */}
@@ -377,7 +397,19 @@ export default function AgentsPage() {
                 <Check size={15} /> Клиент успешно провижинен
               </div>
 
+              {/* Magic Install Link */}
+              {provisionResult.installUrl && (
+                <div className="bg-teal-500/10 border border-teal-500/30 rounded-xl p-4 space-y-2">
+                  <div className="text-xs font-semibold text-teal-300 uppercase tracking-wider mb-1">Magic Install Link</div>
+                  <p className="text-xs text-slate-400">Отправьте эту ссылку клиенту — все параметры уже подставлены.</p>
+                  <CopyRow label="Ссылка" value={provisionResult.installUrl} mono={false} />
+                </div>
+              )}
+
               {/* Step 1 */}
+              <details>
+                <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-300 transition-colors">Ручная настройка (без ссылки)</summary>
+                <div className="mt-3 space-y-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <span className="w-5 h-5 rounded-full bg-teal-600 text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
@@ -410,7 +442,7 @@ export default function AgentsPage() {
                   <CopyRow label="tinta_client_id" value={provisionResult.clientId} />
                   <CopyRow label="tinta_agent_token" value={provisionResult.agentToken} />
                   <CopyRow label="tinta_core_ws" value="wss://api.tinta-lab.de/tinta/ws" />
-                  <CopyRow label="tinta_external_url" value={provisionResult.subdomain ? `https://${provisionResult.subdomain}` : ''} />
+                  <CopyRow label="tinta_external_url" value={provisionResult.dashboardUrl ?? ''} />
                 </div>
               </div>
 
@@ -422,6 +454,8 @@ export default function AgentsPage() {
                 </div>
                 <p className="text-xs text-slate-400 ml-7">Аддон подключится к Home Assistant и к платформе Tinta Lab автоматически.</p>
               </div>
+                </div>{/* end manual steps */}
+              </details>
 
               {/* Dashboard link */}
               {provisionResult.dashboardUrl && (
@@ -442,66 +476,141 @@ export default function AgentsPage() {
               )}
 
               <button
-                onClick={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '', city: '', serverName: '', subdomain: '' }); }}
+                onClick={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '+49', city: '', serverName: '', subdomain: '' }); setProvisionErrors({}); }}
                 className="w-full py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors"
               >
                 Готово
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            /* autoComplete="off" + type="text" for email prevent browser from injecting saved admin credentials */
+            <form autoComplete="off" onSubmit={e => { e.preventDefault(); provisionClient(); }} className="space-y-3.5">
+              {/* Name row */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Имя</label>
-                  <input value={provision.firstName} onChange={e => setProvision(p => ({ ...p, firstName: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="Макс" />
+                  <label className="block text-xs text-slate-400 mb-1">Имя <span className="text-red-400">*</span></label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={provision.firstName}
+                    onChange={e => { setProvision(p => ({ ...p, firstName: e.target.value })); setProvisionErrors(err => ({ ...err, firstName: '' })); }}
+                    className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.firstName ? 'border-red-500' : 'border-slate-600'}`}
+                    placeholder="Max"
+                  />
+                  {provisionErrors.firstName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.firstName}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Фамилия</label>
-                  <input value={provision.lastName} onChange={e => setProvision(p => ({ ...p, lastName: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="Мюллер" />
+                  <label className="block text-xs text-slate-400 mb-1">Фамилия <span className="text-red-400">*</span></label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={provision.lastName}
+                    onChange={e => { setProvision(p => ({ ...p, lastName: e.target.value })); setProvisionErrors(err => ({ ...err, lastName: '' })); }}
+                    className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.lastName ? 'border-red-500' : 'border-slate-600'}`}
+                    placeholder="Müller"
+                  />
+                  {provisionErrors.lastName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.lastName}</p>}
                 </div>
               </div>
+
+              {/* Email */}
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Email</label>
-                <input type="email" value={provision.email} onChange={e => setProvision(p => ({ ...p, email: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="max@example.de" />
+                <label className="block text-xs text-slate-400 mb-1">Email <span className="text-red-400">*</span></label>
+                <input
+                  type="text"
+                  inputMode="email"
+                  autoComplete="off"
+                  value={provision.email}
+                  onChange={e => { setProvision(p => ({ ...p, email: e.target.value })); setProvisionErrors(err => ({ ...err, email: '' })); }}
+                  className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.email ? 'border-red-500' : 'border-slate-600'}`}
+                  placeholder="max@beispiel.de"
+                />
+                {provisionErrors.email && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.email}</p>}
               </div>
+
+              {/* Password + Phone */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Пароль</label>
-                  <input type="password" value={provision.password} onChange={e => setProvision(p => ({ ...p, password: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="Минимум 8 символов" />
+                  <label className="block text-xs text-slate-400 mb-1">Пароль <span className="text-red-400">*</span></label>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={provision.password}
+                    onChange={e => { setProvision(p => ({ ...p, password: e.target.value })); setProvisionErrors(err => ({ ...err, password: '' })); }}
+                    className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.password ? 'border-red-500' : 'border-slate-600'}`}
+                    placeholder="Мин. 8 символов"
+                  />
+                  {provisionErrors.password && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.password}</p>}
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Телефон</label>
-                  <input value={provision.phone} onChange={e => setProvision(p => ({ ...p, phone: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="+49 151..." />
+                  <label className="block text-xs text-slate-400 mb-1">Город</label>
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    value={provision.city}
+                    onChange={e => setProvision(p => ({ ...p, city: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors"
+                    placeholder="Berlin"
+                  />
                 </div>
               </div>
+
+              {/* Phone */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Телефон <span className="text-red-400">*</span></label>
+                <PhoneInput
+                  size="sm"
+                  value={provision.phone}
+                  onChange={v => { setProvision(p => ({ ...p, phone: v })); setProvisionErrors(err => ({ ...err, phone: '' })); }}
+                  hasError={!!provisionErrors.phone}
+                />
+                {provisionErrors.phone && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.phone}</p>}
+              </div>
+
+              {/* Server */}
               <div className="border-t border-slate-700/50 pt-3">
-                <div className="text-xs text-slate-400 mb-2">Сервер / Home Assistant</div>
+                <div className="text-xs text-slate-400 mb-2 font-medium">Сервер / Home Assistant</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">Название сервера</label>
-                    <input value={provision.serverName} onChange={e => setProvision(p => ({ ...p, serverName: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="HAOS Mueller" />
+                    <label className="block text-xs text-slate-500 mb-1">Название сервера <span className="text-red-400">*</span></label>
+                    <input
+                      type="text"
+                      autoComplete="off"
+                      value={provision.serverName}
+                      onChange={e => { setProvision(p => ({ ...p, serverName: e.target.value })); setProvisionErrors(err => ({ ...err, serverName: '' })); }}
+                      className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.serverName ? 'border-red-500' : 'border-slate-600'}`}
+                      placeholder="Haus Müller"
+                    />
+                    {provisionErrors.serverName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.serverName}</p>}
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">Поддомен</label>
-                    <input value={provision.subdomain} onChange={e => setProvision(p => ({ ...p, subdomain: e.target.value }))}
-                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500" placeholder="mueller.tinta-lab.de" />
+                    <label className="block text-xs text-slate-500 mb-1">Поддомен <span className="text-red-400">*</span></label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        value={provision.subdomain}
+                        onChange={e => { setProvision(p => ({ ...p, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })); setProvisionErrors(err => ({ ...err, subdomain: '' })); }}
+                        className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.subdomain ? 'border-red-500' : 'border-slate-600'}`}
+                        placeholder="mueller"
+                      />
+                    </div>
+                    {provision.subdomain && !provisionErrors.subdomain && (
+                      <p className="text-slate-500 text-xs mt-0.5">{provision.subdomain}.tinta-lab.de</p>
+                    )}
+                    {provisionErrors.subdomain && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.subdomain}</p>}
                   </div>
                 </div>
               </div>
+
               <button
-                onClick={provisionClient}
-                disabled={provisioning || !provision.email || !provision.password || !provision.firstName || !provision.serverName || !provision.subdomain}
+                type="submit"
+                disabled={provisioning}
                 className="w-full py-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {provisioning ? <><Loader2 size={14} className="animate-spin" /> Провижинирую...</> : 'Провижинить клиента'}
               </button>
-            </div>
+            </form>
           )}
         </Modal>
       )}

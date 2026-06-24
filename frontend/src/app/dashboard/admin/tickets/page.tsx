@@ -115,7 +115,7 @@ export default function AdminTicketsPage() {
             <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors">
               <ArrowLeft size={18} />
             </button>
-            <span className="font-semibold">Tinta Smart</span>
+            <span className="font-semibold">Tinta Lab</span>
             <span className="text-slate-500 text-sm">/ Admin / Тикеты</span>
           </div>
           <div className="flex items-center gap-3">

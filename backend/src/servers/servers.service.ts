@@ -52,6 +52,23 @@ export class ServersService {
     return this.serversRepository.find({ relations: ['client', 'client.user'] });
   }
 
+  // Support role: only accessible servers, no sensitive infra fields, no client PII beyond name
+  async findAccessibleForSupport(): Promise<Record<string, any>[]> {
+    const servers = await this.serversRepository.find({
+      where: { accessEnabled: true },
+      relations: ['client', 'client.user'],
+    });
+    return servers.map(({ localUrl, tunnelToken, tunnelId, cfDnsRecordId, ...safe }) => ({
+      ...safe,
+      client: safe.client ? {
+        id: safe.client.id,
+        user: safe.client.user
+          ? { id: safe.client.user.id, firstName: safe.client.user.firstName, lastName: safe.client.user.lastName }
+          : undefined,
+      } : undefined,
+    }));
+  }
+
   async findByClientId(clientId: string): Promise<Server[]> {
     return this.serversRepository.find({
       where: { client: { id: clientId } },

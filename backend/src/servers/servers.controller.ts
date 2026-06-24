@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, HttpCode } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request, HttpCode, ForbiddenException } from '@nestjs/common';
 import { ServersService } from './servers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -24,7 +24,10 @@ export class ServersController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPPORT)
-  findAll() {
+  findAll(@Request() req: any) {
+    if (req.user.role === UserRole.SUPPORT) {
+      return this.serversService.findAccessibleForSupport();
+    }
     return this.serversService.findAll();
   }
 
@@ -37,8 +40,26 @@ export class ServersController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.SUPPORT)
-  findOne(@Param('id') id: string) {
-    return this.serversService.findById(id);
+  async findOne(@Param('id') id: string, @Request() req: any) {
+    const server = await this.serversService.findById(id);
+    // Support may only access details of servers with active access
+    if (req.user.role === UserRole.SUPPORT && !server.accessEnabled) {
+      throw new ForbiddenException('Access to this server is not currently granted');
+    }
+    if (req.user.role === UserRole.SUPPORT) {
+      // Strip sensitive infra fields before returning to support
+      const { localUrl, tunnelToken, tunnelId, cfDnsRecordId, ...safe } = server as any;
+      return {
+        ...safe,
+        client: safe.client ? {
+          id: safe.client.id,
+          user: safe.client.user
+            ? { id: safe.client.user.id, firstName: safe.client.user.firstName, lastName: safe.client.user.lastName }
+            : undefined,
+        } : undefined,
+      };
+    }
+    return server;
   }
 
   @Patch(':id')

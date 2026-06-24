@@ -245,7 +245,8 @@ tinta-agent/
 ### Tinta Core (admin only)
 | Метод | URL | Описание |
 |-------|-----|----------|
-| POST | `/provisioning/client` | One-Click провиженинг клиента |
+| POST | `/provisioning/client` | One-Click провиженинг (возвращает installUrl) |
+| GET | `/install/:token` | Публичный — конфиг для Magic Install Link (48 ч) |
 | POST | `/tinta-core/provision/:clientId` | Генерировать Agent JWT |
 | GET | `/tinta-core/sessions` | Все сессии агентов |
 | GET | `/tinta-core/connected` | Онлайн агенты |
@@ -274,8 +275,13 @@ Admin → POST /provisioning/client
   │           └── Create CNAME DNS record
   ├── TintaCoreService.provisionAgent() → generate JWT (365d)
   ├── Apply default golden templates (non-blocking)
+  ├── Generate installToken (UUID, 48h TTL) → installUrl = /install/:token
   └── NotificationsService.notifyProvisioningComplete() → Telegram
-Response: { clientId, agentToken, tunnelToken, dashboardUrl, agentInstallCommand }
+Response: { clientId, agentToken, tunnelToken, dashboardUrl, installUrl }
+
+GET /install/:token (public, 48h)
+  └── Return { clientId, agentToken, coreWs, haHost, haPort, tunnelToken? }
+        ← Используется страницей /install/[token] для пошаговой инструкции
 ```
 
 ### Подключение Tinta Agent
@@ -313,13 +319,76 @@ Admin/Support → POST /tinta-core/execute/:clientId { entityType, haEntityId, a
 
 ---
 
+## Добавление нового клиента
+
+```bash
+# 1. Провиженинг через Admin → Agents → "Новый клиент"
+#    (или вручную через скрипт)
+cd tinta-lab/scripts && ./provision-client.sh
+
+# Скрипт создаёт:
+#   ✓ User + Client + Server в БД
+#   ✓ Cloudflare Tunnel + DNS (если настроен CF_API_TOKEN)
+#   ✓ Agent JWT (365 дней)
+#   ✓ Magic Install Link (48 часов)
+
+# 2. Добавить агент на сервер
+cp /home/tinta/tinta-agent-pub/clients/.env.example \
+   /home/tinta/tinta-agent-pub/clients/SUBDOMAIN.env
+# Заполнить TINTA_CLIENT_ID, TINTA_AGENT_TOKEN, SUPERVISOR_TOKEN
+
+# 3. Запустить агент
+cd /home/tinta/tinta-agent-pub
+# Добавить  app('SUBDOMAIN')  в ecosystem.config.js
+pm2 start ecosystem.config.js --only tinta-agent-SUBDOMAIN
+pm2 save
+```
+
+**Что меняем при добавлении клиента:**
+| Файл | Действие |
+|------|----------|
+| `tinta-agent-pub/clients/SUBDOMAIN.env` | Создать новый |
+| `tinta-agent-pub/ecosystem.config.js` | Добавить строку `app('SUBDOMAIN')` |
+
+**Что НИКОГДА не трогаем:**
+| Файл | Причина |
+|------|---------|
+| `backend/.env` | JWT-секреты, DB credentials — только для backend |
+| `tinta-lab/.env` | Docker Compose credentials — только для инфраструктуры |
+| `clients/vigol.env` (и другие) | Личные токены клиента — не в git |
+| `tinta-agent-pub/tinta_agent/dist/` | Скомпилированный агент |
+
+---
+
+## Карта env-файлов
+
+```
+tinta-lab/
+├── .env                      # Docker Compose: DB_PASSWORD, GRAFANA_ADMIN_PASSWORD
+│                             # ← в .gitignore, не трогать вручную
+├── backend/.env              # NestJS: JWT_SECRET, DB_*, REDIS_*, CF_*, TELEGRAM_*
+│                             # ← в .gitignore, единый источник правды для API
+└── frontend/.env.local       # Next.js: NEXT_PUBLIC_API_URL (если нужно переопределить)
+
+tinta-agent-pub/
+├── ecosystem.config.js       # PM2: список активных клиентов — добавлять сюда
+├── clients/
+│   ├── .env.example          # Шаблон для нового клиента
+│   └── SUBDOMAIN.env         # Токены конкретного клиента — в .gitignore!
+│                             # Содержит: TINTA_CLIENT_ID, TINTA_AGENT_TOKEN,
+│                             #           TINTA_CORE_WS, HA_HOST, SUPERVISOR_TOKEN
+└── agent.env.bak             # Устаревший файл — не использовать, игнорируется
+```
+
+---
+
 ## Переменные окружения (backend/.env)
 
 ```env
 PORT=3000
 NODE_ENV=development
 
-# PostgreSQL
+# PostgreSQL (должен совпадать с .env → DB_PASSWORD)
 DB_HOST=localhost
 DB_PORT=5432
 DB_USERNAME=tinta
@@ -331,15 +400,19 @@ REDIS_HOST=localhost
 REDIS_PORT=6379
 
 # JWT
-JWT_SECRET=...             # User tokens (15 min)
+JWT_SECRET=...             # User tokens (15 min) — openssl rand -hex 32
+JWT_REFRESH_SECRET=...     # Refresh tokens — отдельный секрет
 JWT_EXPIRES_IN=15m
-AGENT_JWT_SECRET=...       # Agent tokens (365 days)
+AGENT_JWT_SECRET=...       # Agent tokens (365 days) — НИКОГДА не совпадает с JWT_SECRET
 
-# Telegram notifications
+# CORS — обязательно, иначе фронтенд заблокируется браузером
+FRONTEND_URL=https://app.tinta-lab.de
+
+# Telegram notifications (необязательно)
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 
-# Cloudflare (optional — auto-provisioning)
+# Cloudflare (необязательно — auto-provisioning туннелей)
 CLOUDFLARE_API_TOKEN=
 CLOUDFLARE_ACCOUNT_ID=
 CLOUDFLARE_ZONE_ID=

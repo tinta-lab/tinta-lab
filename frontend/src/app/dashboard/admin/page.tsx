@@ -65,8 +65,8 @@ export default function AdminDashboard() {
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Smart" className="w-8 h-8 rounded-lg" />
-            <span className="font-semibold">Tinta Smart</span>
+            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8 rounded-lg" />
+            <span className="font-semibold">Tinta Lab</span>
             <span className="text-slate-500 text-sm">/ Admin</span>
           </div>
           <div className="flex items-center gap-4">
@@ -84,7 +84,7 @@ export default function AdminDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
           <h1 className="text-2xl font-bold">Панель управления</h1>
-          <p className="text-slate-400 text-sm mt-1">Обзор системы Tinta Smart</p>
+          <p className="text-slate-400 text-sm mt-1">Обзор системы Tinta Lab</p>
         </div>
 
         {/* Stats */}

@@ -13,9 +13,12 @@ import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaCommand } from './entity-mapper.service';
 import { AccessLog } from '../access/entities/access-log.entity';
+import { ServersService } from '../servers/servers.service';
+import { ServerStatus } from '../servers/entities/server.entity';
 
 interface AgentRegisterPayload {
   clientId: string;
@@ -26,7 +29,7 @@ interface AgentRegisterPayload {
 
 @WebSocketGateway({
   namespace: '/tinta/ws',
-  cors: { origin: '*' },
+  cors: { origin: process.env.FRONTEND_URL ?? false },
 })
 export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -43,6 +46,7 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
     private readonly accessLogRepo: Repository<AccessLog>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly serversService: ServersService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -55,6 +59,10 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
       if (socket.id === client.id) {
         this.agents.delete(clientId);
         await this.sessionRepo.update({ clientId }, { status: AgentStatus.DISCONNECTED });
+        const servers = await this.serversService.findByClientId(clientId);
+        for (const srv of servers) {
+          await this.serversService.updateStatus(srv.id, ServerStatus.OFFLINE);
+        }
         this.logger.log(`Agent ${clientId} disconnected`);
         break;
       }
@@ -124,6 +132,29 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
           ...(haVersion ? { haVersion } : {}),
         },
       );
+    }
+
+    // Update server status to online and resync active support access
+    const servers = await this.serversService.findByClientId(clientId);
+    for (const srv of servers) {
+      await this.serversService.heartbeat(srv.id, haVersion);
+
+      // If support access is currently active, resend it so the agent doesn't miss it
+      if (srv.accessEnabled) {
+        const activeLog = await this.accessLogRepo.findOne({
+          where: { server: { id: srv.id }, isRevoked: false },
+          order: { grantedAt: 'DESC' },
+        });
+        if (activeLog?.supportPassword) {
+          client.emit('set_support_access', {
+            enabled: true,
+            password: activeLog.supportPassword,
+            grantedAt: activeLog.grantedAt?.toISOString(),
+            accessLogId: activeLog.id,
+          });
+          this.logger.log(`Resynced active support access → agent ${clientId}`);
+        }
+      }
     }
 
     this.logger.log(`Agent registered: ${clientId} (v${agentVersion ?? '?'}, HA ${haVersion ?? '?'})`);
@@ -210,6 +241,85 @@ export class TintaAgentGateway implements OnGatewayConnection, OnGatewayDisconne
     if (socket) {
       socket.emit('set_support_access', { enabled, password, grantedAt, accessLogId });
       this.logger.log(`Support access ${enabled ? 'ENABLED' : 'DISABLED'} → agent ${clientId}`);
+    }
+  }
+
+  // Client toggled support access from their HA dashboard / phone
+  @SubscribeMessage('access_toggle')
+  async handleAccessToggle(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() payload: { enabled: boolean },
+  ) {
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId) return;
+
+    const servers = await this.serversService.findByClientId(clientId);
+    for (const srv of servers) {
+      if (payload.enabled) {
+        if (srv.accessEnabled) {
+          // Already active — resync credentials so agent can (re)create HA user
+          const active = await this.accessLogRepo.findOne({
+            where: { server: { id: srv.id }, isRevoked: false },
+            order: { grantedAt: 'DESC' },
+          });
+          if (active?.supportPassword) {
+            client.emit('set_support_access', {
+              enabled: true,
+              password: active.supportPassword,
+              grantedAt: active.grantedAt?.toISOString(),
+              accessLogId: active.id,
+            });
+          }
+          continue;
+        }
+
+        const timeoutMinutes = this.config.get<number>('SUPPORT_ACCESS_TIMEOUT', 60);
+        const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
+        const supportPassword = randomBytes(9).toString('base64url');
+
+        const fullServer = await this.serversService.findById(srv.id);
+        await this.serversService.setAccessEnabled(srv.id, true, expiresAt);
+
+        const newLog = this.accessLogRepo.create({
+          server: { id: srv.id } as any,
+          ...(fullServer.client?.user?.id ? { grantedBy: { id: fullServer.client.user.id } as any } : {}),
+          grantedAt: new Date(),
+          expiresAt,
+          supportPassword,
+        });
+        const saved = await this.accessLogRepo.save(newLog);
+
+        client.emit('set_support_access', {
+          enabled: true,
+          password: supportPassword,
+          grantedAt: saved.grantedAt.toISOString(),
+          accessLogId: saved.id,
+        });
+        this.logger.log(`Access GRANTED via HA toggle → ${clientId} server ${srv.id}`);
+      } else {
+        if (!srv.accessEnabled) continue;
+
+        const activeLog = await this.accessLogRepo.findOne({
+          where: { server: { id: srv.id }, isRevoked: false },
+          order: { grantedAt: 'DESC' },
+        });
+
+        await this.serversService.setAccessEnabled(srv.id, false);
+        await this.accessLogRepo.update(
+          { server: { id: srv.id }, isRevoked: false },
+          { isRevoked: true, revokedAt: new Date() },
+        );
+
+        // Send disable back so agent deletes HA user and collects activity log
+        const scramble = randomBytes(16).toString('hex');
+        client.emit('set_support_access', {
+          enabled: false,
+          password: scramble,
+          grantedAt: activeLog?.grantedAt?.toISOString(),
+          accessLogId: activeLog?.id,
+        });
+        this.logger.log(`Access REVOKED via HA toggle → ${clientId} server ${srv.id}`);
+      }
     }
   }
 

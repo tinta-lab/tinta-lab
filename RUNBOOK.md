@@ -1,0 +1,499 @@
+# Tinta Lab — Admin Runbook
+
+Руководство администратора по всем операциям с платформой.  
+Вход: **https://app.tinta-lab.de** → логин с ролью `admin`.
+
+---
+
+## Содержание
+
+1. [Добавление нового клиента](#1-добавление-нового-клиента)
+2. [Управление доступом поддержки к HA](#2-управление-доступом-поддержки-к-ha)
+3. [Ротация токена агента](#3-ротация-токена-агента)
+4. [Добавление сотрудника (support / sales)](#4-добавление-сотрудника-support--sales)
+5. [Что делать, если агент офлайн](#5-что-делать-если-агент-офлайн)
+6. [Работа с тикетами](#6-работа-с-тикетами)
+7. [Применение Golden Templates](#7-применение-golden-templates)
+8. [Удаление клиента (оффбординг)](#8-удаление-клиента-оффбординг)
+9. [Серверные операции (SSH)](#9-серверные-операции-ssh)
+
+---
+
+## 1. Добавление нового клиента
+
+### Что происходит автоматически
+
+При провиженинге система автоматически:
+- Создаёт пользователя с ролью `client` в БД
+- Создаёт клиентский профиль (телефон, город)
+- Регистрирует сервер (HAOS)
+- Создаёт Cloudflare Tunnel + DNS-запись `SUBDOMAIN.tinta-lab.de` (если настроен CF)
+- Генерирует Agent JWT (срок 365 дней)
+- Генерирует Magic Install Link (срок 48 часов)
+- Отправляет Telegram-уведомление администратору
+
+---
+
+### Шаг 1 — Провиженинг через UI
+
+1. Открыть **https://app.tinta-lab.de/dashboard/admin/agents**
+2. Нажать кнопку **«Новый клиент»** (правый верхний угол)
+3. Заполнить форму:
+
+   | Поле | Пример | Примечание |
+   |------|--------|------------|
+   | Имя | `Max` | |
+   | Фамилия | `Müller` | |
+   | Email | `max@mueller.de` | Логин клиента в личном кабинете |
+   | Пароль | `Mueller2026!` | Минимум 8 символов, 1 заглавная, 1 цифра |
+   | Телефон | `+49 151 1234567` | |
+   | Название сервера | `HAOS Mueller` | Отображается в дашборде |
+   | Поддомен | `mueller` | Итог: `mueller.tinta-lab.de` |
+
+4. Нажать **«Провижинить клиента»**
+
+---
+
+### Шаг 2 — Получить и сохранить результат
+
+После успешного провиженинга появится результат с:
+
+- **Magic Install Link** — отправить клиенту, действует 48 часов
+- Client ID, Agent Token — скопировать и сохранить
+
+**Сохранить данные для клиента:**
+```
+Dashboard:    https://app.tinta-lab.de
+Email:        max@mueller.de
+Пароль:       Mueller2026!
+HA URL:       https://mueller.tinta-lab.de
+```
+
+---
+
+### Шаг 3 — Отправить Magic Install Link клиенту
+
+Ссылка вида `https://app.tinta-lab.de/install/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
+
+Клиент открывает ссылку и получает пошаговую инструкцию с уже подставленными токенами.
+
+> Ссылка действительна **48 часов**. Если истекла — сгенерировать новую через ротацию токена (см. раздел 3).
+
+---
+
+### Шаг 4 — Установка агента на стороне клиента
+
+#### Вариант A: HA Add-on (рекомендуется)
+
+Клиент выполняет самостоятельно по инструкции из Magic Install Link:
+
+1. HA → Настройки → Аддоны → ⋮ → Репозитории
+2. Добавить: `https://github.com/tinta-lab/tinta-agent`
+3. Установить аддон **Tinta Agent**
+4. В конфигурации аддона вставить (клиент копирует из install-страницы):
+   - `tinta_client_id` — UUID клиента
+   - `tinta_agent_token` — JWT агента
+   - `tinta_core_ws` — `wss://api.tinta-lab.de/tinta/ws`
+   - `tinta_external_url` — `https://mueller.tinta-lab.de`
+5. Запустить аддон
+
+#### Вариант B: Standalone (наш сервер, PM2)
+
+Если агент запускается на нашем сервере (как для Viktor Goloviznin):
+
+```bash
+# SSH на сервер
+ssh tinta@tinta-lab.de
+
+# Создать файл клиента
+cp /home/tinta/tinta-agent-pub/clients/.env.example \
+   /home/tinta/tinta-agent-pub/clients/mueller.env
+```
+
+Заполнить `clients/mueller.env`:
+```env
+TINTA_CLIENT_ID=<clientId из результата провиженинга>
+TINTA_AGENT_TOKEN=<agentToken из результата провиженинга>
+TINTA_CORE_WS=wss://api.tinta-lab.de/tinta/ws
+HA_HOST=mueller.tinta-lab.de
+HA_PORT=443
+HA_SSL=true
+TINTA_EXTERNAL_URL=https://mueller.tinta-lab.de
+SUPERVISOR_TOKEN=<Long-Lived Token из HA клиента>
+```
+
+Добавить в `ecosystem.config.js`:
+```js
+module.exports = {
+  apps: [
+    app('vigol'),
+    app('mueller'),   // ← добавить эту строку
+  ],
+};
+```
+
+Запустить:
+```bash
+cd /home/tinta/tinta-agent-pub
+pm2 start ecosystem.config.js --only tinta-agent-mueller
+pm2 save
+```
+
+---
+
+### Шаг 5 — Проверить подключение
+
+1. Открыть **https://app.tinta-lab.de/dashboard/admin/agents**
+2. Карточка клиента должна отображать статус **онлайн** (зелёная точка)
+3. Через ~30 секунд появятся метрики (CPU, RAM, Диск, устройства)
+
+---
+
+## 2. Управление доступом поддержки к HA
+
+### Предоставить доступ поддержки к HA клиента
+
+1. **https://app.tinta-lab.de/dashboard/admin/servers**
+2. Найти сервер клиента → нажать иконку ключа / редактирования
+3. Включить тумблер **«Доступ поддержки»**
+4. (Опционально) установить срок истечения
+
+Или через API (если нужно автоматически):
+```bash
+curl -X POST https://api.tinta-lab.de/access/grant/SERVER_ID \
+  -H "Authorization: Bearer ADMIN_JWT"
+```
+
+**Что происходит:**
+- Сотруднику поддержки станет доступна карточка сервера в `/dashboard/support`
+- Агент получает команду `ACCESS_ENABLED` и создаёт пользователя **Tinta Support** в HA клиента
+- Сотрудник поддержки видит URL и пароль для входа в HA
+
+### Отозвать доступ
+
+1. Тот же путь → выключить тумблер
+2. Агент получает команду `ACCESS_DISABLED` → удаляет пользователя Tinta Support из HA
+
+> Доступ также отзывается автоматически при истечении установленного срока (планировщик проверяет каждую минуту).
+
+---
+
+## 3. Ротация токена агента
+
+Нужна при: компрометации токена, истечении срока (через 365 дней), переустановке HA.
+
+### Через UI
+
+1. **https://app.tinta-lab.de/dashboard/admin/agents**
+2. Кликнуть на карточку клиента → **«Ротация токена»** (если кнопка есть)
+
+### Через API (надёжнее)
+
+```bash
+# Получить admin JWT
+curl -X POST https://api.tinta-lab.de/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@tinta-lab.de","password":"..."}'
+# Скопировать access_token
+
+# Ротировать токен
+curl -X POST https://api.tinta-lab.de/tinta-core/provision/CLIENT_ID \
+  -H "Authorization: Bearer ADMIN_JWT"
+```
+
+Ответ содержит новые `agentToken` и `installToken` (новая Magic Install Link).
+
+### После ротации
+
+**Если агент — HA Add-on:** отправить клиенту новый Magic Install Link  
+(`https://app.tinta-lab.de/install/<новый installToken>`)
+
+**Если агент — Standalone (наш сервер):**
+
+```bash
+# Обновить токен в файле клиента
+nano /home/tinta/tinta-agent-pub/clients/mueller.env
+# Изменить TINTA_AGENT_TOKEN на новое значение
+
+# Перезапустить агент
+pm2 restart tinta-agent-mueller --update-env
+pm2 save
+```
+
+> Старый агент автоматически отключается сервером при ротации (WebSocket разрывается).
+
+---
+
+## 4. Добавление сотрудника (support / sales)
+
+### Создать пользователя с нужной ролью
+
+1. **https://app.tinta-lab.de/dashboard/admin/users**
+2. Нажать **«Добавить пользователя»**
+3. Заполнить:
+   - Email, имя, фамилия
+   - Роль: **support** (поддержка) или **sales** (продажи)
+   - Пароль: передать сотруднику лично, попросить сменить при первом входе
+
+### Что видит каждая роль
+
+| Роль | Доступ |
+|------|--------|
+| `admin` | Всё: пользователи, серверы, агенты, тикеты, провиженинг |
+| `support` | Только серверы с `accessEnabled=true`, без инфра-данных (tunnelToken, localUrl скрыты); HA-URL и пароль сотрудника поддержки |
+| `sales` | Статистика клиентов, тикеты |
+| `client` | Только свой личный кабинет, свои данные |
+
+### Деактивировать сотрудника
+
+1. **Admin → Пользователи** → найти сотрудника → переключатель **«Активен»** → выключить  
+   (JWT становятся невалидны при следующей проверке — сессия завершится в течение 15 минут)
+
+---
+
+## 5. Что делать, если агент офлайн
+
+### Диагностика
+
+1. **Admin → Агенты** — карточка клиента показывает серую точку (офлайн) и время последнего heartbeat
+2. Если тикет `[AUTO]` создан — агент офлайн более 5 минут
+
+### Проверить причину (SSH)
+
+```bash
+# Логи агента
+pm2 logs tinta-agent-mueller --lines 50
+
+# Статус всех процессов
+pm2 status
+
+# Если процесс упал (status: errored / stopped)
+pm2 restart tinta-agent-mueller
+```
+
+### Частые причины и решения
+
+| Симптом в логах | Причина | Решение |
+|----------------|---------|---------|
+| `connect ECONNREFUSED` к HA IP | HA недоступен локально | Проверить что HA запущен; агент сам переподключится |
+| `WebSocket closed: 4401 Unauthorized` | Токен истёк или ротирован | Ротировать токен (раздел 3) |
+| `WebSocket closed: 4409 Already connected` | Дублирующийся агент | Остановить дубль: `pm2 stop tinta-agent-mueller` |
+| `ENOTFOUND api.tinta-lab.de` | Нет интернета или DNS | Проверить сеть на машине агента |
+| `Error: Cannot find module` | Не собрана dist/ | `cd tinta_agent && npm run build` |
+
+### Если агент — HA Add-on (у клиента)
+
+Попросить клиента:
+1. HA → Настройки → Аддоны → Tinta Agent → **Перезапустить**
+2. Если не помогает: **Журнал** аддона → скопировать и прислать
+
+---
+
+## 6. Работа с тикетами
+
+**https://app.tinta-lab.de/dashboard/admin/tickets**
+
+### Типы тикетов
+
+| Тип | Источник |
+|-----|---------|
+| `[AUTO] Agent offline` | Автоматически, если агент офлайн > 5 минут |
+| Ручные тикеты | Клиент пишет с сайта (публичная форма) |
+
+### Обработка
+
+1. Открыть тикет → ознакомиться с описанием
+2. Нажать **«Назначить»** (если есть) — тикет привязывается к вам
+3. После решения → **«Закрыть тикет»**
+
+Добавить внутренние заметки (не видны клиенту) через поле `internalNotes`.
+
+### Передать тикет в поддержку
+
+1. **Admin → Пользователи** → убедиться, что есть сотрудник с ролью `support`
+2. Сотрудник поддержки видит тикеты на своём дашборде `/dashboard/support`
+3. Для работы с HA клиента — предоставить доступ (раздел 2)
+
+---
+
+## 7. Применение Golden Templates
+
+Golden Templates — готовые автоматизации для HA, применяются один раз.
+
+### Список стандартных шаблонов
+
+| Slug | Название |
+|------|----------|
+| `welcome_notification` | Приветственное уведомление |
+| `daily_summary` | Ежедневный отчёт |
+| `energy_saver` | Экономия энергии |
+| `security_alert` | Уведомления безопасности |
+| `motion_lights` | Свет по движению |
+
+### Применить шаблон
+
+1. **Admin → Агенты** → кликнуть на карточку клиента
+2. Раздел **Golden Templates** → найти нужный → кнопка **«Применить»**
+
+Если агент офлайн — шаблон будет применён автоматически при следующем подключении.
+
+### Через API
+
+```bash
+curl -X POST https://api.tinta-lab.de/tinta-core/template/CLIENT_ID/motion_lights \
+  -H "Authorization: Bearer ADMIN_JWT"
+```
+
+---
+
+## 8. Удаление клиента (оффбординг)
+
+### Отозвать доступ поддержки
+
+**Admin → Серверы** → отключить `accessEnabled` для сервера клиента.
+
+### Удалить сервер
+
+**Admin → Серверы** → кнопка удаления.
+
+Это автоматически:
+- Удаляет Cloudflare Tunnel (если был создан через CF API)
+- Удаляет DNS-запись `SUBDOMAIN.tinta-lab.de`
+- Удаляет запись сервера из БД
+
+### Остановить агент (Standalone)
+
+```bash
+pm2 stop tinta-agent-mueller
+pm2 delete tinta-agent-mueller
+pm2 save
+
+# Удалить файл клиента (токены больше не нужны)
+rm /home/tinta/tinta-agent-pub/clients/mueller.env
+
+# Убрать строку app('mueller') из ecosystem.config.js
+nano /home/tinta/tinta-agent-pub/ecosystem.config.js
+```
+
+### Деактивировать пользователя
+
+**Admin → Пользователи** → найти email клиента → переключатель **«Активен»** → выключить.
+
+> Не удаляйте пользователя полностью — данные могут понадобиться для истории тикетов и логов.
+
+---
+
+## 9. Серверные операции (SSH)
+
+```bash
+ssh tinta@tinta-lab.de
+```
+
+### Просмотр состояния
+
+```bash
+# Все процессы
+pm2 status
+
+# Логи конкретного агента (live)
+pm2 logs tinta-agent-vigol
+
+# Последние 50 строк логов бекенда
+pm2 logs tinta-backend --lines 50 --nostream
+
+# Docker контейнеры (БД, Redis)
+docker ps
+```
+
+### Перезапуск компонентов
+
+```bash
+# Перезапустить бекенд (после деплоя)
+pm2 restart tinta-backend
+
+# Перезапустить фронтенд (после деплоя)
+pm2 restart tinta-frontend
+
+# Перезапустить агент клиента
+pm2 restart tinta-agent-vigol
+
+# Перезапустить все
+pm2 restart all
+```
+
+### Деплой обновлений бекенда
+
+```bash
+cd /home/tinta/tinta-lab/backend
+git pull
+npm run build
+pm2 restart tinta-backend
+```
+
+### Деплой обновлений фронтенда
+
+```bash
+cd /home/tinta/tinta-lab/frontend
+git pull
+npm run build
+pm2 restart tinta-frontend
+```
+
+### Деплой обновлений агента
+
+```bash
+cd /home/tinta/tinta-agent-pub/tinta_agent
+git pull
+npm run build
+pm2 restart all --grep tinta-agent
+```
+
+### Добавление нового агента на сервер (быстрая шпаргалка)
+
+```bash
+# 1. Создать env-файл клиента
+cp clients/.env.example clients/SUBDOMAIN.env
+nano clients/SUBDOMAIN.env   # вставить CLIENT_ID, AGENT_TOKEN, SUPERVISOR_TOKEN
+
+# 2. Добавить в ecosystem.config.js строку:  app('SUBDOMAIN')
+nano ecosystem.config.js
+
+# 3. Запустить
+pm2 start ecosystem.config.js --only tinta-agent-SUBDOMAIN
+pm2 save
+```
+
+### Резервное копирование БД
+
+```bash
+# Дамп PostgreSQL
+docker exec tinta-postgres pg_dump -U tinta tinta_lab > backup-$(date +%Y%m%d).sql
+
+# Восстановление
+docker exec -i tinta-postgres psql -U tinta tinta_lab < backup-20260623.sql
+```
+
+### Просмотр данных в БД (диагностика)
+
+```bash
+docker exec -it tinta-postgres psql -U tinta tinta_lab
+
+# Полезные запросы:
+\dt                                           -- список таблиц
+SELECT email, role, is_active FROM users;     -- все пользователи
+SELECT name, subdomain, status FROM servers;  -- серверы
+SELECT client_id, status, last_heartbeat_at FROM agent_sessions;  -- агенты
+\q
+```
+
+---
+
+## Контакты и ресурсы
+
+| Ресурс | URL |
+|--------|-----|
+| Admin Dashboard | https://app.tinta-lab.de/dashboard/admin |
+| API (Swagger) | https://api.tinta-lab.de/api/docs |
+| Мониторинг (Grafana) | https://monitor.tinta-lab.de |
+| БД (Adminer) | http://localhost:8080 (только с сервера) |
+| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) |

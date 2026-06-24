@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { LogOut, RefreshCw, X, Phone, Mail, Calendar, MessageSquare } from 'lucide-react';
+import { LogOut, RefreshCw, X, Phone, Mail, Calendar, MessageSquare, TrendingUp, Users, CheckCircle2, Clock } from 'lucide-react';
 import { Ticket } from '@/types';
 
 const STATUS_LABELS: Record<Ticket['status'], string> = {
@@ -52,6 +52,14 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   );
 }
 
+type TypeFilter = 'all' | 'sales' | 'installation' | 'support';
+const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
+  { value: 'all',          label: 'Все' },
+  { value: 'sales',        label: 'Лиды' },
+  { value: 'installation', label: 'Установка' },
+  { value: 'support',      label: 'Поддержка' },
+];
+
 export default function SalesDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
@@ -61,6 +69,7 @@ export default function SalesDashboard() {
   const [editStatus, setEditStatus] = useState<Ticket['status']>('new');
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('sales');
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
@@ -110,15 +119,23 @@ export default function SalesDashboard() {
 
   if (!user) return null;
 
-  const byStatus = (status: Ticket['status']) => tickets.filter(t => t.status === status);
+  const filtered = typeFilter === 'all' ? tickets : tickets.filter(t => t.type === typeFilter);
+  const byStatus = (status: Ticket['status']) => filtered.filter(t => t.status === status);
+
+  const stats = [
+    { label: 'Новые лиды',    value: tickets.filter(t => t.type === 'sales' && t.status === 'new').length,         icon: TrendingUp,   color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
+    { label: 'В работе',      value: tickets.filter(t => t.status === 'in_progress').length,                        icon: Clock,        color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20' },
+    { label: 'Установки',     value: tickets.filter(t => t.type === 'installation').length,                         icon: Users,        color: 'text-teal-400',   bg: 'bg-teal-500/10 border-teal-500/20' },
+    { label: 'Закрыто',       value: tickets.filter(t => t.status === 'resolved' || t.status === 'closed').length,  icon: CheckCircle2, color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/20' },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 flex-shrink-0">
         <div className="max-w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Smart" className="w-8 h-8 rounded-lg" />
-            <span className="font-semibold">Tinta Smart</span>
+            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8 rounded-lg" />
+            <span className="font-semibold">Tinta Lab</span>
             <span className="text-slate-500 text-sm">/ Sales</span>
           </div>
           <div className="flex items-center gap-4">
@@ -134,8 +151,43 @@ export default function SalesDashboard() {
         </div>
       </header>
 
+      {/* Stats row */}
+      <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-900/30">
+        <div className="flex gap-3 flex-wrap">
+          {stats.map(s => (
+            <div key={s.label} className={`flex items-center gap-3 px-4 py-2.5 rounded-xl border ${s.bg} min-w-[140px]`}>
+              <s.icon size={16} className={s.color} />
+              <div>
+                <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-xs text-slate-500">{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Type filter tabs */}
+      <div className="px-6 pt-4 pb-1 flex gap-2 flex-wrap">
+        {TYPE_FILTERS.map(f => (
+          <button
+            key={f.value}
+            onClick={() => setTypeFilter(f.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+              typeFilter === f.value
+                ? 'bg-teal-600 text-white'
+                : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700'
+            }`}
+          >
+            {f.label}
+            <span className={`ml-1.5 text-xs ${typeFilter === f.value ? 'text-teal-200' : 'text-slate-500'}`}>
+              {f.value === 'all' ? tickets.length : tickets.filter(t => t.type === f.value).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
       {/* Kanban board */}
-      <div className="flex-1 overflow-x-auto px-6 py-6">
+      <div className="flex-1 overflow-x-auto px-6 py-4">
         <div className="flex gap-4 min-w-max h-full">
           {COLUMNS.map(status => {
             const cols = STATUS_COLORS[status];

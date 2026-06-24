@@ -30,10 +30,23 @@ export interface ProvisionResult {
   clientId: string;
   serverId: string;
   agentToken: string;
+  installToken: string;
+  installUrl: string;
   tunnelToken: string | null;
   subdomain: string;
   dashboardUrl: string;
   agentInstallCommand: string;
+}
+
+export interface InstallConfig {
+  clientId: string;
+  agentToken: string;
+  coreWs: string;
+  externalUrl: string;
+  tunnelToken: string | null;
+  serverName: string;
+  clientName: string;
+  expiresAt: string;
 }
 
 @Injectable()
@@ -83,15 +96,21 @@ export class ProvisioningService {
     }
 
     // 2. Create server (Cloudflare auto-provisions tunnel if API key set)
+    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+    // Normalise: always store the full hostname so URL construction works everywhere
+    const fullSubdomain = dto.subdomain.includes('.')
+      ? dto.subdomain
+      : `${dto.subdomain}.${baseDomain}`;
+
     const server = await this.serversService.create({
       clientId: client.id,
       name: dto.serverName,
-      subdomain: dto.subdomain,
+      subdomain: fullSubdomain,
       localUrl: dto.localUrl,
     });
 
-    // 3. Generate Agent JWT
-    const { agentToken } = await this.tintaCore.provisionAgent(client.id);
+    // 3. Generate Agent JWT + install token
+    const { agentToken, installToken } = await this.tintaCore.provisionAgent(client.id);
 
     // 4. Apply default golden templates (non-blocking)
     if (dto.applyDefaultTemplates !== false) {
@@ -104,8 +123,7 @@ export class ProvisioningService {
     }
 
     // 5. Notify admin via Telegram
-    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
-    const dashboardUrl = `https://${dto.subdomain}.${baseDomain}`;
+    const dashboardUrl = `https://${fullSubdomain}`;
     const clientName = `${dto.firstName} ${dto.lastName}`;
 
     await this.notifications.notifyProvisioningComplete({
@@ -118,6 +136,9 @@ export class ProvisioningService {
       tunnelToken: server.tunnelToken,
     });
 
+    const frontendUrl = this.config.get('FRONTEND_URL', 'https://app.tinta-lab.de');
+    const installUrl = `${frontendUrl}/install/${installToken}`;
+
     const agentInstallCommand = server.tunnelToken
       ? `# 1. Install Cloudflare tunnel\ncloudflared tunnel run --token ${server.tunnelToken}\n\n# 2. Install Tinta Agent (HA Add-on)\n# Go to HA → Add-ons → Install → set:\n# tinta_client_id: ${client.id}\n# tinta_agent_token: ${agentToken}`
       : `# Install Tinta Agent (HA Add-on)\n# Set options:\n# tinta_client_id: ${client.id}\n# tinta_agent_token: ${agentToken}`;
@@ -128,10 +149,33 @@ export class ProvisioningService {
       clientId: client.id,
       serverId: server.id,
       agentToken,
+      installToken,
+      installUrl,
       tunnelToken: server.tunnelToken,
-      subdomain: dto.subdomain,
+      subdomain: fullSubdomain,
       dashboardUrl,
       agentInstallCommand,
+    };
+  }
+
+  async getInstallConfig(token: string): Promise<InstallConfig> {
+    const session = await this.tintaCore.getSessionByInstallToken(token);
+    const [servers, client] = await Promise.all([
+      this.serversService.findByClientId(session.clientId),
+      this.clientsService.findById(session.clientId),
+    ]);
+    const server = servers[0];
+    const coreWs = this.config.get('TINTA_CORE_WS', 'wss://api.tinta-lab.de/tinta/ws');
+
+    return {
+      clientId: session.clientId,
+      agentToken: session.agentToken,
+      coreWs,
+      externalUrl: server ? `https://${server.subdomain}` : '',
+      tunnelToken: server?.tunnelToken ?? null,
+      serverName: server?.name ?? '',
+      clientName: `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
+      expiresAt: session.installTokenExpiresAt.toISOString(),
     };
   }
 }

@@ -14,6 +14,12 @@ interface Options {
 
 export function useServersSocket({ token, onServerUpdate, onAccessChange }: Options) {
   const socketRef = useRef<Socket | null>(null);
+  // Stable refs ensure socket handlers always call the latest callback version
+  const onServerUpdateRef = useRef(onServerUpdate);
+  const onAccessChangeRef = useRef(onAccessChange);
+
+  useEffect(() => { onServerUpdateRef.current = onServerUpdate; }, [onServerUpdate]);
+  useEffect(() => { onAccessChangeRef.current = onAccessChange; }, [onAccessChange]);
 
   useEffect(() => {
     if (!token) return;
@@ -30,11 +36,11 @@ export function useServersSocket({ token, onServerUpdate, onAccessChange }: Opti
     });
 
     socket.on('server:update', (data: ServerUpdate) => {
-      onServerUpdate(data);
+      onServerUpdateRef.current(data);
     });
 
     socket.on('server:access', (data: AccessUpdate) => {
-      onAccessChange(data);
+      onAccessChangeRef.current(data);
     });
 
     return () => {

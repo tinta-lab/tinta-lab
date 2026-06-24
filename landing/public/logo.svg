@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="Tinta Lab Logo">
+  <rect width="48" height="48" rx="12" fill="#2563EB"/>
+  <path d="M24 10L36 18V30L24 38L12 30V18L24 10Z" stroke="white" stroke-width="2" fill="none" stroke-linejoin="round"/>
+  <path d="M24 18L24 30M18 21L30 21" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
