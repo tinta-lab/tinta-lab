@@ -9,7 +9,7 @@ import {
   Wifi, WifiOff, Play, BookTemplate, X, ChevronRight, Loader2, Copy, Check,
 } from 'lucide-react';
 import { PhoneInput } from '@/components/PhoneInput';
-import { AgentSession, GoldenTemplate } from '@/types';
+import { AgentSession, GoldenTemplate, Client } from '@/types';
 
 function StatusDot({ status }: { status: AgentSession['status'] }) {
   return (
@@ -90,13 +90,17 @@ export default function AgentsPage() {
   const [selected, setSelected] = useState<AgentSession | null>(null);
   const [applyingSlug, setApplyingSlug] = useState<string | null>(null);
   const [showProvision, setShowProvision] = useState(false);
+  const [provisionMode, setProvisionMode] = useState<'new' | 'existing'>('new');
   const [provision, setProvision] = useState({
     email: '', password: '', firstName: '', lastName: '', phone: '+49',
     city: '', serverName: '', subdomain: '',
   });
-  const [provisionErrors, setProvisionErrors] = useState<Partial<Record<keyof typeof provision, string>>>({});
+  const [provisionErrors, setProvisionErrors] = useState<Partial<Record<keyof typeof provision | 'existingClient', string>>>({});
   const [provisioning, setProvisioning] = useState(false);
   const [provisionResult, setProvisionResult] = useState<any>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loadingClients, setLoadingClients] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
@@ -117,6 +121,15 @@ export default function AgentsPage() {
     finally { setLoading(false); }
   };
 
+  const loadClients = async () => {
+    setLoadingClients(true);
+    try {
+      const { data } = await api.get<Client[]>('/clients');
+      setClients(data);
+    } catch { toast.error('Ошибка загрузки клиентов'); }
+    finally { setLoadingClients(false); }
+  };
+
   const applyTemplate = async (clientId: string, slug: string) => {
     setApplyingSlug(slug);
     try {
@@ -129,15 +142,19 @@ export default function AgentsPage() {
   };
 
   const validateProvision = () => {
-    const errs: Partial<Record<keyof typeof provision, string>> = {};
-    if (!provision.firstName.trim()) errs.firstName = 'Обязательное поле';
-    if (!provision.lastName.trim())  errs.lastName  = 'Обязательное поле';
-    if (!provision.email.trim())     errs.email     = 'Обязательное поле';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(provision.email)) errs.email = 'Некорректный email';
-    if (!provision.password)         errs.password  = 'Обязательное поле';
-    else if (provision.password.length < 8) errs.password = 'Минимум 8 символов';
-    const digits = (provision.phone || '').replace(/\D/g, '');
-    if (digits.length < 7)           errs.phone     = 'Введите номер телефона';
+    const errs: Partial<Record<keyof typeof provision | 'existingClient', string>> = {};
+    if (provisionMode === 'existing') {
+      if (!selectedClientId) errs.existingClient = 'Выберите клиента';
+    } else {
+      if (!provision.firstName.trim()) errs.firstName = 'Обязательное поле';
+      if (!provision.lastName.trim())  errs.lastName  = 'Обязательное поле';
+      if (!provision.email.trim())     errs.email     = 'Обязательное поле';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(provision.email)) errs.email = 'Некорректный email';
+      if (!provision.password)         errs.password  = 'Обязательное поле';
+      else if (provision.password.length < 8) errs.password = 'Минимум 8 символов';
+      const digits = (provision.phone || '').replace(/\D/g, '');
+      if (digits.length < 7)           errs.phone     = 'Введите номер телефона';
+    }
     if (!provision.serverName.trim()) errs.serverName = 'Обязательное поле';
     if (!provision.subdomain.trim()) errs.subdomain = 'Обязательное поле';
     else if (!/^[a-z0-9-]+$/.test(provision.subdomain)) errs.subdomain = 'Только латиница, цифры, дефис';
@@ -149,7 +166,10 @@ export default function AgentsPage() {
     if (!validateProvision()) return;
     setProvisioning(true);
     try {
-      const { data } = await api.post('/provisioning/client', provision);
+      const payload = provisionMode === 'existing'
+        ? { existingClientId: selectedClientId, serverName: provision.serverName, subdomain: provision.subdomain }
+        : provision;
+      const { data } = await api.post('/provisioning/client', payload);
       setProvisionResult(data);
       toast.success('Клиент провижинен!');
       await load();
@@ -389,7 +409,7 @@ export default function AgentsPage() {
 
       {/* One-Click Provision Modal */}
       {showProvision && (
-        <Modal title="Новый клиент — One-Click Provision" wide={!!provisionResult} onClose={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '+49', city: '', serverName: '', subdomain: '' }); setProvisionErrors({}); }}>
+        <Modal title="One-Click Provision" wide={!!provisionResult} onClose={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '+49', city: '', serverName: '', subdomain: '' }); setProvisionErrors({}); setProvisionMode('new'); setSelectedClientId(''); }}>
           {provisionResult ? (
             <div className="space-y-5">
               {/* Success banner */}
@@ -476,7 +496,7 @@ export default function AgentsPage() {
               )}
 
               <button
-                onClick={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '+49', city: '', serverName: '', subdomain: '' }); setProvisionErrors({}); }}
+                onClick={() => { setShowProvision(false); setProvisionResult(null); setProvision({ email: '', password: '', firstName: '', lastName: '', phone: '+49', city: '', serverName: '', subdomain: '' }); setProvisionErrors({}); setProvisionMode('new'); setSelectedClientId(''); }}
                 className="w-full py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors"
               >
                 Готово
@@ -485,87 +505,173 @@ export default function AgentsPage() {
           ) : (
             /* autoComplete="off" + type="text" for email prevent browser from injecting saved admin credentials */
             <form autoComplete="off" onSubmit={e => { e.preventDefault(); provisionClient(); }} className="space-y-3.5">
-              {/* Name row */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Имя <span className="text-red-400">*</span></label>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    value={provision.firstName}
-                    onChange={e => { setProvision(p => ({ ...p, firstName: e.target.value })); setProvisionErrors(err => ({ ...err, firstName: '' })); }}
-                    className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.firstName ? 'border-red-500' : 'border-slate-600'}`}
-                    placeholder="Max"
-                  />
-                  {provisionErrors.firstName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.firstName}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Фамилия <span className="text-red-400">*</span></label>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    value={provision.lastName}
-                    onChange={e => { setProvision(p => ({ ...p, lastName: e.target.value })); setProvisionErrors(err => ({ ...err, lastName: '' })); }}
-                    className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.lastName ? 'border-red-500' : 'border-slate-600'}`}
-                    placeholder="Müller"
-                  />
-                  {provisionErrors.lastName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.lastName}</p>}
-                </div>
+              {/* Mode toggle */}
+              <div className="flex rounded-lg bg-slate-900 border border-slate-700 p-0.5">
+                <button
+                  type="button"
+                  onClick={() => { setProvisionMode('new'); setSelectedClientId(''); setProvisionErrors({}); }}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${provisionMode === 'new' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Новый клиент
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setProvisionMode('existing'); setProvisionErrors({}); if (clients.length === 0) loadClients(); }}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${provisionMode === 'existing' ? 'bg-teal-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                  Существующий клиент
+                </button>
               </div>
 
-              {/* Email */}
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Email <span className="text-red-400">*</span></label>
-                <input
-                  type="text"
-                  inputMode="email"
-                  autoComplete="off"
-                  value={provision.email}
-                  onChange={e => { setProvision(p => ({ ...p, email: e.target.value })); setProvisionErrors(err => ({ ...err, email: '' })); }}
-                  className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.email ? 'border-red-500' : 'border-slate-600'}`}
-                  placeholder="max@beispiel.de"
-                />
-                {provisionErrors.email && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.email}</p>}
-              </div>
+              {provisionMode === 'existing' ? (
+                <>
+                  {/* Existing client select */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Клиент <span className="text-red-400">*</span></label>
+                    {loadingClients ? (
+                      <div className="flex items-center gap-2 text-slate-500 text-xs py-2">
+                        <Loader2 size={12} className="animate-spin" /> Загрузка клиентов...
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedClientId}
+                        onChange={e => {
+                          const id = e.target.value;
+                          setSelectedClientId(id);
+                          setProvisionErrors(err => ({ ...err, existingClient: '' }));
+                          const c = clients.find(c => c.id === id);
+                          if (c) {
+                            setProvision(p => ({
+                              ...p,
+                              firstName: c.user.firstName,
+                              lastName: c.user.lastName,
+                              email: c.user.email,
+                              phone: c.phone || p.phone,
+                            }));
+                          }
+                        }}
+                        className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.existingClient ? 'border-red-500' : 'border-slate-600'}`}
+                      >
+                        <option value="">-- Выберите клиента --</option>
+                        {clients.map(c => (
+                          <option key={c.id} value={c.id}>
+                            {c.user.firstName} {c.user.lastName} — {c.user.email}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {provisionErrors.existingClient && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.existingClient}</p>}
+                  </div>
 
-              {/* Password + Phone */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Пароль <span className="text-red-400">*</span></label>
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    value={provision.password}
-                    onChange={e => { setProvision(p => ({ ...p, password: e.target.value })); setProvisionErrors(err => ({ ...err, password: '' })); }}
-                    className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.password ? 'border-red-500' : 'border-slate-600'}`}
-                    placeholder="Мин. 8 символов"
-                  />
-                  {provisionErrors.password && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.password}</p>}
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-1">Город</label>
-                  <input
-                    type="text"
-                    autoComplete="off"
-                    value={provision.city}
-                    onChange={e => setProvision(p => ({ ...p, city: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors"
-                    placeholder="Berlin"
-                  />
-                </div>
-              </div>
+                  {/* Auto-filled info (read-only) */}
+                  {selectedClientId && (() => {
+                    const c = clients.find(c => c.id === selectedClientId);
+                    if (!c) return null;
+                    return (
+                      <div className="bg-slate-900/50 rounded-lg px-3 py-2.5 space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 text-xs">Имя</span>
+                          <span className="text-slate-300 text-xs">{c.user.firstName} {c.user.lastName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 text-xs">Email</span>
+                          <span className="text-slate-300 text-xs">{c.user.email}</span>
+                        </div>
+                        {c.phone && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 text-xs">Телефон</span>
+                            <span className="text-slate-300 text-xs">{c.phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  {/* Name row */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Имя <span className="text-red-400">*</span></label>
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        value={provision.firstName}
+                        onChange={e => { setProvision(p => ({ ...p, firstName: e.target.value })); setProvisionErrors(err => ({ ...err, firstName: '' })); }}
+                        className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.firstName ? 'border-red-500' : 'border-slate-600'}`}
+                        placeholder="Max"
+                      />
+                      {provisionErrors.firstName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.firstName}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Фамилия <span className="text-red-400">*</span></label>
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        value={provision.lastName}
+                        onChange={e => { setProvision(p => ({ ...p, lastName: e.target.value })); setProvisionErrors(err => ({ ...err, lastName: '' })); }}
+                        className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.lastName ? 'border-red-500' : 'border-slate-600'}`}
+                        placeholder="Müller"
+                      />
+                      {provisionErrors.lastName && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.lastName}</p>}
+                    </div>
+                  </div>
 
-              {/* Phone */}
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Телефон <span className="text-red-400">*</span></label>
-                <PhoneInput
-                  size="sm"
-                  value={provision.phone}
-                  onChange={v => { setProvision(p => ({ ...p, phone: v })); setProvisionErrors(err => ({ ...err, phone: '' })); }}
-                  hasError={!!provisionErrors.phone}
-                />
-                {provisionErrors.phone && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.phone}</p>}
-              </div>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Email <span className="text-red-400">*</span></label>
+                    <input
+                      type="text"
+                      inputMode="email"
+                      autoComplete="off"
+                      value={provision.email}
+                      onChange={e => { setProvision(p => ({ ...p, email: e.target.value })); setProvisionErrors(err => ({ ...err, email: '' })); }}
+                      className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.email ? 'border-red-500' : 'border-slate-600'}`}
+                      placeholder="max@beispiel.de"
+                    />
+                    {provisionErrors.email && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.email}</p>}
+                  </div>
+
+                  {/* Password + City */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Пароль <span className="text-red-400">*</span></label>
+                      <input
+                        type="password"
+                        autoComplete="new-password"
+                        value={provision.password}
+                        onChange={e => { setProvision(p => ({ ...p, password: e.target.value })); setProvisionErrors(err => ({ ...err, password: '' })); }}
+                        className={`w-full px-3 py-2 rounded-lg bg-slate-900 border text-white text-sm focus:outline-none focus:border-teal-500 transition-colors ${provisionErrors.password ? 'border-red-500' : 'border-slate-600'}`}
+                        placeholder="Мин. 8 символов"
+                      />
+                      {provisionErrors.password && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.password}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Город</label>
+                      <input
+                        type="text"
+                        autoComplete="off"
+                        value={provision.city}
+                        onChange={e => setProvision(p => ({ ...p, city: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-600 text-white text-sm focus:outline-none focus:border-teal-500 transition-colors"
+                        placeholder="Berlin"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Телефон <span className="text-red-400">*</span></label>
+                    <PhoneInput
+                      size="sm"
+                      value={provision.phone}
+                      onChange={v => { setProvision(p => ({ ...p, phone: v })); setProvisionErrors(err => ({ ...err, phone: '' })); }}
+                      hasError={!!provisionErrors.phone}
+                    />
+                    {provisionErrors.phone && <p className="text-red-400 text-xs mt-0.5">{provisionErrors.phone}</p>}
+                  </div>
+                </>
+              )}
 
               {/* Server */}
               <div className="border-t border-slate-700/50 pt-3">

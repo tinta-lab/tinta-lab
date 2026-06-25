@@ -61,6 +61,23 @@ export class ClientsService {
     return client;
   }
 
+  async findByUserIdOptional(userId: string): Promise<Client | null> {
+    return this.clientsRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user'],
+    });
+  }
+
+  async createForUser(userId: string, data: { phone: string; city?: string }): Promise<Client> {
+    const user = await this.usersService.findById(userId);
+    const client = this.clientsRepository.create({
+      user,
+      phone: data.phone,
+      city: data.city,
+    });
+    return this.clientsRepository.save(client);
+  }
+
   async update(id: string, data: Partial<Client>): Promise<Client> {
     await this.clientsRepository.update(id, data);
     return this.findById(id);

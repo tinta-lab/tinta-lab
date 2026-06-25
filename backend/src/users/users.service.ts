@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from './entities/user.entity';
+import { Client } from '../clients/entities/client.entity';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Client)
+    private clientsRepository: Repository<Client>,
   ) {}
 
   async create(
@@ -61,9 +64,24 @@ export class UsersService {
     });
   }
 
-  async update(id: string, data: { firstName?: string; lastName?: string; role?: UserRole; isActive?: boolean }): Promise<User> {
+  async update(id: string, data: { email?: string; firstName?: string; lastName?: string; role?: UserRole; isActive?: boolean }): Promise<User> {
+    if (data.email) {
+      const existing = await this.usersRepository.findOne({ where: { email: data.email } });
+      if (existing && existing.id !== id) {
+        throw new ConflictException('Email already exists');
+      }
+    }
     await this.usersRepository.update(id, data);
     return this.findById(id);
+  }
+
+  async delete(id: string): Promise<void> {
+    // Delete associated Client record first (no cascade on the OneToOne)
+    await this.clientsRepository.delete({ user: { id } });
+    const result = await this.usersRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('User not found');
+    }
   }
 
   async resetPassword(id: string, newPassword: string): Promise<void> {

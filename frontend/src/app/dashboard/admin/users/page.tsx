@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import api from '@/lib/api';
 import { toast } from 'sonner';
-import { ArrowLeft, Plus, RefreshCw, LogOut, Pencil, KeyRound, Check, X } from 'lucide-react';
+import { ArrowLeft, Plus, RefreshCw, LogOut, Pencil, KeyRound, Check, X, Trash2 } from 'lucide-react';
 
 type Role = 'admin' | 'support' | 'sales' | 'client';
 
@@ -69,12 +69,15 @@ export default function AdminUsersPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editUser, setEditUser] = useState<User | null>(null);
   const [resetUser, setResetUser] = useState<User | null>(null);
+  const [deleteUser, setDeleteUser] = useState<User | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // form states
   const [form, setForm] = useState({ email: '', firstName: '', lastName: '', role: 'support' as Role, password: '' });
   const [formErrors, setFormErrors] = useState<Partial<Record<'email'|'firstName'|'lastName'|'password', string>>>({});
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', role: 'client' as Role, isActive: true });
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', role: 'client' as Role, isActive: true });
+  const [editEmailError, setEditEmailError] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [pwError, setPwError] = useState('');
 
@@ -123,14 +126,26 @@ export default function AdminUsersPage() {
 
   const handleEdit = async () => {
     if (!editUser) return;
+    if (editForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
+      setEditEmailError('Некорректный email');
+      return;
+    }
+    if (!editForm.email.trim()) {
+      setEditEmailError('Обязательное поле');
+      return;
+    }
     setSaving(true);
     try {
       await api.patch(`/users/${editUser.id}`, editForm);
       toast.success('Сохранено');
       setEditUser(null);
+      setEditEmailError('');
       await load();
-    } catch { toast.error('Ошибка сохранения'); }
-    finally { setSaving(false); }
+    } catch (e: any) {
+      const msg = e.response?.data?.message;
+      if (msg === 'Email already exists') toast.error('Email уже занят');
+      else toast.error('Ошибка сохранения');
+    } finally { setSaving(false); }
   };
 
   const handleResetPassword = async () => {
@@ -154,6 +169,20 @@ export default function AdminUsersPage() {
       toast.success(u.isActive ? 'Аккаунт деактивирован' : 'Аккаунт активирован');
       await load();
     } catch { toast.error('Ошибка'); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteUser) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/users/${deleteUser.id}`);
+      toast.success('Пользователь удалён');
+      setDeleteUser(null);
+      await load();
+    } catch (e: any) {
+      const msg = e.response?.data?.message;
+      toast.error(msg || 'Ошибка удаления');
+    } finally { setDeleting(false); }
   };
 
   if (!user) return null;
@@ -231,7 +260,7 @@ export default function AdminUsersPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
                       <button
-                        onClick={() => { setEditUser(u); setEditForm({ firstName: u.firstName, lastName: u.lastName, role: u.role, isActive: u.isActive }); }}
+                        onClick={() => { setEditUser(u); setEditForm({ firstName: u.firstName, lastName: u.lastName, email: u.email, role: u.role, isActive: u.isActive }); setEditEmailError(''); }}
                         className="text-slate-400 hover:text-white transition-colors p-1"
                         title="Редактировать"
                       >
@@ -244,6 +273,15 @@ export default function AdminUsersPage() {
                       >
                         <KeyRound size={14} />
                       </button>
+                      {u.id !== user.id && (
+                        <button
+                          onClick={() => setDeleteUser(u)}
+                          className="text-slate-400 hover:text-red-400 transition-colors p-1"
+                          title="Удалить"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -325,7 +363,7 @@ export default function AdminUsersPage() {
 
       {/* Edit modal */}
       {editUser && (
-        <Modal title="Редактировать пользователя" onClose={() => setEditUser(null)}>
+        <Modal title="Редактировать пользователя" onClose={() => { setEditUser(null); setEditEmailError(''); }}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <Field label="Имя">
@@ -335,6 +373,18 @@ export default function AdminUsersPage() {
                 <input className={inputCls()} value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} />
               </Field>
             </div>
+            <Field label={<>Email <span className="text-red-400">*</span></>}>
+              <input
+                type="text"
+                inputMode="email"
+                autoComplete="off"
+                className={inputCls(!!editEmailError)}
+                value={editForm.email}
+                onChange={e => { setEditForm(f => ({ ...f, email: e.target.value })); setEditEmailError(''); }}
+                placeholder="max@beispiel.de"
+              />
+              {editEmailError && <p className="text-red-400 text-xs mt-0.5">{editEmailError}</p>}
+            </Field>
             <Field label="Роль">
               <select className={selectCls} value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as Role }))}>
                 <option value="client">Клиент</option>
@@ -382,6 +432,24 @@ export default function AdminUsersPage() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* Delete confirmation modal */}
+      {deleteUser && (
+        <Modal title="Удаление пользователя" onClose={() => setDeleteUser(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-300">
+              Удалить пользователя <span className="font-medium text-white">{deleteUser.firstName} {deleteUser.lastName}</span>?
+            </p>
+            <p className="text-xs text-slate-500">Это действие нельзя отменить.</p>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setDeleteUser(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+                {deleting ? 'Удаление...' : 'Удалить'}
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

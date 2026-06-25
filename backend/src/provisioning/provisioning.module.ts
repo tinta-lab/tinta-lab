@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from '../clients/entities/client.entity';
 import { Server } from '../servers/entities/server.entity';
 import { ClientsModule } from '../clients/clients.module';
+import { UsersModule } from '../users/users.module';
 import { ServersModule } from '../servers/servers.module';
 import { TintaCoreModule } from '../tinta-core/tinta-core.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -14,6 +15,7 @@ import { InstallController } from './install.controller';
   imports: [
     TypeOrmModule.forFeature([Client, Server]),
     ClientsModule,
+    UsersModule,
     ServersModule,
     TintaCoreModule,
     NotificationsModule,

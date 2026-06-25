@@ -9,8 +9,11 @@ import { TintaCoreService } from '../tinta-core/tinta-core.service';
 import { GoldenTemplateService } from '../tinta-core/golden-template.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ClientsService } from '../clients/clients.service';
+import { UsersService } from '../users/users.service';
 
 export interface ProvisionClientDto {
+  // Use an existing client instead of creating a new one
+  existingClientId?: string;
   // New client data
   email: string;
   password: string;
@@ -59,6 +62,7 @@ export class ProvisioningService {
     @InjectRepository(Server)
     private readonly serverRepo: Repository<Server>,
     private readonly clientsService: ClientsService,
+    private readonly usersService: UsersService,
     private readonly serversService: ServersService,
     private readonly tintaCore: TintaCoreService,
     private readonly templateService: GoldenTemplateService,
@@ -77,22 +81,44 @@ export class ProvisioningService {
   async provisionClient(dto: ProvisionClientDto): Promise<ProvisionResult> {
     this.logger.log(`Provisioning client: ${dto.email}`);
 
-    // 1. Create client account
+    // 1. Resolve or create client account
     let client: Client;
-    try {
-      client = await this.clientsService.create({
-        email: dto.email,
-        password: dto.password,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        phone: dto.phone,
-        city: dto.city,
-      });
-    } catch (err: any) {
-      if (err.message?.includes('duplicate') || err.code === '23505') {
-        throw new ConflictException('Email already exists');
+    if (dto.existingClientId) {
+      // Link to an existing client record
+      client = await this.clientsService.findById(dto.existingClientId);
+    } else {
+      // Check if a user with this email already exists
+      const existingUser = await this.usersService.findByEmail(dto.email);
+      if (existingUser) {
+        // User exists — check if they already have a Client record
+        const existingClient = await this.clientsService.findByUserIdOptional(existingUser.id);
+        if (existingClient) {
+          client = existingClient;
+        } else {
+          // User exists but has no Client entity — create one
+          client = await this.clientsService.createForUser(existingUser.id, {
+            phone: dto.phone,
+            city: dto.city,
+          });
+        }
+      } else {
+        // No existing user — create from scratch
+        try {
+          client = await this.clientsService.create({
+            email: dto.email,
+            password: dto.password,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            phone: dto.phone,
+            city: dto.city,
+          });
+        } catch (err: any) {
+          if (err.message?.includes('duplicate') || err.code === '23505') {
+            throw new ConflictException('Email already exists');
+          }
+          throw err;
+        }
       }
-      throw err;
     }
 
     // 2. Create server (Cloudflare auto-provisions tunnel if API key set)
