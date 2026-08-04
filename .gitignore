@@ -15,10 +15,6 @@ frontend/node_modules/
 landing/.next/
 landing/node_modules/
 
-# ── Agent ─────────────────────────────────────────────
-tinta-agent/node_modules/
-tinta-agent/dist/
-
 # ── Data & logs ───────────────────────────────────────
 data/
 *.log
