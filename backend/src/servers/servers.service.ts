@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Server, ServerStatus } from './entities/server.entity';
@@ -16,7 +21,13 @@ export class ServersService {
     @Optional() private cloudflare: CloudflareService,
   ) {}
 
-  async create(data: { clientId: string; name: string; subdomain: string; tunnelId?: string; localUrl?: string }): Promise<Server> {
+  async create(data: {
+    clientId: string;
+    name: string;
+    subdomain: string;
+    tunnelId?: string;
+    localUrl?: string;
+  }): Promise<Server> {
     const server = this.serversRepository.create({
       client: { id: data.clientId } as any,
       name: data.name,
@@ -24,12 +35,17 @@ export class ServersService {
       ...(data.tunnelId ? { tunnelId: data.tunnelId } : {}),
       ...(data.localUrl ? { localUrl: data.localUrl } : {}),
     } as any);
-    const saved = (await this.serversRepository.save(server)) as unknown as Server;
+    const saved = (await this.serversRepository.save(
+      server,
+    )) as unknown as Server;
 
     // Auto-provision Cloudflare tunnel if API is configured and no tunnelId was provided
     if (!data.tunnelId && this.cloudflare?.isEnabled) {
       try {
-        const cf = await this.cloudflare.provisionServer(data.name, data.subdomain);
+        const cf = await this.cloudflare.provisionServer(
+          data.name,
+          data.subdomain,
+        );
         await this.serversRepository.update(saved.id, {
           tunnelId: cf.tunnelId,
           tunnelToken: cf.tunnelToken,
@@ -40,7 +56,9 @@ export class ServersService {
         saved.cfDnsRecordId = cf.cfDnsRecordId;
         this.logger.log(`Cloudflare tunnel provisioned for server ${saved.id}`);
       } catch (err: any) {
-        this.logger.error(`Cloudflare provisioning failed for ${saved.id}: ${err.message}`);
+        this.logger.error(
+          `Cloudflare provisioning failed for ${saved.id}: ${err.message}`,
+        );
         // Don't throw — server is created, CF can be set up manually
       }
     }
@@ -49,7 +67,9 @@ export class ServersService {
   }
 
   async findAll(): Promise<Server[]> {
-    return this.serversRepository.find({ relations: ['client', 'client.user'] });
+    return this.serversRepository.find({
+      relations: ['client', 'client.user'],
+    });
   }
 
   // Support role: only accessible servers, no sensitive infra fields, no client PII beyond name
@@ -58,15 +78,23 @@ export class ServersService {
       where: { accessEnabled: true },
       relations: ['client', 'client.user'],
     });
-    return servers.map(({ localUrl, tunnelToken, tunnelId, cfDnsRecordId, ...safe }) => ({
-      ...safe,
-      client: safe.client ? {
-        id: safe.client.id,
-        user: safe.client.user
-          ? { id: safe.client.user.id, firstName: safe.client.user.firstName, lastName: safe.client.user.lastName }
+    return servers.map(
+      ({ localUrl, tunnelToken, tunnelId, cfDnsRecordId, ...safe }) => ({
+        ...safe,
+        client: safe.client
+          ? {
+              id: safe.client.id,
+              user: safe.client.user
+                ? {
+                    id: safe.client.user.id,
+                    firstName: safe.client.user.firstName,
+                    lastName: safe.client.user.lastName,
+                  }
+                : undefined,
+            }
           : undefined,
-      } : undefined,
-    }));
+      }),
+    );
   }
 
   async findByClientId(clientId: string): Promise<Server[]> {
@@ -117,7 +145,15 @@ export class ServersService {
     }
   }
 
-  async update(id: string, data: { name?: string; subdomain?: string; tunnelId?: string; localUrl?: string }): Promise<Server> {
+  async update(
+    id: string,
+    data: {
+      name?: string;
+      subdomain?: string;
+      tunnelId?: string;
+      localUrl?: string;
+    },
+  ): Promise<Server> {
     await this.serversRepository.update(id, data);
     return this.findById(id);
   }
@@ -136,8 +172,15 @@ export class ServersService {
     await this.serversRepository.delete(id);
   }
 
-  async setAccessEnabled(id: string, enabled: boolean, expiresAt?: Date): Promise<void> {
-    await this.serversRepository.update(id, { accessEnabled: enabled, accessExpiresAt: expiresAt ?? null });
+  async setAccessEnabled(
+    id: string,
+    enabled: boolean,
+    expiresAt?: Date,
+  ): Promise<void> {
+    await this.serversRepository.update(id, {
+      accessEnabled: enabled,
+      accessExpiresAt: expiresAt ?? null,
+    });
     this.serversGateway?.emitAccessChanged(id, enabled, expiresAt ?? null);
   }
 }

@@ -1,4 +1,13 @@
-import { IsEmail, IsString, MinLength, MaxLength, IsOptional, IsBoolean, IsUrl, Matches } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  IsBoolean,
+  IsUrl,
+  Matches,
+} from 'class-validator';
 
 export class ProvisionClientDto {
   @IsEmail()
@@ -21,7 +30,9 @@ export class ProvisionClientDto {
   lastName: string;
 
   @IsString()
-  @Matches(/^\+?[\d\s\-().]{7,20}$/, { message: 'phone must be a valid phone number' })
+  @Matches(/^\+?[\d\s\-().]{7,20}$/, {
+    message: 'phone must be a valid phone number',
+  })
   phone: string;
 
   @IsOptional()
@@ -35,7 +46,9 @@ export class ProvisionClientDto {
   serverName: string;
 
   @IsString()
-  @Matches(/^[a-z0-9-]{2,63}$/, { message: 'subdomain must be lowercase alphanumeric with hyphens' })
+  @Matches(/^[a-z0-9-]{2,63}$/, {
+    message: 'subdomain must be lowercase alphanumeric with hyphens',
+  })
   subdomain: string;
 
   @IsOptional()

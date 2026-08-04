@@ -35,7 +35,7 @@ export class CloudflareService {
     } else {
       this.logger.warn(
         'Cloudflare not configured — set CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ' +
-        'CLOUDFLARE_ZONE_ID, CLOUDFLARE_BASE_DOMAIN in .env to enable auto-provisioning',
+          'CLOUDFLARE_ZONE_ID, CLOUDFLARE_BASE_DOMAIN in .env to enable auto-provisioning',
       );
     }
   }
@@ -51,7 +51,10 @@ export class CloudflareService {
    * 3. Creates CNAME DNS record
    * Returns tunnelId, tunnelToken (for cloudflared --token), dnsRecordId
    */
-  async provisionServer(serverName: string, subdomain: string): Promise<ProvisionResult> {
+  async provisionServer(
+    serverName: string,
+    subdomain: string,
+  ): Promise<ProvisionResult> {
     if (!this.http || !this.accountId || !this.zoneId || !this.baseDomain) {
       throw new Error('Cloudflare integration not configured');
     }
@@ -60,7 +63,10 @@ export class CloudflareService {
     const tunnelSecret = randomBytes(32).toString('base64');
     const createRes = await this.http.post(
       `/accounts/${this.accountId}/cfd_tunnel`,
-      { name: `tinta-${serverName.toLowerCase().replace(/\s+/g, '-')}`, tunnel_secret: tunnelSecret },
+      {
+        name: `tinta-${serverName.toLowerCase().replace(/\s+/g, '-')}`,
+        tunnel_secret: tunnelSecret,
+      },
     );
     const tunnelId: string = createRes.data.result.id;
     this.logger.log(`Created Cloudflare tunnel ${tunnelId} for ${serverName}`);
@@ -94,7 +100,9 @@ export class CloudflareService {
       ttl: 1,
     });
     const cfDnsRecordId: string = dnsRes.data.result.id;
-    this.logger.log(`Created DNS record ${dnsName} → ${tunnelId}.cfargotunnel.com`);
+    this.logger.log(
+      `Created DNS record ${dnsName} → ${tunnelId}.cfargotunnel.com`,
+    );
 
     return { tunnelId, tunnelToken, cfDnsRecordId };
   }
@@ -102,9 +110,12 @@ export class CloudflareService {
   async deleteTunnel(tunnelId: string): Promise<void> {
     if (!this.http || !this.accountId) return;
     try {
-      await this.http.delete(`/accounts/${this.accountId}/cfd_tunnel/${tunnelId}`, {
-        params: { force: true },
-      });
+      await this.http.delete(
+        `/accounts/${this.accountId}/cfd_tunnel/${tunnelId}`,
+        {
+          params: { force: true },
+        },
+      );
       this.logger.log(`Deleted Cloudflare tunnel ${tunnelId}`);
     } catch (err: any) {
       this.logger.error(`Failed to delete tunnel ${tunnelId}: ${err.message}`);
@@ -114,10 +125,14 @@ export class CloudflareService {
   async deleteDnsRecord(dnsRecordId: string): Promise<void> {
     if (!this.http || !this.zoneId) return;
     try {
-      await this.http.delete(`/zones/${this.zoneId}/dns_records/${dnsRecordId}`);
+      await this.http.delete(
+        `/zones/${this.zoneId}/dns_records/${dnsRecordId}`,
+      );
       this.logger.log(`Deleted DNS record ${dnsRecordId}`);
     } catch (err: any) {
-      this.logger.error(`Failed to delete DNS record ${dnsRecordId}: ${err.message}`);
+      this.logger.error(
+        `Failed to delete DNS record ${dnsRecordId}: ${err.message}`,
+      );
     }
   }
 

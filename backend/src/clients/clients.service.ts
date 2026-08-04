@@ -68,7 +68,10 @@ export class ClientsService {
     });
   }
 
-  async createForUser(userId: string, data: { phone: string; city?: string }): Promise<Client> {
+  async createForUser(
+    userId: string,
+    data: { phone: string; city?: string },
+  ): Promise<Client> {
     const user = await this.usersService.findById(userId);
     const client = this.clientsRepository.create({
       user,

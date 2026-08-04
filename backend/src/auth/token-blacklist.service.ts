@@ -15,7 +15,9 @@ export class TokenBlacklistService implements OnModuleInit {
       port: this.config.get<number>('REDIS_PORT', 6379),
       lazyConnect: true,
     });
-    this.redis.on('error', (err) => this.logger.warn(`Redis error: ${err.message}`));
+    this.redis.on('error', (err) =>
+      this.logger.warn(`Redis error: ${err.message}`),
+    );
   }
 
   async add(userId: string, iat: number, exp: number): Promise<void> {

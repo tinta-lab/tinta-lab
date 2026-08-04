@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -35,6 +44,11 @@ export class TicketsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SALES)
   updateStatus(@Param('id') id: string, @Body() dto: UpdateTicketStatusDto) {
-    return this.ticketsService.updateStatus(id, dto.status, dto.assignedToId, dto.internalNotes);
+    return this.ticketsService.updateStatus(
+      id,
+      dto.status,
+      dto.assignedToId,
+      dto.internalNotes,
+    );
   }
 }

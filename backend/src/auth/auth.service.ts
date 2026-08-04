@@ -18,7 +18,8 @@ export class AuthService {
 
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmailWithPassword(email);
-    if (!user || !user.isActive) throw new UnauthorizedException('Invalid credentials');
+    if (!user || !user.isActive)
+      throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
@@ -51,7 +52,7 @@ export class AuthService {
 
   async logout(token: string): Promise<void> {
     try {
-      const decoded = this.jwtService.decode(token) as { sub: string; iat: number; exp: number };
+      const decoded = this.jwtService.decode(token);
       if (decoded?.sub && decoded?.iat && decoded?.exp) {
         await this.blacklist.add(decoded.sub, decoded.iat, decoded.exp);
       }

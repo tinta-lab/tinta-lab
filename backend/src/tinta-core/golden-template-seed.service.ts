@@ -7,7 +7,8 @@ const DEFAULT_TEMPLATES = [
   {
     slug: 'lighting-motion-hall',
     name: 'Авто-свет в коридоре',
-    description: 'Включает свет в коридоре при обнаружении движения, выключает через 3 минуты',
+    description:
+      'Включает свет в коридоре при обнаружении движения, выключает через 3 минуты',
     requiredEntities: ['binary_sensor', 'light'],
     automation: {
       alias: 'Tinta: Авто-свет в коридоре',
@@ -16,7 +17,11 @@ const DEFAULT_TEMPLATES = [
         { platform: 'state', entity_id: 'binary_sensor.motion_hall', to: 'on' },
       ],
       action: [
-        { service: 'light.turn_on', target: { area_id: 'hall' }, data: { brightness_pct: 80 } },
+        {
+          service: 'light.turn_on',
+          target: { area_id: 'hall' },
+          data: { brightness_pct: 80 },
+        },
         { delay: { minutes: 3 } },
         { service: 'light.turn_off', target: { area_id: 'hall' } },
       ],
@@ -38,11 +43,25 @@ const DEFAULT_TEMPLATES = [
         {
           choose: [
             {
-              conditions: [{ condition: 'time', after: '07:00:00', before: '22:00:00' }],
-              sequence: [{ service: 'climate.set_temperature', target: { entity_id: 'climate.living_room' }, data: { temperature: 21 } }],
+              conditions: [
+                { condition: 'time', after: '07:00:00', before: '22:00:00' },
+              ],
+              sequence: [
+                {
+                  service: 'climate.set_temperature',
+                  target: { entity_id: 'climate.living_room' },
+                  data: { temperature: 21 },
+                },
+              ],
             },
           ],
-          default: [{ service: 'climate.set_temperature', target: { entity_id: 'climate.living_room' }, data: { temperature: 18 } }],
+          default: [
+            {
+              service: 'climate.set_temperature',
+              target: { entity_id: 'climate.living_room' },
+              data: { temperature: 18 },
+            },
+          ],
         },
       ],
     },
@@ -59,7 +78,10 @@ const DEFAULT_TEMPLATES = [
         { platform: 'state', entity_id: 'group.all_persons', to: 'not_home' },
       ],
       action: [
-        { service: 'alarm_control_panel.alarm_arm_away', target: { entity_id: 'alarm_control_panel.home' } },
+        {
+          service: 'alarm_control_panel.alarm_arm_away',
+          target: { entity_id: 'alarm_control_panel.home' },
+        },
         { service: 'light.turn_off', target: { entity_id: 'all' } },
         { service: 'cover.close_cover', target: { entity_id: 'all' } },
       ],
@@ -68,7 +90,8 @@ const DEFAULT_TEMPLATES = [
   {
     slug: 'security-arrive-home',
     name: 'Возвращение домой',
-    description: 'Когда кто-то вернулся — снимает охрану и включает свет в коридоре',
+    description:
+      'Когда кто-то вернулся — снимает охрану и включает свет в коридоре',
     requiredEntities: ['alarm_control_panel', 'light'],
     automation: {
       alias: 'Tinta: Возвращение домой',
@@ -77,22 +100,28 @@ const DEFAULT_TEMPLATES = [
         { platform: 'state', entity_id: 'group.all_persons', to: 'home' },
       ],
       action: [
-        { service: 'alarm_control_panel.alarm_disarm', target: { entity_id: 'alarm_control_panel.home' } },
-        { service: 'light.turn_on', target: { area_id: 'hall' }, data: { brightness_pct: 60 } },
+        {
+          service: 'alarm_control_panel.alarm_disarm',
+          target: { entity_id: 'alarm_control_panel.home' },
+        },
+        {
+          service: 'light.turn_on',
+          target: { area_id: 'hall' },
+          data: { brightness_pct: 60 },
+        },
       ],
     },
   },
   {
     slug: 'energy-standby-off',
     name: 'Выкл. устройств в режиме ожидания',
-    description: 'Ночью выключает TV, усилители и другие устройства в standby через умные розетки',
+    description:
+      'Ночью выключает TV, усилители и другие устройства в standby через умные розетки',
     requiredEntities: ['switch'],
     automation: {
       alias: 'Tinta: Standby off ночью',
       mode: 'single',
-      trigger: [
-        { platform: 'time', at: '00:30:00' },
-      ],
+      trigger: [{ platform: 'time', at: '00:30:00' }],
       action: [
         { service: 'switch.turn_off', target: { device_class: 'outlet' } },
       ],

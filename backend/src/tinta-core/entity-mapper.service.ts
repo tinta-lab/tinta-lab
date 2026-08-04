@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
-export type TintaEntityType = 'light' | 'climate' | 'security' | 'switch' | 'cover';
+export type TintaEntityType =
+  | 'light'
+  | 'climate'
+  | 'security'
+  | 'switch'
+  | 'cover';
 
 export interface TintaCommand {
   entityType: TintaEntityType;
@@ -35,15 +40,26 @@ export class EntityMapperService {
   }
 
   private mapLight(cmd: TintaCommand): HACommand {
-    const service = cmd.action === 'on' ? 'turn_on' : cmd.action === 'off' ? 'turn_off' : 'toggle';
+    const service =
+      cmd.action === 'on'
+        ? 'turn_on'
+        : cmd.action === 'off'
+          ? 'turn_off'
+          : 'toggle';
     return {
       domain: 'light',
       service,
       data: {
         entity_id: cmd.haEntityId,
-        ...(cmd.data?.brightness !== undefined ? { brightness_pct: cmd.data.brightness } : {}),
-        ...(cmd.data?.color_temp !== undefined ? { color_temp: cmd.data.color_temp } : {}),
-        ...(cmd.data?.rgb_color !== undefined ? { rgb_color: cmd.data.rgb_color } : {}),
+        ...(cmd.data?.brightness !== undefined
+          ? { brightness_pct: cmd.data.brightness }
+          : {}),
+        ...(cmd.data?.color_temp !== undefined
+          ? { color_temp: cmd.data.color_temp }
+          : {}),
+        ...(cmd.data?.rgb_color !== undefined
+          ? { rgb_color: cmd.data.rgb_color }
+          : {}),
       },
     };
   }
@@ -71,7 +87,12 @@ export class EntityMapperService {
   }
 
   private mapSwitch(cmd: TintaCommand): HACommand {
-    const service = cmd.action === 'on' ? 'turn_on' : cmd.action === 'off' ? 'turn_off' : 'toggle';
+    const service =
+      cmd.action === 'on'
+        ? 'turn_on'
+        : cmd.action === 'off'
+          ? 'turn_off'
+          : 'toggle';
     return { domain: 'switch', service, data: { entity_id: cmd.haEntityId } };
   }
 
@@ -85,7 +106,12 @@ export class EntityMapperService {
     return {
       domain: 'cover',
       service: serviceMap[cmd.action] ?? cmd.action,
-      data: { entity_id: cmd.haEntityId, ...(cmd.data?.position !== undefined ? { position: cmd.data.position } : {}) },
+      data: {
+        entity_id: cmd.haEntityId,
+        ...(cmd.data?.position !== undefined
+          ? { position: cmd.data.position }
+          : {}),
+      },
     };
   }
 
@@ -98,7 +124,10 @@ export class EntityMapperService {
     return {
       domain: 'alarm_control_panel',
       service: serviceMap[cmd.action] ?? cmd.action,
-      data: { entity_id: cmd.haEntityId, ...(cmd.data?.code ? { code: cmd.data.code } : {}) },
+      data: {
+        entity_id: cmd.haEntityId,
+        ...(cmd.data?.code ? { code: cmd.data.code } : {}),
+      },
     };
   }
 }

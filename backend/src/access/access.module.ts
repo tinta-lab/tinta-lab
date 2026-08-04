@@ -10,7 +10,13 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { TintaCoreModule } from '../tinta-core/tinta-core.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AccessLog]), ServersModule, ClientsModule, NotificationsModule, TintaCoreModule],
+  imports: [
+    TypeOrmModule.forFeature([AccessLog]),
+    ServersModule,
+    ClientsModule,
+    NotificationsModule,
+    TintaCoreModule,
+  ],
   providers: [AccessService, AccessScheduler],
   controllers: [AccessController],
   exports: [AccessService],

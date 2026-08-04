@@ -35,8 +35,13 @@ export class AgentMonitorScheduler {
 
     for (const session of stale) {
       // Mark as disconnected
-      await this.sessionRepo.update({ clientId: session.clientId }, { status: AgentStatus.DISCONNECTED });
-      this.logger.warn(`Agent ${session.clientId} marked offline (no heartbeat since ${session.lastHeartbeatAt?.toISOString()})`);
+      await this.sessionRepo.update(
+        { clientId: session.clientId },
+        { status: AgentStatus.DISCONNECTED },
+      );
+      this.logger.warn(
+        `Agent ${session.clientId} marked offline (no heartbeat since ${session.lastHeartbeatAt?.toISOString()})`,
+      );
 
       // Create auto-ticket if not already alerted
       if (!this.alertedClients.has(session.clientId)) {
@@ -60,12 +65,16 @@ export class AgentMonitorScheduler {
             type: TicketType.SUPPORT,
           } as any),
         );
-        this.logger.log(`Auto-ticket created for offline agent ${session.clientId}`);
+        this.logger.log(
+          `Auto-ticket created for offline agent ${session.clientId}`,
+        );
       }
     }
 
     // Clear alerted status for clients that came back online
-    const online = await this.sessionRepo.find({ where: { status: AgentStatus.CONNECTED } });
+    const online = await this.sessionRepo.find({
+      where: { status: AgentStatus.CONNECTED },
+    });
     for (const session of online) {
       this.alertedClients.delete(session.clientId);
     }

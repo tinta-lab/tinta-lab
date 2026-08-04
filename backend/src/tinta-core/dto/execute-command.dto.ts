@@ -1,4 +1,10 @@
-import { IsString, MinLength, MaxLength, IsObject, IsOptional } from 'class-validator';
+import {
+  IsString,
+  MinLength,
+  MaxLength,
+  IsObject,
+  IsOptional,
+} from 'class-validator';
 
 export class ExecuteCommandDto {
   @IsString()

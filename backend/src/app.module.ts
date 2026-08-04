@@ -5,7 +5,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ClientsModule } from './clients/clients.module';
@@ -37,8 +36,16 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
         port: config.get<number>('DB_PORT', 5432),
         username: config.get('DB_USERNAME', 'tinta'),
         password: config.get('DB_PASSWORD'),
-        database: config.get('DB_NAME', 'tinta_smart'),
-        entities: [User, Client, Server, AccessLog, Ticket, GoldenTemplate, AgentSession],
+        database: config.get('DB_NAME', 'tinta_lab'),
+        entities: [
+          User,
+          Client,
+          Server,
+          AccessLog,
+          Ticket,
+          GoldenTemplate,
+          AgentSession,
+        ],
         synchronize: config.get('NODE_ENV') !== 'production',
         logging: false,
       }),
@@ -55,7 +62,6 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
   ],
   controllers: [AppController],
   providers: [
-    AppService,
     // Apply ThrottlerGuard globally; override per-route with @Throttle() / @SkipThrottle()
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],

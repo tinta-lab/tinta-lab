@@ -15,7 +15,7 @@ import { AuthModule } from '../auth/auth.module';
     TypeOrmModule.forFeature([Server]),
     ClientsModule,
     CloudflareModule,
-    AuthModule,  // provides TokenBlacklistService
+    AuthModule, // provides TokenBlacklistService
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

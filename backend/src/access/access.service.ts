@@ -27,8 +27,14 @@ export class AccessService {
     }
   }
 
-  async grantAccess(serverId: string, grantedByUserId: string): Promise<AccessLog> {
-    const timeoutMinutes = this.configService.get<number>('SUPPORT_ACCESS_TIMEOUT', 60);
+  async grantAccess(
+    serverId: string,
+    grantedByUserId: string,
+  ): Promise<AccessLog> {
+    const timeoutMinutes = this.configService.get<number>(
+      'SUPPORT_ACCESS_TIMEOUT',
+      60,
+    );
     const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
 
     const supportPassword = randomBytes(9).toString('base64url'); // 12-char URL-safe random
@@ -46,23 +52,32 @@ export class AccessService {
     const saved = await this.accessLogRepository.save(log);
 
     // Enable tinta-support user with fresh password on the client's HA
-    this.agentGateway?.setSupportAccess(server.client?.id, true, supportPassword);
+    this.agentGateway?.setSupportAccess(
+      server.client?.id,
+      true,
+      supportPassword,
+    );
 
     // Telegram: notify support team
     if (server.client?.user) {
-      this.notifications?.notifyAccessGranted({
-        clientName: `${server.client.user.firstName} ${server.client.user.lastName}`,
-        clientEmail: server.client.user.email,
-        serverName: server.name,
-        serverUrl: server.localUrl || `https://${server.subdomain}`,
-        expiresAt,
-      }).catch(() => {});
+      this.notifications
+        ?.notifyAccessGranted({
+          clientName: `${server.client.user.firstName} ${server.client.user.lastName}`,
+          clientEmail: server.client.user.email,
+          serverName: server.name,
+          serverUrl: server.localUrl || `https://${server.subdomain}`,
+          expiresAt,
+        })
+        .catch(() => {});
     }
 
     return saved;
   }
 
-  async revokeAccess(serverId: string, reason: 'manual' | 'expired' = 'manual'): Promise<void> {
+  async revokeAccess(
+    serverId: string,
+    reason: 'manual' | 'expired' = 'manual',
+  ): Promise<void> {
     // Capture active log BEFORE marking as revoked (needed for activity log fetch)
     const activeLog = await this.accessLogRepository.findOne({
       where: { server: { id: serverId }, isRevoked: false },
@@ -86,22 +101,31 @@ export class AccessService {
         activeLog?.grantedAt?.toISOString(),
         activeLog?.id,
       );
-    } catch { /* agent may be offline */ }
+    } catch {
+      /* agent may be offline */
+    }
 
     // Telegram: notify support team
     try {
       const server = await this.serversService.findById(serverId);
       if (server.client?.user) {
-        this.notifications?.notifyAccessRevoked({
-          clientName: `${server.client.user.firstName} ${server.client.user.lastName}`,
-          serverName: server.name,
-          reason,
-        }).catch(() => {});
+        this.notifications
+          ?.notifyAccessRevoked({
+            clientName: `${server.client.user.firstName} ${server.client.user.lastName}`,
+            serverName: server.name,
+            reason,
+          })
+          .catch(() => {});
       }
-    } catch { /* server may already be deleted */ }
+    } catch {
+      /* server may already be deleted */
+    }
   }
 
-  async recordConnection(serverId: string, supportUserId: string): Promise<void> {
+  async recordConnection(
+    serverId: string,
+    supportUserId: string,
+  ): Promise<void> {
     await this.accessLogRepository.update(
       { server: { id: serverId }, isRevoked: false },
       {
@@ -115,7 +139,11 @@ export class AccessService {
     const servers = await this.serversService.findAll();
     const now = new Date();
     for (const server of servers) {
-      if (server.accessEnabled && server.accessExpiresAt && server.accessExpiresAt < now) {
+      if (
+        server.accessEnabled &&
+        server.accessExpiresAt &&
+        server.accessExpiresAt < now
+      ) {
         await this.revokeAccess(server.id, 'expired');
       }
     }

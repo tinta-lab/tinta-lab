@@ -15,7 +15,9 @@ import { TokenBlacklistService } from '../auth/token-blacklist.service';
   cors: { origin: process.env.FRONTEND_URL ?? '*' },
   namespace: '/servers',
 })
-export class ServersGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class ServersGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -30,7 +32,10 @@ export class ServersGateway implements OnGatewayConnection, OnGatewayDisconnect 
   async handleConnection(client: Socket) {
     const token =
       client.handshake.auth?.token ||
-      (client.handshake.headers?.authorization as string)?.replace('Bearer ', '');
+      (client.handshake.headers?.authorization as string)?.replace(
+        'Bearer ',
+        '',
+      );
 
     if (!token) {
       this.logger.warn(`WS rejected (no token): ${client.id}`);
@@ -40,21 +45,32 @@ export class ServersGateway implements OnGatewayConnection, OnGatewayDisconnect 
     }
 
     try {
-      const payload = this.jwtService.verify<{ sub: string; iat: number; exp: number }>(token, {
+      const payload = this.jwtService.verify<{
+        sub: string;
+        iat: number;
+        exp: number;
+      }>(token, {
         secret: this.config.get<string>('JWT_SECRET'),
       });
 
       // Check token blacklist (covers logged-out tokens)
-      const revoked = await this.blacklist.isBlacklisted(payload.sub, payload.iat);
+      const revoked = await this.blacklist.isBlacklisted(
+        payload.sub,
+        payload.iat,
+      );
       if (revoked) {
-        this.logger.warn(`WS rejected (revoked token): ${client.id} user=${payload.sub}`);
+        this.logger.warn(
+          `WS rejected (revoked token): ${client.id} user=${payload.sub}`,
+        );
         client.emit('error', { message: 'Token revoked' });
         client.disconnect();
         return;
       }
 
       client.data.user = payload;
-      this.logger.log(`WS authenticated: ${client.id} user=${payload.sub} role=${payload['role']}`);
+      this.logger.log(
+        `WS authenticated: ${client.id} user=${payload.sub} role=${payload['role']}`,
+      );
     } catch {
       this.logger.warn(`WS rejected (invalid token): ${client.id}`);
       client.emit('error', { message: 'Invalid token' });
@@ -83,7 +99,13 @@ export class ServersGateway implements OnGatewayConnection, OnGatewayDisconnect 
     this.server.to('servers-room').emit('server:update', payload);
   }
 
-  emitAccessChanged(serverId: string, accessEnabled: boolean, expiresAt: Date | null) {
-    this.server.to('servers-room').emit('server:access', { id: serverId, accessEnabled, expiresAt });
+  emitAccessChanged(
+    serverId: string,
+    accessEnabled: boolean,
+    expiresAt: Date | null,
+  ) {
+    this.server
+      .to('servers-room')
+      .emit('server:access', { id: serverId, accessEnabled, expiresAt });
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -60,13 +64,32 @@ export class UsersService {
 
   async findAll(): Promise<User[]> {
     return this.usersRepository.find({
-      select: ['id', 'email', 'firstName', 'lastName', 'role', 'isActive', 'createdAt'],
+      select: [
+        'id',
+        'email',
+        'firstName',
+        'lastName',
+        'role',
+        'isActive',
+        'createdAt',
+      ],
     });
   }
 
-  async update(id: string, data: { email?: string; firstName?: string; lastName?: string; role?: UserRole; isActive?: boolean }): Promise<User> {
+  async update(
+    id: string,
+    data: {
+      email?: string;
+      firstName?: string;
+      lastName?: string;
+      role?: UserRole;
+      isActive?: boolean;
+    },
+  ): Promise<User> {
     if (data.email) {
-      const existing = await this.usersRepository.findOne({ where: { email: data.email } });
+      const existing = await this.usersRepository.findOne({
+        where: { email: data.email },
+      });
       if (existing && existing.id !== id) {
         throw new ConflictException('Email already exists');
       }

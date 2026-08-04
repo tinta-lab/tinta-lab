@@ -23,7 +23,7 @@ export interface ProvisionClientDto {
   city?: string;
   // Server data
   serverName: string;
-  subdomain: string;           // e.g. "mueller" → mueller.tinta-lab.de
+  subdomain: string; // e.g. "mueller" → mueller.tinta-lab.de
   localUrl?: string;
   // Options
   applyDefaultTemplates?: boolean;
@@ -91,7 +91,9 @@ export class ProvisioningService {
       const existingUser = await this.usersService.findByEmail(dto.email);
       if (existingUser) {
         // User exists — check if they already have a Client record
-        const existingClient = await this.clientsService.findByUserIdOptional(existingUser.id);
+        const existingClient = await this.clientsService.findByUserIdOptional(
+          existingUser.id,
+        );
         if (existingClient) {
           client = existingClient;
         } else {
@@ -122,7 +124,10 @@ export class ProvisioningService {
     }
 
     // 2. Create server (Cloudflare auto-provisions tunnel if API key set)
-    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+    const baseDomain = this.config.get(
+      'CLOUDFLARE_BASE_DOMAIN',
+      'tinta-lab.de',
+    );
     // Normalise: always store the full hostname so URL construction works everywhere
     const fullSubdomain = dto.subdomain.includes('.')
       ? dto.subdomain
@@ -136,15 +141,19 @@ export class ProvisioningService {
     });
 
     // 3. Generate Agent JWT + install token
-    const { agentToken, installToken } = await this.tintaCore.provisionAgent(client.id);
+    const { agentToken, installToken } = await this.tintaCore.provisionAgent(
+      client.id,
+    );
 
     // 4. Apply default golden templates (non-blocking)
     if (dto.applyDefaultTemplates !== false) {
       const templates = await this.templateService.findAll();
       for (const t of templates) {
-        await this.tintaCore.applyGoldenTemplate(client.id, t.slug).catch(() => {
-          // Agent not connected yet — will be applied on first connect
-        });
+        await this.tintaCore
+          .applyGoldenTemplate(client.id, t.slug)
+          .catch(() => {
+            // Agent not connected yet — will be applied on first connect
+          });
       }
     }
 
@@ -162,14 +171,19 @@ export class ProvisioningService {
       tunnelToken: server.tunnelToken,
     });
 
-    const frontendUrl = this.config.get('FRONTEND_URL', 'https://app.tinta-lab.de');
+    const frontendUrl = this.config.get(
+      'FRONTEND_URL',
+      'https://app.tinta-lab.de',
+    );
     const installUrl = `${frontendUrl}/install/${installToken}`;
 
     const agentInstallCommand = server.tunnelToken
       ? `# 1. Install Cloudflare tunnel\ncloudflared tunnel run --token ${server.tunnelToken}\n\n# 2. Install Tinta Agent (HA Add-on)\n# Go to HA → Add-ons → Install → set:\n# tinta_client_id: ${client.id}\n# tinta_agent_token: ${agentToken}`
       : `# Install Tinta Agent (HA Add-on)\n# Set options:\n# tinta_client_id: ${client.id}\n# tinta_agent_token: ${agentToken}`;
 
-    this.logger.log(`Provisioning complete for ${dto.email} (client: ${client.id}, server: ${server.id})`);
+    this.logger.log(
+      `Provisioning complete for ${dto.email} (client: ${client.id}, server: ${server.id})`,
+    );
 
     return {
       clientId: client.id,
@@ -191,7 +205,10 @@ export class ProvisioningService {
       this.clientsService.findById(session.clientId),
     ]);
     const server = servers[0];
-    const coreWs = this.config.get('TINTA_CORE_WS', 'wss://api.tinta-lab.de/tinta/ws');
+    const coreWs = this.config.get(
+      'TINTA_CORE_WS',
+      'wss://api.tinta-lab.de/tinta/ws',
+    );
 
     return {
       clientId: session.clientId,
@@ -200,7 +217,8 @@ export class ProvisioningService {
       externalUrl: server ? `https://${server.subdomain}` : '',
       tunnelToken: server?.tunnelToken ?? null,
       serverName: server?.name ?? '',
-      clientName: `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
+      clientName:
+        `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
       expiresAt: session.installTokenExpiresAt.toISOString(),
     };
   }

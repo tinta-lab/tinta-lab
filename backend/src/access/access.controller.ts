@@ -1,4 +1,12 @@
-import { Controller, Post, Delete, Get, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Delete,
+  Get,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AccessService } from './access.service';
 import { ClientsService } from '../clients/clients.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -39,7 +47,10 @@ export class AccessController {
   // SUPPORT records their connection and gets credentials
   @Post('connect/:serverId')
   @Roles(UserRole.SUPPORT, UserRole.ADMIN)
-  async recordConnection(@Param('serverId') serverId: string, @Request() req: any) {
+  async recordConnection(
+    @Param('serverId') serverId: string,
+    @Request() req: any,
+  ) {
     await this.accessService.recordConnection(serverId, req.user.id);
     return this.accessService.getActiveAccessForServer(serverId);
   }

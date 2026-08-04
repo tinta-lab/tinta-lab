@@ -15,7 +15,9 @@ export class NotificationsService implements OnModuleInit {
     this.chatId = this.configService.get<string>('TELEGRAM_CHAT_ID') ?? null;
 
     if (!token || !this.chatId) {
-      this.logger.warn('Telegram not configured — set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env');
+      this.logger.warn(
+        'Telegram not configured — set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env',
+      );
       return;
     }
 
@@ -30,16 +32,20 @@ export class NotificationsService implements OnModuleInit {
     serverUrl: string;
     expiresAt: Date;
   }) {
-    const { clientName, clientEmail, serverName, serverUrl, expiresAt } = params;
-    const expires = expiresAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    const { clientName, clientEmail, serverName, serverUrl, expiresAt } =
+      params;
+    const expires = expiresAt.toLocaleTimeString('de-DE', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
 
     await this.send(
       `🟢 *Доступ открыт*\n\n` +
-      `👤 Клиент: ${clientName} (${clientEmail})\n` +
-      `🏠 Сервер: ${serverName}\n` +
-      `🔗 Ссылка: ${serverUrl}\n` +
-      `⏱ Истекает в: ${expires}\n\n` +
-      `_Нажмите ссылку чтобы подключиться к Home Assistant_`
+        `👤 Клиент: ${clientName} (${clientEmail})\n` +
+        `🏠 Сервер: ${serverName}\n` +
+        `🔗 Ссылка: ${serverUrl}\n` +
+        `⏱ Истекает в: ${expires}\n\n` +
+        `_Нажмите ссылку чтобы подключиться к Home Assistant_`,
     );
   }
 
@@ -52,25 +58,39 @@ export class NotificationsService implements OnModuleInit {
     agentToken: string;
     tunnelToken: string | null;
   }) {
-    const { clientName, clientEmail, serverName, subdomain, dashboardUrl, agentToken, tunnelToken } = params;
+    const {
+      clientName,
+      clientEmail,
+      serverName,
+      subdomain,
+      dashboardUrl,
+      agentToken,
+      tunnelToken,
+    } = params;
     await this.send(
       `🚀 *Новый клиент провижинен*\n\n` +
-      `👤 ${clientName} (${clientEmail})\n` +
-      `🏠 Сервер: ${serverName}\n` +
-      `🌐 Поддомен: ${subdomain}\n` +
-      `🔗 Dashboard: ${dashboardUrl}\n\n` +
-      `*Agent JWT:* \`${agentToken.slice(0, 20)}...\`\n` +
-      (tunnelToken ? `*Tunnel Token:* \`${tunnelToken.slice(0, 20)}...\`\n` : '') +
-      `\n_Все токены показаны частично. Полные — в API ответе._`,
+        `👤 ${clientName} (${clientEmail})\n` +
+        `🏠 Сервер: ${serverName}\n` +
+        `🌐 Поддомен: ${subdomain}\n` +
+        `🔗 Dashboard: ${dashboardUrl}\n\n` +
+        `*Agent JWT:* \`${agentToken.slice(0, 20)}...\`\n` +
+        (tunnelToken
+          ? `*Tunnel Token:* \`${tunnelToken.slice(0, 20)}...\`\n`
+          : '') +
+        `\n_Все токены показаны частично. Полные — в API ответе._`,
     );
   }
 
-  async notifyAgentOffline(params: { clientName: string; clientId: string; lastSeen: Date | null }) {
+  async notifyAgentOffline(params: {
+    clientName: string;
+    clientId: string;
+    lastSeen: Date | null;
+  }) {
     await this.send(
       `🔴 *Агент офлайн*\n\n` +
-      `👤 ${params.clientName}\n` +
-      `🆔 Client ID: \`${params.clientId}\`\n` +
-      `⏱ Последний heartbeat: ${params.lastSeen?.toLocaleString('de-DE') ?? 'неизвестно'}`,
+        `👤 ${params.clientName}\n` +
+        `🆔 Client ID: \`${params.clientId}\`\n` +
+        `⏱ Последний heartbeat: ${params.lastSeen?.toLocaleString('de-DE') ?? 'неизвестно'}`,
     );
   }
 
@@ -81,12 +101,13 @@ export class NotificationsService implements OnModuleInit {
   }) {
     const { clientName, serverName, reason } = params;
     const icon = reason === 'expired' ? '⏰' : '🔴';
-    const text = reason === 'expired' ? 'истёк автоматически' : 'закрыт клиентом';
+    const text =
+      reason === 'expired' ? 'истёк автоматически' : 'закрыт клиентом';
 
     await this.send(
       `${icon} *Доступ ${text}*\n\n` +
-      `👤 Клиент: ${clientName}\n` +
-      `🏠 Сервер: ${serverName}`
+        `👤 Клиент: ${clientName}\n` +
+        `🏠 Сервер: ${serverName}`,
     );
   }
 

@@ -1,4 +1,11 @@
-import { IsString, MinLength, MaxLength, IsOptional, IsUrl, Matches } from 'class-validator';
+import {
+  IsString,
+  MinLength,
+  MaxLength,
+  IsOptional,
+  IsUrl,
+  Matches,
+} from 'class-validator';
 
 export class CreateServerDto {
   @IsString()
@@ -8,7 +15,9 @@ export class CreateServerDto {
 
   @IsString()
   @MaxLength(253)
-  @Matches(/^[a-z0-9][a-z0-9.\-]{0,251}[a-z0-9]$/, { message: 'subdomain must be a valid hostname or full domain' })
+  @Matches(/^[a-z0-9][a-z0-9.\-]{0,251}[a-z0-9]$/, {
+    message: 'subdomain must be a valid hostname or full domain',
+  })
   subdomain: string;
 
   @IsString()

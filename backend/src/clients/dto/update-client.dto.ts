@@ -3,7 +3,9 @@ import { IsString, MaxLength, IsOptional, Matches } from 'class-validator';
 export class UpdateClientDto {
   @IsOptional()
   @IsString()
-  @Matches(/^\+?[\d\s\-().]{7,20}$/, { message: 'phone must be a valid phone number' })
+  @Matches(/^\+?[\d\s\-().]{7,20}$/, {
+    message: 'phone must be a valid phone number',
+  })
   phone?: string;
 
   @IsOptional()

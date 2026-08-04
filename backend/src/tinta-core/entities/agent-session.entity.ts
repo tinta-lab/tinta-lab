@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Client } from '../../clients/entities/client.entity';
 
 export enum AgentStatus {
@@ -18,7 +26,11 @@ export class AgentSession {
   @Column({ unique: true })
   clientId: string;
 
-  @Column({ type: 'enum', enum: AgentStatus, default: AgentStatus.DISCONNECTED })
+  @Column({
+    type: 'enum',
+    enum: AgentStatus,
+    default: AgentStatus.DISCONNECTED,
+  })
   status: AgentStatus;
 
   // JWT токен агента (генерируется при провиженинге)

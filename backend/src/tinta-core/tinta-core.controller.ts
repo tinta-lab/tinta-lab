@@ -40,13 +40,19 @@ export class TintaCoreController {
 
   @Post('execute/:clientId')
   @Roles(UserRole.ADMIN)
-  async execute(@Param('clientId') clientId: string, @Body() dto: ExecuteCommandDto) {
+  async execute(
+    @Param('clientId') clientId: string,
+    @Body() dto: ExecuteCommandDto,
+  ) {
     return this.coreService.executeAction(clientId, dto as any);
   }
 
   @Post('template/:clientId/:slug')
   @Roles(UserRole.ADMIN)
-  async applyTemplate(@Param('clientId') clientId: string, @Param('slug') slug: string) {
+  async applyTemplate(
+    @Param('clientId') clientId: string,
+    @Param('slug') slug: string,
+  ) {
     return this.coreService.applyGoldenTemplate(clientId, slug);
   }
 
