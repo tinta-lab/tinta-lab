@@ -65,7 +65,7 @@ export default function AdminDashboard() {
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8 rounded-lg" />
+            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
             <span className="font-semibold">Tinta Lab</span>
             <span className="text-slate-500 text-sm">/ Admin</span>
           </div>

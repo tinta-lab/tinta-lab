@@ -69,7 +69,7 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 rounded-3xl mb-4 mx-auto shadow-lg shadow-teal-500/20" />
+          <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 mb-4 mx-auto drop-shadow-[0_4px_20px_rgba(20,184,166,0.45)]" />
           <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Lab</h1>
           <p className="text-slate-400 text-sm mt-1">Система управления умным домом</p>
         </div>

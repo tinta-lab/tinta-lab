@@ -134,7 +134,7 @@ export default function SalesDashboard() {
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 flex-shrink-0">
         <div className="max-w-full flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8 rounded-lg" />
+            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
             <span className="font-semibold">Tinta Lab</span>
             <span className="text-slate-500 text-sm">/ Sales</span>
           </div>

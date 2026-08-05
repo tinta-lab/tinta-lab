@@ -39,7 +39,7 @@ export default function Footer() {
                 alt=""
                 width={32}
                 height={32}
-                className="w-8 h-8 rounded-lg"
+                className="w-8 h-8"
                 aria-hidden="true"
               />
               <span className="font-bold text-white text-lg">Tinta Lab</span>

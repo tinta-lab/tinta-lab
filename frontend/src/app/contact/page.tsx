@@ -99,7 +99,7 @@ export default function ContactPage() {
 
         {/* Header */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tinta Lab" className="w-16 h-16 rounded-2xl mb-4 mx-auto shadow-lg shadow-teal-500/20" />
+          <img src="/logo.png" alt="Tinta Lab" className="w-16 h-16 mb-4 mx-auto drop-shadow-[0_4px_16px_rgba(20,184,166,0.4)]" />
           <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Lab</h1>
           <p className="text-slate-400 text-sm mt-1">Свяжитесь с нами — ответим в течение рабочего дня</p>
         </div>
