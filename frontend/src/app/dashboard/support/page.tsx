@@ -3,9 +3,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
+import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
 import { LogOut, RefreshCw, Shield, ExternalLink, Copy, Check, X, KeyRound, Clock } from 'lucide-react';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 interface AccessCredentials {
   serverId: string;
@@ -13,7 +15,7 @@ interface AccessCredentials {
   password: string;
 }
 
-function CredentialsModal({ creds, onClose }: { creds: AccessCredentials; onClose: () => void }) {
+function CredentialsModal({ creds, onClose, t }: { creds: AccessCredentials; onClose: () => void; t: (k: any) => string }) {
   const [copied, setCopied] = useState<'url' | 'pass' | null>(null);
 
   const copy = (text: string, field: 'url' | 'pass') => {
@@ -34,19 +36,21 @@ function CredentialsModal({ creds, onClose }: { creds: AccessCredentials; onClos
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <KeyRound size={18} className="text-amber-400" />
-            <span className="font-semibold">Данные для входа</span>
+            <span className="font-semibold">{t('support_creds_title')}</span>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white">
             <X size={18} />
           </button>
         </div>
         <p className="text-sm text-slate-400 mb-5">
-          Используйте логин <span className="font-mono text-white">tinta-support</span> и временный пароль ниже. Пароль меняется при каждом открытии доступа.
+          {t('support_creds_desc').replace('tinta-support', '')}
+          <span className="font-mono text-white">tinta-support</span>
+          {' '}{t('support_creds_desc').split('tinta-support')[1]}
         </p>
         <div className="space-y-3 mb-6">
           <div className="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 rounded-lg px-4 py-3">
             <div>
-              <div className="text-xs text-slate-500 mb-0.5">Адрес</div>
+              <div className="text-xs text-slate-500 mb-0.5">{t('support_creds_url')}</div>
               <div className="font-mono text-sm text-white">{creds.url}</div>
             </div>
             <button onClick={() => copy(creds.url, 'url')} className="text-slate-400 hover:text-white ml-3 flex-shrink-0">
@@ -55,7 +59,7 @@ function CredentialsModal({ creds, onClose }: { creds: AccessCredentials; onClos
           </div>
           <div className="flex items-center justify-between bg-slate-900/60 border border-slate-700/60 rounded-lg px-4 py-3">
             <div>
-              <div className="text-xs text-slate-500 mb-0.5">Пароль</div>
+              <div className="text-xs text-slate-500 mb-0.5">{t('support_creds_pass')}</div>
               <div className="font-mono text-sm text-white tracking-wider">{creds.password}</div>
             </div>
             <button onClick={() => copy(creds.password, 'pass')} className="text-slate-400 hover:text-white ml-3 flex-shrink-0">
@@ -67,7 +71,7 @@ function CredentialsModal({ creds, onClose }: { creds: AccessCredentials; onClos
           onClick={openHA}
           className="w-full py-2.5 rounded-xl bg-green-500/15 border border-green-500/30 text-green-400 hover:bg-green-500/25 font-medium flex items-center justify-center gap-2 transition-all"
         >
-          <ExternalLink size={15} /> Открыть Home Assistant
+          <ExternalLink size={15} /> {t('support_open_ha')}
         </button>
       </div>
     </div>
@@ -83,17 +87,17 @@ function StatusDot({ status }: { status: Server['status'] }) {
   return <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${map[status]}`} />;
 }
 
-function AccessTimer({ expiresAt }: { expiresAt: string | null }) {
+function AccessTimer({ expiresAt, label }: { expiresAt: string | null; label: string }) {
   const [remaining, setRemaining] = useState('');
 
   useEffect(() => {
     if (!expiresAt) return;
     const tick = () => {
       const diff = new Date(expiresAt).getTime() - Date.now();
-      if (diff <= 0) { setRemaining('истекает...'); return; }
+      if (diff <= 0) { setRemaining(label); return; }
       const m = Math.floor(diff / 60000);
       const s = Math.floor((diff % 60000) / 1000);
-      setRemaining(`${m}м ${s}с`);
+      setRemaining(`${m}m ${s}s`);
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -111,6 +115,7 @@ function AccessTimer({ expiresAt }: { expiresAt: string | null }) {
 export default function SupportDashboard() {
   const router = useRouter();
   const { user, logout, init, token } = useAuth();
+  const { t } = useLocale();
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -146,7 +151,6 @@ export default function SupportDashboard() {
     setConnecting(server.id);
     try {
       const { data } = await api.post(`/access/connect/${server.id}`);
-      // Always use the public tunnel URL — support works remotely, never on client's LAN
       const url = `https://${server.subdomain}`;
       setCredentials({
         serverId: server.id,
@@ -173,7 +177,7 @@ export default function SupportDashboard() {
           </div>
         </div>
         <span className="flex items-center gap-1 text-xs bg-green-500/20 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 flex-shrink-0">
-          <Shield size={10} /> доступ открыт
+          <Shield size={10} /> {t('support_access_open')}
         </span>
       </div>
 
@@ -187,10 +191,10 @@ export default function SupportDashboard() {
         {server.haVersion && <span className="bg-slate-700/50 rounded px-1.5 py-0.5">HA {server.haVersion}</span>}
         {server.lastSeenAt && (
           <span>
-            {new Date(server.lastSeenAt).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' })}
+            {new Date(server.lastSeenAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
-        <AccessTimer expiresAt={server.accessExpiresAt} />
+        <AccessTimer expiresAt={server.accessExpiresAt} label={t('support_expires')} />
       </div>
 
       <button
@@ -200,7 +204,7 @@ export default function SupportDashboard() {
       >
         {connecting === server.id
           ? <RefreshCw size={14} className="animate-spin" />
-          : <><KeyRound size={14} /> Получить доступ</>
+          : <><KeyRound size={14} /> {t('support_get_access')}</>
         }
       </button>
     </div>
@@ -208,12 +212,14 @@ export default function SupportDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
-      {credentials && <CredentialsModal creds={credentials} onClose={() => setCredentials(null)} />}
+      {credentials && <CredentialsModal creds={credentials} onClose={() => setCredentials(null)} t={t} />}
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
-            <span className="font-semibold">Tinta Lab</span>
+            <a href="https://tinta-lab.de">
+              <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
+            </a>
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-7 w-auto" />
             <span className="text-slate-500 text-sm">/ Support</span>
           </div>
           <div className="flex items-center gap-4">
@@ -225,15 +231,16 @@ export default function SupportDashboard() {
               <span className="text-slate-600">·</span>
               <span className="flex items-center gap-1.5">
                 <Shield size={11} className="text-amber-400" />
-                {accessible.length} открыт доступ
+                {accessible.length} {t('support_access_open')}
               </span>
             </div>
             <button onClick={loadServers} className="text-slate-400 hover:text-white transition-colors">
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
+            <AppLanguageSwitcher />
             <span className="text-sm text-slate-400">{user.firstName}</span>
             <button onClick={() => logout()} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm">
-              <LogOut size={15} /> Выйти
+              <LogOut size={15} /> {t('logout')}
             </button>
           </div>
         </div>
@@ -241,10 +248,8 @@ export default function SupportDashboard() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Серверы клиентов</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Доступ открывает клиент — вы получаете уведомление и можете подключиться
-          </p>
+          <h1 className="text-2xl font-bold">{t('support_title')}</h1>
+          <p className="text-slate-400 text-sm mt-1">{t('support_subtitle')}</p>
         </div>
 
         {loading ? (
@@ -256,8 +261,8 @@ export default function SupportDashboard() {
         ) : accessible.length === 0 ? (
           <div className="text-center py-20 text-slate-500">
             <Shield size={40} className="mx-auto mb-3 opacity-30" />
-            <p className="text-lg font-medium text-slate-400">Нет активных сессий доступа</p>
-            <p className="text-sm mt-1">Клиент должен включить переключатель в Home Assistant</p>
+            <p className="text-lg font-medium text-slate-400">{t('support_no_active')}</p>
+            <p className="text-sm mt-1">{t('support_no_active_desc')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

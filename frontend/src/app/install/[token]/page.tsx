@@ -106,7 +106,7 @@ export default function InstallPage() {
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
             <Shield size={16} />
           </div>
-          <span className="font-bold text-lg">Tinta Lab</span>
+          <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-8 w-auto" />
         </div>
       </header>
 

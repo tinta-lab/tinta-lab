@@ -1,0 +1,228 @@
+{
+  "nav": {
+    "features": "Leistungen",
+    "howItWorks": "So funktioniert's",
+    "security": "Sicherheit",
+    "devices": "Geräte",
+    "login": "Anmelden",
+    "start": "Starten",
+    "startFree": "Kostenlos starten",
+    "aria": "Hauptnavigation",
+    "logoAriaLabel": "Tinta Lab – zur Startseite",
+    "openMenu": "Menü öffnen",
+    "closeMenu": "Menü schließen",
+    "mobileMenu": "Mobiles Menü"
+  },
+  "hero": {
+    "eyebrow": "Professionelles Smart-Home-Management",
+    "h1a": "Smart Home",
+    "h1b": "ohne Stress",
+    "lead": "Wir richten Ihr Smart Home ein, überwachen es und beheben Probleme. Der Techniker verbindet sich nur, wenn Sie den Zugang freigeben —",
+    "leadStrong": " mit einem einzigen Klick.",
+    "socialProof": "50+ Smart Homes bereits verbunden",
+    "ctaPrimary": "Kostenlose Beratung starten",
+    "ctaSecondary": "So funktioniert's",
+    "badgeData": "Ihre Daten bleiben zuhause",
+    "badgeAccess": "Zugang nur mit Ihrer Erlaubnis",
+    "badgeHome": "Funktioniert mit jedem Smart Home",
+    "scrollHint": "Scrollen"
+  },
+  "features": {
+    "eyebrow": "Leistungen",
+    "h2": "Alles inklusive – von der Einrichtung bis zum Support",
+    "lead": "Wir kümmern uns um die Technik. Sie genießen einfach Ihr sicheres, intelligentes Zuhause.",
+    "items": [
+      {
+        "title": "Ihr Zuhause unsichtbar für Fremde",
+        "desc": "Keine offenen Ports am Router. Ihr Smart Home hat keinen sichtbaren Eingang im Internet. Angreifer können es einfach nicht finden – wie ein Haus ohne Adresse auf der Karte."
+      },
+      {
+        "title": "Sie entscheiden, wer und wann Zugang erhält",
+        "desc": "Der Techniker kann nicht einfach eintreten. Nur Sie öffnen den Zugang per Knopfdruck – und nur Sie schließen ihn. Wie eine Türsprechanlage: Sie sehen, wer klingelt, und öffnen selbst."
+      },
+      {
+        "title": "Automatisierungen ohne Programmieren",
+        "desc": "Das Licht schaltet sich aus, wenn Sie gehen. Die Heizung regelt sich nach Zeitplan. Fertige Szenarien – mit einem Klick aktiviert, ganz ohne technisches Wissen."
+      },
+      {
+        "title": "Probleme werden gelöst, bevor Sie sie bemerken",
+        "desc": "Wenn ein Sensor nicht antwortet oder ein Gerät hängt, erfahren wir es als Erste. Der Techniker behebt das Problem, während Sie Ihrem Alltag nachgehen."
+      },
+      {
+        "title": "Von überall auf der Welt steuern",
+        "desc": "Ihr persönlicher Bereich auf Smartphone, Tablet oder PC. Status prüfen, Licht einschalten, Schloss kontrollieren – alles an einem Ort."
+      },
+      {
+        "title": "Echte Menschen, keine Chatbots",
+        "desc": "Einrichtung, Updates, Fehlerbehebung – unsere Techniker machen alles selbst. Sie müssen nur den Zugang freigeben."
+      }
+    ]
+  },
+  "howItWorks": {
+    "eyebrow": "So funktioniert's",
+    "h2": "Drei einfache Schritte",
+    "lead": "Ganz unkompliziert. Von der ersten Anfrage bis zum fertigen Smart Home – in weniger als 15 Minuten.",
+    "steps": [
+      {
+        "title": "Anfrage stellen",
+        "desc": "Füllen Sie ein kurzes Formular aus – Name, E-Mail, welche Geräte Sie zuhause haben. Unser Techniker meldet sich noch am selben Tag und hilft Ihnen beim Einstieg.",
+        "note": "Kein technisches Vorwissen nötig"
+      },
+      {
+        "title": "Wir installieren alles für Sie",
+        "desc": "Sie erhalten einen Einrichtungslink per Klick. Öffnen Sie ihn auf Ihrem Smart-Home-Gerät – den Rest erledigen wir. Kein Terminal, keine manuelle Konfiguration.",
+        "note": "5–15 Minuten zur Einrichtung"
+      },
+      {
+        "title": "Leben Sie, wir passen auf",
+        "desc": "Das System läuft, die Geräte sind verbunden. Brauchen Sie Hilfe – ein Klick genügt. Wir kommen, erledigen es und gehen. Ohne Ihre Erlaubnis rührt niemand Ihr Zuhause an.",
+        "note": "Support rund um die Uhr"
+      }
+    ]
+  },
+  "security": {
+    "eyebrow": "Sicherheit",
+    "h2": "Ihr Zuhause, Ihre Regeln",
+    "lead": "Wir haben das System so gebaut, dass Sie immer Herr der Lage sind – auch wenn Sie unseren Support nutzen.",
+    "pillars": [
+      {
+        "title": "Schutz wie beim Online-Banking",
+        "desc": "Ihr Smart Home verbindet sich mit unserer Plattform über einen verschlüsselten Tunnel – wie bei einer Online-Zahlung. Von außen gibt es keine einzige Stelle, über die jemand eindringen könnte.",
+        "label": "Keine offenen Ports"
+      },
+      {
+        "title": "Techniker kommt nur auf Ihre Einladung",
+        "desc": "Wir können uns technisch nicht verbinden, ohne Ihre ausdrückliche Erlaubnis. Sie drücken «Freigeben» – der Techniker ist da. Sie drücken «Trennen» – er ist weg. Jede Sitzung wird protokolliert.",
+        "label": "Volle Kontrolle bei Ihnen"
+      },
+      {
+        "title": "Ihre Daten verlassen Ihr Zuhause nicht",
+        "desc": "Geräte, Automatisierungen, Ereignisverlauf – alles liegt auf Ihrer Hardware, in Ihrem Heimnetz. Wir sehen nur das Signal «System läuft normal».",
+        "label": "DSGVO · Daten nur bei Ihnen"
+      }
+    ],
+    "poweredBy": "Basiert auf",
+    "poweredByAnd": "und",
+    "poweredByText": "– Technologien, denen Millionen Menschen weltweit vertrauen",
+    "gdpr": "DSGVO-konform"
+  },
+  "devices": {
+    "eyebrow": "Kompatibilität",
+    "h2": "Funktioniert mit Ihren Geräten",
+    "lead": "Home Assistant unterstützt über 3.000 Integrationen. Tinta Lab verwaltet jede davon.",
+    "footer": "Und tausende weitere Geräte über Home Assistant – Zigbee, Z-Wave, WLAN, Thread, Matter",
+    "categories": [
+      { "title": "Beleuchtung" },
+      { "title": "Klimaanlage" },
+      { "title": "Sicherheit" },
+      { "title": "Smarte Steckdosen" },
+      { "title": "Multimedia" },
+      { "title": "Sensoren" }
+    ],
+    "sensorBrands": ["Temperatur", "Luftfeuchte", "Bewegung", "Öffnung", "Rauch", "CO₂"]
+  },
+  "mockup": {
+    "title": "Mein Smart Home",
+    "status": "Alles in Ordnung",
+    "living": "Wohnzimmer",
+    "livingSub": "Beleuchtung · 3 Lampen",
+    "on": "Ein",
+    "climate": "Klima",
+    "climateSub": "Schlafzimmer · Zeitplan",
+    "door": "Haustür",
+    "doorSub": "Schloss · Türsensor",
+    "closed": "Geschlossen",
+    "accessTitle": "Techniker-Zugang",
+    "accessSub": "Niemand sieht Ihr Zuhause",
+    "lastVisit": "Letzter Besuch: gestern, 14:32 · 23 Min · Sitzung beendet",
+    "systemOk": "System läuft",
+    "dataTag": "Ihre Daten bei Ihnen"
+  },
+  "faq": {
+    "eyebrow": "Häufige Fragen",
+    "h2": "Oft gefragt",
+    "contactPrompt": "Keine Antwort gefunden?",
+    "contactLink": "Schreiben Sie uns",
+    "items": [
+      {
+        "q": "Können Techniker mich ohne mein Wissen überwachen?",
+        "a": "Nein, und das ist technisch unmöglich. Das System ist so gebaut, dass wir keine Verbindung zu Ihrem Zuhause herstellen können, ohne dass Sie aktiv handeln. Sie drücken «Freigeben» – der Techniker ist drin. Sie drücken «Trennen» – die Verbindung wird sofort getrennt. Jede Sitzung wird mit Start- und Endzeit im Protokoll erfasst."
+      },
+      {
+        "q": "Landen meine persönlichen Daten auf irgendwelchen Servern?",
+        "a": "Nein. Alle Daten Ihres Smart Homes – Geräte, Automatisierungen, Verlauf – bleiben auf Ihrer Hardware, in Ihrem Heimnetz. Wir erhalten nur das Dienstsignal «System läuft normal» und Befehle, die Sie selbst erteilen. Keine persönlichen Daten, keine Überwachung. Wir sind DSGVO-konform."
+      },
+      {
+        "q": "Muss ich mich mit Technik auskennen?",
+        "a": "Überhaupt nicht. Genau dafür sind wir da. Sie brauchen nur: Internet zuhause und Smart-Home-Geräte (oder den Wunsch, welche zu kaufen). Den Rest – Installation, Einrichtung, Updates, Diagnose – übernehmen wir."
+      },
+      {
+        "q": "Was ist Home Assistant und wozu brauche ich es?",
+        "a": "Home Assistant ist ein kostenloses Smart-Home-System, dem weltweit über 500.000 Nutzer vertrauen. Es verbindet Geräte verschiedener Hersteller an einem Ort: Beleuchtung, Klima, Sicherheit, Multimedia. Wir installieren und konfigurieren es für Sie – Sie müssen nicht wissen, wie es innen funktioniert."
+      },
+      {
+        "q": "Was kostet das?",
+        "a": "Der Preis hängt von der Größe Ihres Zuhauses und der Anzahl der Geräte ab. Schreiben Sie uns – wir bewerten Ihre Situation kostenlos und machen Ihnen ein passendes Angebot. Keine versteckten Kosten."
+      },
+      {
+        "q": "Was passiert, wenn ich kündigen möchte?",
+        "a": "Ihre Daten bleiben bei Ihnen – weil sie Ihr Zuhause nie verlassen haben. Home Assistant bleibt bei Ihnen und läuft weiter. Sie verlieren nichts. Wir trennen einfach den Agenten – ohne Datenverlust und ohne Verpflichtungen."
+      }
+    ]
+  },
+  "cta": {
+    "badge": "Kostenlose Beratung – unverbindlich",
+    "h2": "Bereit, Ihr Zuhause smart zu machen?",
+    "lead": "Erzählen Sie uns von Ihrem Zuhause. Wir beurteilen die Aufgabe, schlagen eine Lösung vor und beantworten alle Fragen – kostenlos und ohne Druck.",
+    "primary": "Beratung anfragen",
+    "secondary": "Direkt schreiben",
+    "tagline": "Keine versteckten Kosten · Ihre Daten bleiben bei Ihnen · Jederzeit kündbar"
+  },
+  "footer": {
+    "desc": "Professionelles Smart-Home-Management. Einrichtung, Überwachung und Support – mit Datenschutz an erster Stelle.",
+    "sections": {
+      "platform": "Plattform",
+      "account": "Konto",
+      "legal": "Rechtliches"
+    },
+    "links": {
+      "features": "Leistungen",
+      "howItWorks": "So funktioniert's",
+      "security": "Sicherheit",
+      "devices": "Geräte",
+      "faq": "FAQ",
+      "login": "Anmelden",
+      "register": "Registrieren",
+      "dashboard": "Mein Bereich",
+      "contact": "Kontakt",
+      "impressum": "Impressum",
+      "privacy": "Datenschutz",
+      "terms": "AGB"
+    },
+    "copyright": "Tinta Lab. Alle Rechte vorbehalten."
+  },
+  "impressum": {
+    "title": "Impressum",
+    "subtitle": "Angaben gemäß § 5 TMG",
+    "responsible": "Verantwortlicher",
+    "contact": "Kontakt",
+    "liability": "Haftung für Inhalte",
+    "liabilityText": "Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich.",
+    "links": "Haftung für Links",
+    "linksText": "Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.",
+    "copyright": "Urheberrecht",
+    "copyrightText": "Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung und Verbreitung außerhalb der Grenzen des Urheberrechts bedürfen der schriftlichen Zustimmung des Autors.",
+    "note": "Rechtlich bindende Fassung – nur auf Deutsch verfügbar"
+  },
+  "datenschutz": {
+    "title": "Datenschutzerklärung",
+    "note": "Rechtlich bindende Fassung – nur auf Deutsch verfügbar"
+  },
+  "agb": {
+    "title": "Allgemeine Geschäftsbedingungen",
+    "note": "Rechtlich bindende Fassung – nur auf Deutsch verfügbar"
+  },
+  "langSwitcher": {
+    "label": "Sprache"
+  }
+}

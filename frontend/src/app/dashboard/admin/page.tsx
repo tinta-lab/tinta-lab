@@ -2,8 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/i18n/context';
 import { Users, Server, Ticket, Activity, LogOut, RefreshCw, Wifi } from 'lucide-react';
 import api from '@/lib/api';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 interface Stats {
   users: number;
@@ -16,6 +18,7 @@ interface Stats {
 export default function AdminDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
+  const { t } = useLocale();
   const [stats, setStats] = useState<Stats>({ users: 0, servers: 0, tickets: 0, activeAccess: 0, agentsOnline: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -53,11 +56,11 @@ export default function AdminDashboard() {
   if (!user) return null;
 
   const statCards = [
-    { label: 'Пользователи', value: stats.users, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-    { label: 'Серверы', value: stats.servers, icon: Server, color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/20' },
-    { label: 'Тикеты', value: stats.tickets, icon: Ticket, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
-    { label: 'Активных доступов', value: stats.activeAccess, icon: Activity, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-    { label: 'Агентов онлайн', value: stats.agentsOnline, icon: Wifi, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+    { label: t('admin_users'),        value: stats.users,        icon: Users,    color: 'text-blue-400',   bg: 'bg-blue-500/10 border-blue-500/20' },
+    { label: t('admin_servers'),      value: stats.servers,      icon: Server,   color: 'text-teal-400',   bg: 'bg-teal-500/10 border-teal-500/20' },
+    { label: t('admin_tickets'),      value: stats.tickets,      icon: Ticket,   color: 'text-amber-400',  bg: 'bg-amber-500/10 border-amber-500/20' },
+    { label: t('admin_active_access'),value: stats.activeAccess, icon: Activity, color: 'text-green-400',  bg: 'bg-green-500/10 border-green-500/20' },
+    { label: t('admin_agents_online'),value: stats.agentsOnline, icon: Wifi,     color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
   ];
 
   return (
@@ -65,17 +68,20 @@ export default function AdminDashboard() {
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
-            <span className="font-semibold">Tinta Lab</span>
+            <a href="https://tinta-lab.de">
+              <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
+            </a>
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-7 w-auto" />
             <span className="text-slate-500 text-sm">/ Admin</span>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={loadStats} className="text-slate-400 hover:text-white transition-colors" title="Обновить">
+            <button onClick={loadStats} className="text-slate-400 hover:text-white transition-colors" title={t('refresh')}>
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
+            <AppLanguageSwitcher />
             <span className="text-sm text-slate-400">{user.firstName} {user.lastName}</span>
             <button onClick={() => logout()} className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm">
-              <LogOut size={15} /> Выйти
+              <LogOut size={15} /> {t('logout')}
             </button>
           </div>
         </div>
@@ -83,8 +89,8 @@ export default function AdminDashboard() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold">Панель управления</h1>
-          <p className="text-slate-400 text-sm mt-1">Обзор системы Tinta Lab</p>
+          <h1 className="text-2xl font-bold">{t('admin_title')}</h1>
+          <p className="text-slate-400 text-sm mt-1">{t('admin_subtitle')}</p>
         </div>
 
         {/* Stats */}
@@ -105,10 +111,10 @@ export default function AdminDashboard() {
         {/* Nav */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { title: 'Пользователи', desc: 'Управление аккаунтами всех ролей', icon: Users, href: '/dashboard/admin/users', color: 'text-blue-400' },
-            { title: 'Серверы', desc: 'Все серверы клиентов', icon: Server, href: '/dashboard/admin/servers', color: 'text-teal-400' },
-            { title: 'Тикеты', desc: 'Заявки и обращения', icon: Ticket, href: '/dashboard/admin/tickets', color: 'text-amber-400' },
-            { title: 'Tinta Agents', desc: 'Агенты, метрики, шаблоны, провиженинг', icon: Wifi, href: '/dashboard/admin/agents', color: 'text-purple-400' },
+            { title: t('admin_nav_users'),   desc: t('admin_nav_users_desc'),   icon: Users,  href: '/dashboard/admin/users',   color: 'text-blue-400' },
+            { title: t('admin_nav_servers'), desc: t('admin_nav_servers_desc'), icon: Server, href: '/dashboard/admin/servers', color: 'text-teal-400' },
+            { title: t('admin_nav_tickets'), desc: t('admin_nav_tickets_desc'), icon: Ticket, href: '/dashboard/admin/tickets', color: 'text-amber-400' },
+            { title: t('admin_nav_agents'),  desc: t('admin_nav_agents_desc'),  icon: Wifi,   href: '/dashboard/admin/agents',  color: 'text-purple-400' },
           ].map((card) => (
             <button
               key={card.title}

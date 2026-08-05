@@ -1,30 +1,25 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/i18n/context';
 import Link from 'next/link';
 import { PhoneInput } from '@/components/PhoneInput';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
-const schema = z.object({
-  firstName: z.string().min(2, 'Минимум 2 символа').max(64),
-  lastName: z.string().min(2, 'Минимум 2 символа').max(64),
-  email: z.string().email('Введите корректный email').max(254),
-  phone: z.string().refine(v => v.replace(/\D/g, '').length >= 7, 'Введите корректный номер телефона'),
-  city: z.string().max(128).optional(),
-  password: z.string()
-    .min(8, 'Минимум 8 символов')
-    .max(128),
-  confirmPassword: z.string(),
-}).refine(d => d.password === d.confirmPassword, {
-  message: 'Пароли не совпадают',
-  path: ['confirmPassword'],
-});
-
-type FormData = z.infer<typeof schema>;
+type FormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  city?: string;
+  password: string;
+  confirmPassword: string;
+};
 
 function passwordScore(pwd: string): number {
   let score = 0;
@@ -36,18 +31,25 @@ function passwordScore(pwd: string): number {
   return score;
 }
 
-const strengthMeta = [
-  { label: 'Слабый',   bar: 'w-1/4',  color: 'bg-red-500',    text: 'text-red-400'    },
-  { label: 'Средний',  bar: 'w-2/4',  color: 'bg-yellow-500', text: 'text-yellow-400' },
-  { label: 'Хороший',  bar: 'w-3/4',  color: 'bg-blue-500',   text: 'text-blue-400'   },
-  { label: 'Сильный',  bar: 'w-full', color: 'bg-green-500',  text: 'text-green-400'  },
-];
+const inputCls = (hasError: boolean) =>
+  `w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border ${
+    hasError ? 'border-red-500 focus:border-red-400' : 'border-slate-600 focus:border-teal-500'
+  } text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
+    hasError ? 'focus:ring-red-500/30' : 'focus:ring-teal-500/50'
+  } transition-all text-sm`;
 
-function PasswordStrength({ value }: { value: string }) {
+const labelCls = 'block text-sm font-medium text-slate-300 mb-1.5';
+
+function PasswordStrength({ value, labels }: { value: string; labels: [string, string, string, string] }) {
   if (!value) return null;
   const score = passwordScore(value);
   const idx = Math.min(Math.floor((score / 5) * 4), 3);
-  const meta = strengthMeta[idx];
+  const meta = [
+    { label: labels[0], bar: 'w-1/4',  color: 'bg-red-500',    text: 'text-red-400'    },
+    { label: labels[1], bar: 'w-2/4',  color: 'bg-yellow-500', text: 'text-yellow-400' },
+    { label: labels[2], bar: 'w-3/4',  color: 'bg-blue-500',   text: 'text-blue-400'   },
+    { label: labels[3], bar: 'w-full', color: 'bg-green-500',  text: 'text-green-400'  },
+  ][idx];
   return (
     <div className="mt-2">
       <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
@@ -58,20 +60,25 @@ function PasswordStrength({ value }: { value: string }) {
   );
 }
 
-const inputCls = (hasError: boolean) =>
-  `w-full px-4 py-2.5 rounded-lg bg-slate-900/50 border ${
-    hasError ? 'border-red-500 focus:border-red-400' : 'border-slate-600 focus:border-teal-500'
-  } text-white placeholder-slate-500 focus:outline-none focus:ring-1 ${
-    hasError ? 'focus:ring-red-500/30' : 'focus:ring-teal-500/50'
-  } transition-all text-sm`;
-
-const labelCls = 'block text-sm font-medium text-slate-300 mb-1.5';
-
 export default function RegisterPage() {
   const { register: registerUser } = useAuth();
+  const { t } = useLocale();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const schema = useMemo(() => z.object({
+    firstName: z.string().min(2, t('reg_val_min2')).max(64),
+    lastName: z.string().min(2, t('reg_val_min2')).max(64),
+    email: z.string().email(t('reg_val_email')).max(254),
+    phone: z.string().refine(v => v.replace(/\D/g, '').length >= 7, t('reg_val_phone')),
+    city: z.string().max(128).optional(),
+    password: z.string().min(8, t('reg_val_pass8')).max(128),
+    confirmPassword: z.string(),
+  }).refine(d => d.password === d.confirmPassword, {
+    message: t('reg_val_match'),
+    path: ['confirmPassword'],
+  }), [t]);
 
   const {
     register,
@@ -95,16 +102,16 @@ export default function RegisterPage() {
         city: data.city,
         password: data.password,
       });
-      toast.success('Аккаунт создан! Добро пожаловать.');
+      toast.success(t('reg_success'));
       window.location.href = '/dashboard/client';
     } catch (e: any) {
       const msg = e.response?.data?.message;
       if (msg === 'Email already exists' || (Array.isArray(msg) && msg.some((m: string) => m.includes('email')))) {
-        toast.error('Этот email уже зарегистрирован');
+        toast.error(t('reg_err_email_exists'));
       } else if (e.response?.status === 429) {
-        toast.error('Слишком много попыток. Повторите позже.');
+        toast.error(t('reg_err_ratelimit'));
       } else {
-        toast.error('Ошибка регистрации. Попробуйте снова.');
+        toast.error(t('reg_err_generic'));
       }
     } finally {
       setLoading(false);
@@ -117,13 +124,15 @@ export default function RegisterPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 mb-4 mx-auto drop-shadow-[0_4px_20px_rgba(20,184,166,0.45)]" />
-          <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Lab</h1>
-          <p className="text-slate-400 text-sm mt-1">Регистрация клиентского аккаунта</p>
+          <a href="https://tinta-lab.de" className="inline-flex flex-col items-center gap-0">
+            <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 mb-4 drop-shadow-[0_4px_20px_rgba(20,184,166,0.45)]" />
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-9 w-auto" />
+          </a>
+          <p className="text-slate-400 text-sm mt-1">{t('reg_subtitle')}</p>
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-lg font-semibold text-white mb-6">Создать аккаунт</h2>
+          <h2 className="text-lg font-semibold text-white mb-6">{t('reg_title')}</h2>
 
           {/* autoComplete="off" on form prevents browser from suggesting saved login credentials */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
@@ -131,22 +140,20 @@ export default function RegisterPage() {
             {/* Name row */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={labelCls}>Имя</label>
+                <label className={labelCls}>{t('reg_firstname')}</label>
                 <input
                   {...register('firstName')}
                   autoComplete="given-name"
                   className={inputCls(!!errors.firstName)}
-                  placeholder="Макс"
                 />
                 {errors.firstName && <p className="text-red-400 text-xs mt-1">{errors.firstName.message}</p>}
               </div>
               <div>
-                <label className={labelCls}>Фамилия</label>
+                <label className={labelCls}>{t('reg_lastname')}</label>
                 <input
                   {...register('lastName')}
                   autoComplete="family-name"
                   className={inputCls(!!errors.lastName)}
-                  placeholder="Мюллер"
                 />
                 {errors.lastName && <p className="text-red-400 text-xs mt-1">{errors.lastName.message}</p>}
               </div>
@@ -154,21 +161,20 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div>
-              <label className={labelCls}>Email</label>
+              <label className={labelCls}>{t('reg_email')}</label>
               <input
                 {...register('email')}
                 type="email"
                 autoComplete="off"
                 inputMode="email"
                 className={inputCls(!!errors.email)}
-                placeholder="max@beispiel.de"
               />
               {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
             </div>
 
             {/* Phone */}
             <div>
-              <label className={labelCls}>Телефон</label>
+              <label className={labelCls}>{t('reg_phone')}</label>
               <PhoneInput
                 value={phoneValue}
                 onChange={v => setValue('phone', v, { shouldValidate: true })}
@@ -180,7 +186,7 @@ export default function RegisterPage() {
             {/* City */}
             <div>
               <label className={labelCls}>
-                Город <span className="text-slate-500 font-normal text-xs">(необязательно)</span>
+                {t('reg_city')} <span className="text-slate-500 font-normal text-xs">{t('reg_city_optional')}</span>
               </label>
               <input
                 {...register('city')}
@@ -192,14 +198,13 @@ export default function RegisterPage() {
 
             {/* Password */}
             <div>
-              <label className={labelCls}>Пароль</label>
+              <label className={labelCls}>{t('reg_password')}</label>
               <div className="relative">
                 <input
                   {...register('password')}
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`${inputCls(!!errors.password)} pr-10`}
-                  placeholder="Минимум 8 символов"
                 />
                 <button
                   type="button"
@@ -210,20 +215,19 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <PasswordStrength value={passwordValue} />
+              <PasswordStrength value={passwordValue} labels={[t('pw_weak'), t('pw_medium'), t('pw_good'), t('pw_strong')]} />
               {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password.message}</p>}
             </div>
 
             {/* Confirm password */}
             <div>
-              <label className={labelCls}>Повторите пароль</label>
+              <label className={labelCls}>{t('reg_confirm')}</label>
               <div className="relative">
                 <input
                   {...register('confirmPassword')}
                   type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   className={`${inputCls(!!errors.confirmPassword)} pr-10`}
-                  placeholder="Повторите пароль"
                 />
                 <button
                   type="button"
@@ -243,15 +247,15 @@ export default function RegisterPage() {
             <ul className="text-xs text-slate-500 space-y-0.5 pt-1">
               <li className={`flex items-center gap-1.5 ${passwordValue.length >= 8 ? 'text-green-400' : ''}`}>
                 <CheckCircle2 size={11} className={passwordValue.length >= 8 ? 'text-green-400' : 'text-slate-600'} />
-                Минимум 8 символов
+                {t('reg_hint_length')}
               </li>
               <li className={`flex items-center gap-1.5 ${/[A-Z]/.test(passwordValue) ? 'text-green-400' : ''}`}>
                 <CheckCircle2 size={11} className={/[A-Z]/.test(passwordValue) ? 'text-green-400' : 'text-slate-600'} />
-                Хотя бы одна заглавная буква
+                {t('reg_hint_upper')}
               </li>
               <li className={`flex items-center gap-1.5 ${/[0-9]/.test(passwordValue) ? 'text-green-400' : ''}`}>
                 <CheckCircle2 size={11} className={/[0-9]/.test(passwordValue) ? 'text-green-400' : 'text-slate-600'} />
-                Хотя бы одна цифра
+                {t('reg_hint_digit')}
               </li>
             </ul>
 
@@ -262,24 +266,26 @@ export default function RegisterPage() {
               className="w-full py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
-                <><Loader2 size={16} className="animate-spin" /> Регистрация...</>
+                <><Loader2 size={16} className="animate-spin" /> {t('reg_submitting')}</>
               ) : (
-                'Создать аккаунт'
+                t('reg_submit')
               )}
             </button>
           </form>
 
           <p className="text-center text-slate-500 text-sm mt-5">
-            Уже есть аккаунт?{' '}
+            {t('reg_has_account')}{' '}
             <Link href="/auth/login" className="text-teal-400 hover:text-teal-300 transition-colors">
-              Войти
+              {t('reg_login_link')}
             </Link>
           </p>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          Tinta Lab &copy; {new Date().getFullYear()}
-        </p>
+        <div className="flex items-center justify-center gap-4 mt-6">
+          <p className="text-slate-600 text-xs">Tinta Lab &copy; {new Date().getFullYear()}</p>
+          <div className="h-3 w-px bg-slate-700" aria-hidden="true" />
+          <AppLanguageSwitcher />
+        </div>
       </div>
     </div>
   );

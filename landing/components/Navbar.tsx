@@ -1,20 +1,16 @@
 'use client';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { usePathname } from '@/i18n/navigation';
 
 const APP = 'https://app.tinta-lab.de';
 
-const NAV = [
-  { href: '#features',     label: 'Возможности'   },
-  { href: '#how-it-works', label: 'Как работает'   },
-  { href: '#security',     label: 'Безопасность'   },
-  { href: '#devices',      label: 'Устройства'     },
-];
-
 export default function Navbar() {
-  const [open,     setOpen]     = useState(false);
+  const t = useTranslations('nav');
+  const pathname = usePathname();
+  const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -24,6 +20,13 @@ export default function Navbar() {
   }, []);
 
   const close = () => setOpen(false);
+
+  const NAV = [
+    { href: '#features',     label: t('features')   },
+    { href: '#how-it-works', label: t('howItWorks')  },
+    { href: '#security',     label: t('security')    },
+    { href: '#devices',      label: t('devices')     },
+  ];
 
   return (
     <header
@@ -35,35 +38,25 @@ export default function Navbar() {
       }`}
     >
       <nav
-        aria-label="Главная навигация"
+        aria-label={t('aria')}
         className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16"
       >
         {/* Logo */}
-        <Link
-          href="#hero"
+        <a
+          href={pathname === '/' ? '#hero' : '/'}
           onClick={close}
           className="flex items-center gap-2 group"
-          aria-label="Tinta Lab — на главную"
+          aria-label={t('logoAriaLabel')}
         >
-          <Image
-            src="/logo.png"
-            alt=""
-            width={32}
-            height={32}
-            className="w-8 h-8"
-            aria-hidden="true"
-          />
-          <span className="font-bold text-white text-lg tracking-tight">Tinta Lab</span>
-        </Link>
+          <Image src="/logo.png" alt="" width={32} height={32} className="w-8 h-8" aria-hidden="true" />
+          <Image src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-9 w-auto" priority />
+        </a>
 
         {/* Desktop nav */}
         <ul className="hidden md:flex items-center gap-6" role="list">
           {NAV.map(n => (
             <li key={n.href}>
-              <a
-                href={n.href}
-                className="text-sm text-slate-400 hover:text-white transition-colors"
-              >
+              <a href={n.href} className="text-sm text-slate-400 hover:text-white transition-colors">
                 {n.label}
               </a>
             </li>
@@ -72,17 +65,11 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <a
-            href={`${APP}/auth/login`}
-            className="text-sm text-slate-300 hover:text-white transition-colors px-3 py-1.5"
-          >
-            Войти
+          <a href={`${APP}/auth/login`} className="text-sm text-slate-300 hover:text-white transition-colors px-3 py-1.5">
+            {t('login')}
           </a>
-          <a
-            href={`${APP}/auth/register`}
-            className="text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg transition-colors"
-          >
-            Начать
+          <a href={`${APP}/auth/register`} className="text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white px-4 py-1.5 rounded-lg transition-colors">
+            {t('start')}
           </a>
         </div>
 
@@ -90,7 +77,7 @@ export default function Navbar() {
         <button
           className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           onClick={() => setOpen(v => !v)}
-          aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
+          aria-label={open ? t('closeMenu') : t('openMenu')}
           aria-expanded={open}
           aria-controls="mobile-menu"
         >
@@ -104,16 +91,12 @@ export default function Navbar() {
           id="mobile-menu"
           className="md:hidden border-t border-slate-800 bg-slate-950/95 backdrop-blur-md"
           role="dialog"
-          aria-label="Мобильное меню"
+          aria-label={t('mobileMenu')}
         >
           <ul className="px-4 py-4 space-y-1" role="list">
             {NAV.map(n => (
               <li key={n.href}>
-                <a
-                  href={n.href}
-                  onClick={close}
-                  className="block py-2.5 text-slate-300 hover:text-white text-sm transition-colors"
-                >
+                <a href={n.href} onClick={close} className="block py-2.5 text-slate-300 hover:text-white text-sm transition-colors">
                   {n.label}
                 </a>
               </li>
@@ -125,14 +108,14 @@ export default function Navbar() {
               onClick={close}
               className="block w-full text-center py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-sm transition-colors"
             >
-              Войти
+              {t('login')}
             </a>
             <a
               href={`${APP}/auth/register`}
               onClick={close}
-              className="block w-full text-center py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors"
+              className="block w-full text-center py-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium text-sm transition-colors"
             >
-              Начать бесплатно
+              {t('startFree')}
             </a>
           </div>
         </div>

@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, RefreshCw, LogOut, Pencil, KeyRound, Check, X, Trash2 } from 'lucide-react';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 type Role = 'admin' | 'support' | 'sales' | 'client';
 
@@ -18,18 +20,11 @@ interface User {
   createdAt: string;
 }
 
-const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Администратор',
-  support: 'Поддержка',
-  sales: 'Продажи',
-  client: 'Клиент',
-};
-
 const ROLE_COLORS: Record<Role, string> = {
-  admin: 'bg-red-500/15 text-red-400 border-red-500/30',
+  admin:   'bg-red-500/15 text-red-400 border-red-500/30',
   support: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  sales: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  client: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+  sales:   'bg-amber-500/15 text-amber-400 border-amber-500/30',
+  client:  'bg-teal-500/15 text-teal-400 border-teal-500/30',
 };
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
@@ -64,6 +59,7 @@ const selectCls = 'w-full bg-slate-900 border border-slate-600 rounded-lg px-3 p
 export default function AdminUsersPage() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
+  const { t } = useLocale();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -73,13 +69,19 @@ export default function AdminUsersPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // form states
   const [form, setForm] = useState({ email: '', firstName: '', lastName: '', role: 'support' as Role, password: '' });
   const [formErrors, setFormErrors] = useState<Partial<Record<'email'|'firstName'|'lastName'|'password', string>>>({});
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', email: '', role: 'client' as Role, isActive: true });
   const [editEmailError, setEditEmailError] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [pwError, setPwError] = useState('');
+
+  const ROLE_LABELS: Record<Role, string> = {
+    admin:   t('role_admin'),
+    support: t('role_support'),
+    sales:   t('role_sales'),
+    client:  t('role_client'),
+  };
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
@@ -97,12 +99,12 @@ export default function AdminUsersPage() {
 
   const validateForm = () => {
     const errs: typeof formErrors = {};
-    if (!form.firstName.trim()) errs.firstName = 'Обязательное поле';
-    if (!form.lastName.trim())  errs.lastName  = 'Обязательное поле';
-    if (!form.email.trim())     errs.email     = 'Обязательное поле';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Некорректный email';
-    if (!form.password)         errs.password  = 'Обязательное поле';
-    else if (form.password.length < 8) errs.password = 'Минимум 8 символов';
+    if (!form.firstName.trim()) errs.firstName = t('err_required');
+    if (!form.lastName.trim())  errs.lastName  = t('err_required');
+    if (!form.email.trim())     errs.email     = t('err_required');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('err_email_invalid');
+    if (!form.password)         errs.password  = t('err_required');
+    else if (form.password.length < 8) errs.password = t('err_min8');
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -112,63 +114,63 @@ export default function AdminUsersPage() {
     setSaving(true);
     try {
       await api.post('/users', form);
-      toast.success('Пользователь создан');
+      toast.success(t('user_created_toast'));
       setShowCreate(false);
       setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' });
       setFormErrors({});
       await load();
     } catch (e: any) {
       const msg = e.response?.data?.message;
-      if (msg === 'Email already exists') toast.error('Email уже занят');
-      else toast.error(msg || 'Ошибка создания');
+      if (msg === 'Email already exists') toast.error(t('err_email_taken'));
+      else toast.error(msg || t('error'));
     } finally { setSaving(false); }
   };
 
   const handleEdit = async () => {
     if (!editUser) return;
     if (editForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email)) {
-      setEditEmailError('Некорректный email');
+      setEditEmailError(t('err_email_invalid'));
       return;
     }
     if (!editForm.email.trim()) {
-      setEditEmailError('Обязательное поле');
+      setEditEmailError(t('err_required'));
       return;
     }
     setSaving(true);
     try {
       await api.patch(`/users/${editUser.id}`, editForm);
-      toast.success('Сохранено');
+      toast.success(t('user_saved_toast'));
       setEditUser(null);
       setEditEmailError('');
       await load();
     } catch (e: any) {
       const msg = e.response?.data?.message;
-      if (msg === 'Email already exists') toast.error('Email уже занят');
-      else toast.error('Ошибка сохранения');
+      if (msg === 'Email already exists') toast.error(t('err_email_taken'));
+      else toast.error(t('error'));
     } finally { setSaving(false); }
   };
 
   const handleResetPassword = async () => {
     if (!resetUser) return;
-    if (!newPassword) { setPwError('Введите новый пароль'); return; }
-    if (newPassword.length < 8) { setPwError('Минимум 8 символов'); return; }
+    if (!newPassword) { setPwError(t('err_required')); return; }
+    if (newPassword.length < 8) { setPwError(t('err_min8')); return; }
     setSaving(true);
     try {
       await api.patch(`/users/${resetUser.id}/reset-password`, { password: newPassword });
-      toast.success('Пароль изменён');
+      toast.success(t('pw_changed'));
       setResetUser(null);
       setNewPassword('');
       setPwError('');
-    } catch { toast.error('Ошибка'); }
+    } catch { toast.error(t('error')); }
     finally { setSaving(false); }
   };
 
   const toggleActive = async (u: User) => {
     try {
       await api.patch(`/users/${u.id}`, { isActive: !u.isActive });
-      toast.success(u.isActive ? 'Аккаунт деактивирован' : 'Аккаунт активирован');
+      toast.success(u.isActive ? t('user_deactivated') : t('user_activated'));
       await load();
-    } catch { toast.error('Ошибка'); }
+    } catch { toast.error(t('error')); }
   };
 
   const handleDelete = async () => {
@@ -176,12 +178,12 @@ export default function AdminUsersPage() {
     setDeleting(true);
     try {
       await api.delete(`/users/${deleteUser.id}`);
-      toast.success('Пользователь удалён');
+      toast.success(t('user_deleted_toast'));
       setDeleteUser(null);
       await load();
     } catch (e: any) {
       const msg = e.response?.data?.message;
-      toast.error(msg || 'Ошибка удаления');
+      toast.error(msg || t('error'));
     } finally { setDeleting(false); }
   };
 
@@ -195,8 +197,8 @@ export default function AdminUsersPage() {
             <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors">
               <ArrowLeft size={18} />
             </button>
-            <span className="font-semibold">Tinta Lab</span>
-            <span className="text-slate-500 text-sm">/ Admin / Пользователи</span>
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-7 w-auto" />
+            <span className="text-slate-500 text-sm">{t('users_breadcrumb')}</span>
           </div>
           <div className="flex items-center gap-3">
             <button onClick={load} className="text-slate-400 hover:text-white transition-colors">
@@ -206,10 +208,11 @@ export default function AdminUsersPage() {
               onClick={() => setShowCreate(true)}
               className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
             >
-              <Plus size={14} /> Создать
+              <Plus size={14} /> {t('create')}
             </button>
+            <AppLanguageSwitcher />
             <button onClick={() => logout()} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm">
-              <LogOut size={15} /> Выйти
+              <LogOut size={15} /> {t('logout')}
             </button>
           </div>
         </div>
@@ -217,25 +220,25 @@ export default function AdminUsersPage() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Пользователи</h1>
-          <p className="text-slate-400 text-sm mt-1">{users.length} аккаунтов</p>
+          <h1 className="text-2xl font-bold">{t('users_h1')}</h1>
+          <p className="text-slate-400 text-sm mt-1">{users.length} {t('admin_users').toLowerCase()}</p>
         </div>
 
         <div className="rounded-xl border border-slate-700/50 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-slate-700/50 bg-slate-800/50">
-                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">Пользователь</th>
-                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">Email</th>
-                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">Роль</th>
-                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">Статус</th>
-                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">Создан</th>
+                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_user')}</th>
+                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_email_h')}</th>
+                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_role')}</th>
+                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_status')}</th>
+                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_created_at')}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">Загрузка...</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">{t('loading')}</td></tr>
               ) : users.map((u, i) => (
                 <tr key={u.id} className={`${i < users.length - 1 ? 'border-b border-slate-700/30' : ''} hover:bg-slate-800/30 transition-colors`}>
                   <td className="px-4 py-3 font-medium">{u.firstName} {u.lastName}</td>
@@ -251,7 +254,7 @@ export default function AdminUsersPage() {
                       className={`flex items-center gap-1 text-xs ${u.isActive ? 'text-green-400' : 'text-slate-500'} hover:opacity-70 transition-opacity`}
                     >
                       {u.isActive ? <Check size={13} /> : <X size={13} />}
-                      {u.isActive ? 'Активен' : 'Неактивен'}
+                      {u.isActive ? t('active') : t('inactive')}
                     </button>
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
@@ -262,14 +265,14 @@ export default function AdminUsersPage() {
                       <button
                         onClick={() => { setEditUser(u); setEditForm({ firstName: u.firstName, lastName: u.lastName, email: u.email, role: u.role, isActive: u.isActive }); setEditEmailError(''); }}
                         className="text-slate-400 hover:text-white transition-colors p-1"
-                        title="Редактировать"
+                        title={t('edit')}
                       >
                         <Pencil size={14} />
                       </button>
                       <button
                         onClick={() => setResetUser(u)}
                         className="text-slate-400 hover:text-amber-400 transition-colors p-1"
-                        title="Сменить пароль"
+                        title={t('change_pw')}
                       >
                         <KeyRound size={14} />
                       </button>
@@ -277,7 +280,7 @@ export default function AdminUsersPage() {
                         <button
                           onClick={() => setDeleteUser(u)}
                           className="text-slate-400 hover:text-red-400 transition-colors p-1"
-                          title="Удалить"
+                          title={t('delete')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -293,29 +296,26 @@ export default function AdminUsersPage() {
 
       {/* Create modal */}
       {showCreate && (
-        <Modal title="Новый пользователь" onClose={() => { setShowCreate(false); setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' }); setFormErrors({}); }}>
-          {/* autoComplete="off" + type="text" for email prevent browser from injecting saved admin credentials */}
+        <Modal title={t('new_user_title')} onClose={() => { setShowCreate(false); setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' }); setFormErrors({}); }}>
           <form autoComplete="off" onSubmit={e => { e.preventDefault(); handleCreate(); }} className="space-y-3.5">
             <div className="grid grid-cols-2 gap-3">
-              <Field label={<>Имя <span className="text-red-400">*</span></>}>
+              <Field label={<>{t('reg_firstname')} <span className="text-red-400">*</span></>}>
                 <input
                   type="text"
                   autoComplete="off"
                   className={inputCls(!!formErrors.firstName)}
                   value={form.firstName}
                   onChange={e => { setForm(f => ({ ...f, firstName: e.target.value })); setFormErrors(err => ({ ...err, firstName: '' })); }}
-                  placeholder="Max"
                 />
                 {formErrors.firstName && <p className="text-red-400 text-xs mt-0.5">{formErrors.firstName}</p>}
               </Field>
-              <Field label={<>Фамилия <span className="text-red-400">*</span></>}>
+              <Field label={<>{t('reg_lastname')} <span className="text-red-400">*</span></>}>
                 <input
                   type="text"
                   autoComplete="off"
                   className={inputCls(!!formErrors.lastName)}
                   value={form.lastName}
                   onChange={e => { setForm(f => ({ ...f, lastName: e.target.value })); setFormErrors(err => ({ ...err, lastName: '' })); }}
-                  placeholder="Müller"
                 />
                 {formErrors.lastName && <p className="text-red-400 text-xs mt-0.5">{formErrors.lastName}</p>}
               </Field>
@@ -328,33 +328,32 @@ export default function AdminUsersPage() {
                 className={inputCls(!!formErrors.email)}
                 value={form.email}
                 onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setFormErrors(err => ({ ...err, email: '' })); }}
-                placeholder="max@beispiel.de"
               />
               {formErrors.email && <p className="text-red-400 text-xs mt-0.5">{formErrors.email}</p>}
             </Field>
-            <Field label={<>Пароль <span className="text-red-400">*</span></>}>
+            <Field label={<>{t('reg_password')} <span className="text-red-400">*</span></>}>
               <input
                 type="password"
                 autoComplete="new-password"
                 className={inputCls(!!formErrors.password)}
                 value={form.password}
                 onChange={e => { setForm(f => ({ ...f, password: e.target.value })); setFormErrors(err => ({ ...err, password: '' })); }}
-                placeholder="Минимум 8 символов"
+                placeholder={t('reg_hint_length')}
               />
               {formErrors.password && <p className="text-red-400 text-xs mt-0.5">{formErrors.password}</p>}
             </Field>
-            <Field label="Роль">
+            <Field label={t('col_role')}>
               <select className={selectCls} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}>
-                <option value="support">Поддержка</option>
-                <option value="sales">Продажи</option>
-                <option value="admin">Администратор</option>
-                <option value="client">Клиент</option>
+                <option value="support">{t('role_support')}</option>
+                <option value="sales">{t('role_sales')}</option>
+                <option value="admin">{t('role_admin')}</option>
+                <option value="client">{t('role_client')}</option>
               </select>
             </Field>
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => { setShowCreate(false); setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' }); setFormErrors({}); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button type="button" onClick={() => { setShowCreate(false); setFormErrors({}); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
               <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
-                {saving ? 'Создание...' : 'Создать'}
+                {saving ? t('creating') : t('create')}
               </button>
             </div>
           </form>
@@ -363,13 +362,13 @@ export default function AdminUsersPage() {
 
       {/* Edit modal */}
       {editUser && (
-        <Modal title="Редактировать пользователя" onClose={() => { setEditUser(null); setEditEmailError(''); }}>
+        <Modal title={t('edit_user_title')} onClose={() => { setEditUser(null); setEditEmailError(''); }}>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Имя">
+              <Field label={t('reg_firstname')}>
                 <input className={inputCls()} value={editForm.firstName} onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))} />
               </Field>
-              <Field label="Фамилия">
+              <Field label={t('reg_lastname')}>
                 <input className={inputCls()} value={editForm.lastName} onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))} />
               </Field>
             </div>
@@ -381,28 +380,27 @@ export default function AdminUsersPage() {
                 className={inputCls(!!editEmailError)}
                 value={editForm.email}
                 onChange={e => { setEditForm(f => ({ ...f, email: e.target.value })); setEditEmailError(''); }}
-                placeholder="max@beispiel.de"
               />
               {editEmailError && <p className="text-red-400 text-xs mt-0.5">{editEmailError}</p>}
             </Field>
-            <Field label="Роль">
+            <Field label={t('col_role')}>
               <select className={selectCls} value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value as Role }))}>
-                <option value="client">Клиент</option>
-                <option value="support">Поддержка</option>
-                <option value="sales">Продажи</option>
-                <option value="admin">Администратор</option>
+                <option value="client">{t('role_client')}</option>
+                <option value="support">{t('role_support')}</option>
+                <option value="sales">{t('role_sales')}</option>
+                <option value="admin">{t('role_admin')}</option>
               </select>
             </Field>
-            <Field label="Статус">
+            <Field label={t('col_status')}>
               <select className={selectCls} value={editForm.isActive ? 'active' : 'inactive'} onChange={e => setEditForm(f => ({ ...f, isActive: e.target.value === 'active' }))}>
-                <option value="active">Активен</option>
-                <option value="inactive">Деактивирован</option>
+                <option value="active">{t('active')}</option>
+                <option value="inactive">{t('inactive')}</option>
               </select>
             </Field>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setEditUser(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button onClick={() => setEditUser(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
               <button onClick={handleEdit} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
-                {saving ? 'Сохранение...' : 'Сохранить'}
+                {saving ? t('saving') : t('save')}
               </button>
             </div>
           </div>
@@ -411,24 +409,24 @@ export default function AdminUsersPage() {
 
       {/* Reset password modal */}
       {resetUser && (
-        <Modal title={`Пароль: ${resetUser.firstName} ${resetUser.lastName}`} onClose={() => { setResetUser(null); setNewPassword(''); setPwError(''); }}>
+        <Modal title={`${t('pw_reset_title')}: ${resetUser.firstName} ${resetUser.lastName}`} onClose={() => { setResetUser(null); setNewPassword(''); setPwError(''); }}>
           <form autoComplete="off" onSubmit={e => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
-            <Field label={<>Новый пароль <span className="text-red-400">*</span></>}>
+            <Field label={<>{t('pw_enter_new')} <span className="text-red-400">*</span></>}>
               <input
                 type="password"
                 autoComplete="new-password"
                 className={inputCls(!!pwError)}
                 value={newPassword}
                 onChange={e => { setNewPassword(e.target.value); setPwError(''); }}
-                placeholder="Минимум 8 символов"
+                placeholder={t('reg_hint_length')}
                 autoFocus
               />
               {pwError && <p className="text-red-400 text-xs mt-0.5">{pwError}</p>}
             </Field>
             <div className="flex gap-3 pt-1">
-              <button type="button" onClick={() => { setResetUser(null); setNewPassword(''); setPwError(''); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button type="button" onClick={() => { setResetUser(null); setNewPassword(''); setPwError(''); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
               <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
-                {saving ? 'Сохранение...' : 'Сменить пароль'}
+                {saving ? t('saving') : t('change_pw')}
               </button>
             </div>
           </form>
@@ -437,16 +435,16 @@ export default function AdminUsersPage() {
 
       {/* Delete confirmation modal */}
       {deleteUser && (
-        <Modal title="Удаление пользователя" onClose={() => setDeleteUser(null)}>
+        <Modal title={t('delete_user_title')} onClose={() => setDeleteUser(null)}>
           <div className="space-y-4">
             <p className="text-sm text-slate-300">
-              Удалить пользователя <span className="font-medium text-white">{deleteUser.firstName} {deleteUser.lastName}</span>?
+              {t('delete')} <span className="font-medium text-white">{deleteUser.firstName} {deleteUser.lastName}</span>?
             </p>
-            <p className="text-xs text-slate-500">Это действие нельзя отменить.</p>
+            <p className="text-xs text-slate-500">{t('delete_irreversible')}</p>
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setDeleteUser(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">Отмена</button>
+              <button onClick={() => setDeleteUser(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
               <button onClick={handleDelete} disabled={deleting} className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
-                {deleting ? 'Удаление...' : 'Удалить'}
+                {deleting ? t('deleting') : t('delete')}
               </button>
             </div>
           </div>

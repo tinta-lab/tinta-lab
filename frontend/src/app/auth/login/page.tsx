@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,14 +7,11 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/i18n/context';
 import Link from 'next/link';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
-const schema = z.object({
-  email: z.string().email('Введите корректный email'),
-  password: z.string().min(1, 'Введите пароль'),
-});
-
-type FormData = z.infer<typeof schema>;
+type FormData = { email: string; password: string };
 
 const ROLE_REDIRECT: Record<string, string> = {
   admin:   '/dashboard/admin',
@@ -26,8 +23,14 @@ const ROLE_REDIRECT: Record<string, string> = {
 export default function LoginPage() {
   const router = useRouter();
   const { login, user, init } = useAuth();
+  const { t } = useLocale();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const schema = useMemo(() => z.object({
+    email: z.string().email(t('reg_val_email')),
+    password: z.string().min(1, t('err_required')),
+  }), [t]);
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -49,9 +52,9 @@ export default function LoginPage() {
       }
     } catch (e: any) {
       if (e.response?.status === 429) {
-        toast.error('Слишком много попыток входа. Подождите немного.');
+        toast.error(t('login_err_ratelimit'));
       } else {
-        toast.error('Неверный email или пароль');
+        toast.error(t('login_err_credentials'));
       }
     } finally {
       setLoading(false);
@@ -69,19 +72,21 @@ export default function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 mb-4 mx-auto drop-shadow-[0_4px_20px_rgba(20,184,166,0.45)]" />
-          <h1 className="text-2xl font-bold text-white tracking-tight">Tinta Lab</h1>
-          <p className="text-slate-400 text-sm mt-1">Система управления умным домом</p>
+          <a href="https://tinta-lab.de" className="inline-flex flex-col items-center gap-0">
+            <img src="/logo.png" alt="Tinta Lab" className="w-24 h-24 mb-4 drop-shadow-[0_4px_20px_rgba(20,184,166,0.45)]" />
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-9 w-auto" />
+          </a>
+          <p className="text-slate-400 text-sm mt-1">{t('login_subtitle')}</p>
         </div>
 
         <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-          <h2 className="text-lg font-semibold text-white mb-6">Вход в систему</h2>
+          <h2 className="text-lg font-semibold text-white mb-6">{t('login_title')}</h2>
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">Email</label>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5">{t('login_email')}</label>
               <input
                 {...register('email')}
                 type="email"
@@ -96,7 +101,7 @@ export default function LoginPage() {
             {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-sm font-medium text-slate-300">Пароль</label>
+                <label className="block text-sm font-medium text-slate-300">{t('login_password')}</label>
               </div>
               <div className="relative">
                 <input
@@ -125,31 +130,33 @@ export default function LoginPage() {
               className="w-full py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
-                <><Loader2 size={16} className="animate-spin" /> Вход...</>
+                <><Loader2 size={16} className="animate-spin" /> {t('login_submitting')}</>
               ) : (
-                'Войти'
+                t('login_submit')
               )}
             </button>
           </form>
 
           <p className="text-center text-slate-500 text-xs mt-5">
-            Забыли пароль?{' '}
+            {t('login_forgot')}{' '}
             <a href="mailto:support@tinta-lab.de" className="text-teal-400 hover:text-teal-300 transition-colors">
-              Напишите нам
+              {t('login_forgot_link')}
             </a>
           </p>
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-4">
-          Новый клиент?{' '}
+          {t('login_no_account')}{' '}
           <Link href="/auth/register" className="text-teal-400 hover:text-teal-300 transition-colors">
-            Создать аккаунт
+            {t('login_register_link')}
           </Link>
         </p>
 
-        <p className="text-center text-slate-600 text-xs mt-4">
-          Tinta Lab &copy; {new Date().getFullYear()}
-        </p>
+        <div className="flex items-center justify-center gap-4 mt-4">
+          <p className="text-slate-600 text-xs">Tinta Lab &copy; {new Date().getFullYear()}</p>
+          <div className="h-3 w-px bg-slate-700" aria-hidden="true" />
+          <AppLanguageSwitcher />
+        </div>
       </div>
     </div>
   );

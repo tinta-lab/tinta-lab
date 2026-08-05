@@ -4,6 +4,7 @@ import Features   from '@/components/Features';
 import HowItWorks from '@/components/HowItWorks';
 import Security   from '@/components/Security';
 import Devices    from '@/components/Devices';
+import FAQ        from '@/components/FAQ';
 import CtaBanner  from '@/components/CtaBanner';
 import Footer     from '@/components/Footer';
 
@@ -17,6 +18,7 @@ export default function LandingPage() {
         <HowItWorks />
         <Security />
         <Devices />
+        <FAQ />
         <CtaBanner />
       </main>
       <Footer />

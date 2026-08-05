@@ -3,10 +3,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
+import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
-import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, Wifi, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity } from 'lucide-react';
 import { toast } from 'sonner';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 interface AccessLog {
   id: string;
@@ -30,10 +32,10 @@ function StatusDot({ status }: { status: Server['status'] }) {
   return <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${map[status]}`} />;
 }
 
-function AccessCountdown({ expiresAt, onExpire }: { expiresAt: string; onExpire: () => void }) {
+function AccessCountdown({ expiresAt, onExpire, label }: { expiresAt: string; onExpire: () => void; label: string }) {
   const [remaining, setRemaining] = useState('');
   const [pct, setPct] = useState(100);
-  const total = 60 * 60 * 1000; // 60 min
+  const total = 60 * 60 * 1000;
 
   useEffect(() => {
     const tick = () => {
@@ -54,7 +56,7 @@ function AccessCountdown({ expiresAt, onExpire }: { expiresAt: string; onExpire:
   return (
     <div className="mt-3">
       <div className="flex items-center justify-between text-xs mb-1.5">
-        <span className="text-slate-400 flex items-center gap-1"><Clock size={11} /> Доступ закроется через</span>
+        <span className="text-slate-400 flex items-center gap-1"><Clock size={11} /> {label}</span>
         <span className="font-mono font-bold text-white">{remaining}</span>
       </div>
       <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
@@ -64,10 +66,10 @@ function AccessCountdown({ expiresAt, onExpire }: { expiresAt: string; onExpire:
   );
 }
 
-function ActivityLogSection({ entries }: { entries: string[] }) {
+function ActivityLogSection({ entries, t }: { entries: string[]; t: (k: any) => string }) {
   const [open, setOpen] = useState(false);
   if (!entries || entries.length === 0) {
-    return <p className="text-xs text-slate-600 italic pl-5 mt-1">Действий не зафиксировано</p>;
+    return <p className="text-xs text-slate-600 italic pl-5 mt-1">{t('client_log_no_actions')}</p>;
   }
   return (
     <div className="pl-5 mt-2">
@@ -76,7 +78,7 @@ function ActivityLogSection({ entries }: { entries: string[] }) {
         className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
       >
         <Activity size={11} className="text-teal-500" />
-        Действия саппорта ({entries.length})
+        {t('client_log_support_actions')} ({entries.length})
         {open ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
       </button>
       {open && (
@@ -95,6 +97,7 @@ function ActivityLogSection({ entries }: { entries: string[] }) {
 export default function ClientDashboard() {
   const router = useRouter();
   const { user, logout, init, token } = useAuth();
+  const { t } = useLocale();
   const [servers, setServers] = useState<Server[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,11 +141,11 @@ export default function ClientDashboard() {
     setActionLoading(serverId);
     try {
       await api.post(`/access/grant/${serverId}`);
-      toast.success('Доступ открыт на 60 минут');
+      toast.success(t('client_access_granted_toast'));
       await loadServers();
       await loadLogs();
     } catch {
-      toast.error('Не удалось открыть доступ');
+      toast.error(t('client_err_grant'));
     } finally {
       setActionLoading(null);
     }
@@ -152,11 +155,11 @@ export default function ClientDashboard() {
     setActionLoading(serverId);
     try {
       await api.delete(`/access/revoke/${serverId}`);
-      toast.success('Доступ закрыт');
+      toast.success(t('client_access_revoked_toast'));
       await loadServers();
       await loadLogs();
     } catch {
-      toast.error('Не удалось закрыть доступ');
+      toast.error(t('client_err_revoke'));
     } finally {
       setActionLoading(null);
     }
@@ -164,18 +167,25 @@ export default function ClientDashboard() {
 
   if (!user) return null;
 
+  const statusLabel = (status: Server['status']) =>
+    status === 'online' ? t('client_status_online') :
+    status === 'offline' ? t('client_status_offline') : t('client_status_unknown');
+
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
-            <span className="font-semibold">Tinta Lab</span>
+            <a href="https://tinta-lab.de">
+              <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
+            </a>
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-7 w-auto" />
           </div>
           <div className="flex items-center gap-4">
+            <AppLanguageSwitcher />
             <span className="text-sm text-slate-400">{user.firstName} {user.lastName}</span>
             <button onClick={() => logout()} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm">
-              <LogOut size={15} /> Выйти
+              <LogOut size={15} /> {t('logout')}
             </button>
           </div>
         </div>
@@ -187,8 +197,8 @@ export default function ClientDashboard() {
         <section>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-xl font-bold">Мой умный дом</h1>
-              <p className="text-slate-400 text-sm mt-0.5">Управление доступом для службы поддержки</p>
+              <h1 className="text-xl font-bold">{t('client_title')}</h1>
+              <p className="text-slate-400 text-sm mt-0.5">{t('client_subtitle')}</p>
             </div>
             <button onClick={loadServers} className="text-slate-400 hover:text-white transition-colors">
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
@@ -200,7 +210,7 @@ export default function ClientDashboard() {
           ) : servers.length === 0 ? (
             <div className="text-center py-12 border border-slate-700/50 rounded-xl text-slate-500">
               <WifiOff size={32} className="mx-auto mb-2 opacity-30" />
-              <p>Сервер ещё не зарегистрирован</p>
+              <p>{t('client_no_server')}</p>
             </div>
           ) : servers.map(server => (
             <div key={server.id} className="rounded-xl border border-slate-700/50 bg-slate-800/50 p-6">
@@ -216,7 +226,7 @@ export default function ClientDashboard() {
                       server.status === 'online' ? 'text-green-400' :
                       server.status === 'offline' ? 'text-red-400' : 'text-slate-500'
                     }`}>
-                      {server.status === 'online' ? 'в сети' : server.status === 'offline' ? 'нет связи' : 'неизвестно'}
+                      {statusLabel(server.status)}
                     </span>
                   </div>
                 </div>
@@ -227,15 +237,14 @@ export default function ClientDashboard() {
                 <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Shield size={16} className="text-green-400" />
-                    <span className="font-medium text-green-400">Доступ для поддержки открыт</span>
+                    <span className="font-medium text-green-400">{t('client_access_open')}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mb-3">
-                    Сотрудник поддержки может войти в ваш Home Assistant для выполнения работ.
-                  </p>
+                  <p className="text-xs text-slate-400 mb-3">{t('client_access_open_desc')}</p>
                   {server.accessExpiresAt && (
                     <AccessCountdown
                       expiresAt={server.accessExpiresAt}
                       onExpire={loadServers}
+                      label={t('client_access_closes')}
                     />
                   )}
                   <button
@@ -245,7 +254,7 @@ export default function ClientDashboard() {
                   >
                     {actionLoading === server.id
                       ? <RefreshCw size={14} className="animate-spin" />
-                      : <><Lock size={14} /> Закрыть доступ досрочно</>
+                      : <><Lock size={14} /> {t('client_access_revoke')}</>
                     }
                   </button>
                 </div>
@@ -253,12 +262,9 @@ export default function ClientDashboard() {
                 <div className="bg-slate-700/20 border border-slate-700/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Lock size={16} className="text-slate-400" />
-                    <span className="font-medium text-slate-300">Доступ закрыт</span>
+                    <span className="font-medium text-slate-300">{t('client_access_closed')}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mb-4">
-                    Если вам нужна помощь — нажмите кнопку ниже. Доступ автоматически
-                    закроется через 60 минут.
-                  </p>
+                  <p className="text-xs text-slate-400 mb-4">{t('client_access_closed_desc')}</p>
                   <button
                     onClick={() => grantAccess(server.id)}
                     disabled={actionLoading === server.id}
@@ -266,7 +272,7 @@ export default function ClientDashboard() {
                   >
                     {actionLoading === server.id
                       ? <RefreshCw size={14} className="animate-spin" />
-                      : <><Unlock size={14} /> Разрешить доступ поддержке — 60 мин</>
+                      : <><Unlock size={14} /> {t('client_access_grant')}</>
                     }
                   </button>
                 </div>
@@ -279,7 +285,7 @@ export default function ClientDashboard() {
         {logs.length > 0 && (
           <section>
             <h2 className="text-base font-semibold text-slate-300 mb-3 flex items-center gap-2">
-              <Shield size={15} className="text-slate-500" /> История доступа
+              <Shield size={15} className="text-slate-500" /> {t('client_history')}
             </h2>
             <div className="rounded-xl border border-slate-700/50 overflow-hidden divide-y divide-slate-700/50">
               {logs.map((log) => {
@@ -293,7 +299,7 @@ export default function ClientDashboard() {
                   const diff = Math.max(0, endMs - new Date(log.connectedAt).getTime());
                   const m = Math.floor(diff / 60000);
                   const s = Math.floor((diff % 60000) / 1000);
-                  return m > 0 ? `${m} мин` : `${s} сек`;
+                  return m > 0 ? `${m} min` : `${s} s`;
                 })();
 
                 return (
@@ -324,30 +330,30 @@ export default function ClientDashboard() {
                           ? 'bg-red-500/10 border-red-500/20 text-red-400'
                           : 'bg-slate-700/30 border-slate-700 text-slate-500'
                       }`}>
-                        {isActive ? 'Активен' : log.isRevoked ? 'Закрыт досрочно' : 'Завершён'}
+                        {isActive ? t('client_log_active') : log.isRevoked ? t('client_log_revoked') : t('client_log_ended')}
                       </span>
                     </div>
 
                     {/* Row 2: details grid */}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-5">
-                      <div className="text-slate-500">Сервер</div>
+                      <div className="text-slate-500">{t('client_log_server')}</div>
                       <div className="text-slate-300">{log.server?.name}</div>
 
                       {log.accessedBy ? (
                         <>
-                          <div className="text-slate-500">Сотрудник</div>
+                          <div className="text-slate-500">{t('client_log_staff')}</div>
                           <div className="text-slate-300">{log.accessedBy.firstName} {log.accessedBy.lastName}</div>
                         </>
                       ) : (
                         <>
-                          <div className="text-slate-500">Сотрудник</div>
-                          <div className="text-slate-600 italic">не подключался</div>
+                          <div className="text-slate-500">{t('client_log_staff')}</div>
+                          <div className="text-slate-600 italic">{t('client_log_not_connected')}</div>
                         </>
                       )}
 
                       {log.connectedAt && (
                         <>
-                          <div className="text-slate-500">Подключился</div>
+                          <div className="text-slate-500">{t('client_log_connected')}</div>
                           <div className="text-slate-300">
                             {new Date(log.connectedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                           </div>
@@ -356,7 +362,7 @@ export default function ClientDashboard() {
 
                       {ended && (
                         <>
-                          <div className="text-slate-500">{log.isRevoked ? 'Закрыт' : 'Истёк'}</div>
+                          <div className="text-slate-500">{log.isRevoked ? t('client_log_closed') : t('client_log_expired')}</div>
                           <div className="text-slate-300">
                             {new Date(ended).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
                           </div>
@@ -365,7 +371,7 @@ export default function ClientDashboard() {
 
                       {sessionDuration && (
                         <>
-                          <div className="text-slate-500">Длительность</div>
+                          <div className="text-slate-500">{t('client_log_duration')}</div>
                           <div className="text-slate-300">{sessionDuration}</div>
                         </>
                       )}
@@ -373,15 +379,13 @@ export default function ClientDashboard() {
 
                     {/* Activity log — only for completed sessions */}
                     {!isActive && log.activityLog !== undefined && (
-                      <ActivityLogSection entries={log.activityLog ?? []} />
+                      <ActivityLogSection entries={log.activityLog ?? []} t={t} />
                     )}
                   </div>
                 );
               })}
             </div>
-            <p className="text-xs text-slate-600 mt-2">
-              Журнал сессий хранится в соответствии с DSGVO · Данные доступны по запросу
-            </p>
+            <p className="text-xs text-slate-600 mt-2">{t('client_gdpr')}</p>
           </section>
         )}
       </main>

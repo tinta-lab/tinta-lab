@@ -1,0 +1,219 @@
+{
+  "nav": {
+    "features": "Funzionalità",
+    "howItWorks": "Come funziona",
+    "security": "Sicurezza",
+    "devices": "Dispositivi",
+    "login": "Accedi",
+    "start": "Inizia",
+    "startFree": "Inizia gratis",
+    "aria": "Navigazione principale",
+    "logoAriaLabel": "Tinta Lab – vai alla home",
+    "openMenu": "Apri menu",
+    "closeMenu": "Chiudi menu",
+    "mobileMenu": "Menu mobile"
+  },
+  "hero": {
+    "eyebrow": "Gestione professionale della smart home",
+    "h1a": "Casa intelligente",
+    "h1b": "senza pensieri",
+    "lead": "Configuriamo, monitoriamo e risolviamo i problemi della tua smart home. Il tecnico si connette solo quando tu concedi l'accesso —",
+    "leadStrong": " con un solo tocco.",
+    "socialProof": "Oltre 50 case intelligenti già connesse",
+    "ctaPrimary": "Inizia la consulenza gratuita",
+    "ctaSecondary": "Come funziona",
+    "badgeData": "I tuoi dati restano a casa",
+    "badgeAccess": "Accesso solo con il tuo permesso",
+    "badgeHome": "Compatibile con qualsiasi smart home",
+    "scrollHint": "Scorri"
+  },
+  "features": {
+    "eyebrow": "Funzionalità",
+    "h2": "Tutto incluso – dalla configurazione al supporto",
+    "lead": "Ci occupiamo della parte tecnica. Tu vivi semplicemente in una casa comoda, sicura e intelligente.",
+    "items": [
+      {
+        "title": "La tua casa invisibile agli estranei",
+        "desc": "Nessuna porta aperta sul router. La tua smart home non ha ingressi esposti su Internet. I malintenzionati non riescono a trovarla – come una casa senza indirizzo sulla mappa."
+      },
+      {
+        "title": "Decidi tu chi entra e quando",
+        "desc": "Il tecnico non può entrare da solo. Solo tu apri l'accesso con un clic – e solo tu lo chiudi. Come un citofono: vedi chi suona e apri tu la porta."
+      },
+      {
+        "title": "Automazioni senza programmazione",
+        "desc": "Le luci si spengono quando esci. Il riscaldamento si regola da solo secondo il programma. Scene preimpostate – attivate in un clic, senza alcuna competenza tecnica."
+      },
+      {
+        "title": "I problemi risolti prima che tu li noti",
+        "desc": "Se un sensore non risponde o un dispositivo si blocca, siamo i primi a saperlo. Il tecnico risolve il problema mentre tu vai avanti con la tua giornata."
+      },
+      {
+        "title": "Controlla da qualsiasi parte del mondo",
+        "desc": "La tua area personale su smartphone, tablet o PC. Controlla lo stato, accendi le luci, verifica la serratura – tutto in un unico posto."
+      },
+      {
+        "title": "Persone reali, non chatbot",
+        "desc": "Configurazione, aggiornamenti, risoluzione problemi – i nostri tecnici fanno tutto loro. Tu devi solo concedere l'accesso."
+      }
+    ]
+  },
+  "howItWorks": {
+    "eyebrow": "Come funziona",
+    "h2": "Tre semplici passi",
+    "lead": "Niente di complicato. Dal primo contatto alla smart home funzionante – in meno di 15 minuti.",
+    "steps": [
+      {
+        "title": "Invia una richiesta",
+        "desc": "Compila un breve modulo – nome, email e quali dispositivi hai in casa. Il nostro specialista ti contatterà entro il giorno stesso e ti aiuterà a iniziare.",
+        "note": "Nessuna competenza tecnica richiesta"
+      },
+      {
+        "title": "Installiamo tutto noi",
+        "desc": "Ricevi un link di configurazione con un clic. Aprilo sul tuo dispositivo smart home – il resto lo facciamo noi. Niente terminali, nessuna configurazione manuale.",
+        "note": "5–15 minuti per la configurazione"
+      },
+      {
+        "title": "Vivi la tua vita, pensiamo noi",
+        "desc": "Il sistema funziona, i dispositivi sono connessi. Hai bisogno di aiuto – basta un clic. Arriviamo, sistemiamo e andiamo. Senza il tuo permesso nessuno tocca la tua casa.",
+        "note": "Supporto 24/7"
+      }
+    ]
+  },
+  "security": {
+    "eyebrow": "Sicurezza",
+    "h2": "La tua casa, le tue regole",
+    "lead": "Abbiamo costruito il sistema in modo che tu sia sempre al comando – anche quando utilizzi il nostro supporto.",
+    "pillars": [
+      {
+        "title": "Protezione come nell'home banking",
+        "desc": "La tua smart home si connette alla nostra piattaforma tramite un tunnel cifrato – come un pagamento online. Dall'esterno non esiste alcun punto attraverso cui qualcuno potrebbe intrufolarsi.",
+        "label": "Nessuna porta aperta"
+      },
+      {
+        "title": "Il tecnico entra solo su tuo invito",
+        "desc": "Non possiamo connetterci senza la tua autorizzazione esplicita. Premi «Consenti» – il tecnico entra. Premi «Disconnetti» – sparisce immediatamente. Ogni sessione viene registrata.",
+        "label": "Pieno controllo nelle tue mani"
+      },
+      {
+        "title": "I tuoi dati non lasciano mai casa tua",
+        "desc": "Dispositivi, automazioni, cronologia eventi – tutto è archiviato sul tuo hardware, nella tua rete domestica. Vediamo solo il segnale «il sistema funziona regolarmente».",
+        "label": "GDPR · Dati solo da te"
+      }
+    ],
+    "poweredBy": "Basato su",
+    "poweredByAnd": "e",
+    "poweredByText": "– tecnologie di cui si fidano milioni di persone nel mondo",
+    "gdpr": "Conforme al GDPR"
+  },
+  "devices": {
+    "eyebrow": "Compatibilità",
+    "h2": "Funziona con i tuoi dispositivi",
+    "lead": "Home Assistant supporta oltre 3.000 integrazioni. Tinta Lab le gestisce tutte.",
+    "footer": "E migliaia di altri dispositivi tramite Home Assistant – Zigbee, Z-Wave, Wi-Fi, Thread, Matter",
+    "categories": [
+      { "title": "Illuminazione" },
+      { "title": "Climatizzazione" },
+      { "title": "Sicurezza" },
+      { "title": "Prese intelligenti" },
+      { "title": "Multimedia" },
+      { "title": "Sensori" }
+    ],
+    "sensorBrands": ["Temperatura", "Umidità", "Movimento", "Apertura", "Fumo", "CO₂"]
+  },
+  "mockup": {
+    "title": "La mia casa",
+    "status": "Tutto ok",
+    "living": "Soggiorno",
+    "livingSub": "Illuminazione · 3 lampadine",
+    "on": "Acceso",
+    "climate": "Clima",
+    "climateSub": "Camera da letto · Programma",
+    "door": "Porta d'ingresso",
+    "doorSub": "Serratura · Sensore porta",
+    "closed": "Chiusa",
+    "accessTitle": "Accesso tecnico",
+    "accessSub": "Nessuno vede la tua casa",
+    "lastVisit": "Ultima visita: ieri, 14:32 · 23 min · Sessione terminata",
+    "systemOk": "Sistema OK",
+    "dataTag": "I tuoi dati, a casa tua"
+  },
+  "faq": {
+    "eyebrow": "Domande frequenti",
+    "h2": "Le domande più comuni",
+    "contactPrompt": "Non hai trovato risposta?",
+    "contactLink": "Scrivici",
+    "items": [
+      {
+        "q": "I tecnici possono monitorarmi senza che io lo sappia?",
+        "a": "No, ed è tecnicamente impossibile. Il sistema è costruito in modo che non possiamo connetterci alla tua casa senza una tua azione esplicita. Premi «Consenti» – il tecnico è dentro. Premi «Disconnetti» – la connessione si interrompe immediatamente. Ogni sessione viene registrata con ora di inizio e fine."
+      },
+      {
+        "q": "I miei dati personali finiranno su qualche server?",
+        "a": "No. Tutti i dati della tua smart home – dispositivi, automazioni, cronologia – rimangono sul tuo hardware, nella tua rete domestica. Riceviamo solo il segnale di servizio «il sistema funziona regolarmente» e i comandi che tu stesso impartisci. Nessun dato personale, nessun tracciamento. Siamo conformi al GDPR."
+      },
+      {
+        "q": "Devo avere competenze tecniche?",
+        "a": "Assolutamente no. È esattamente per questo che esistiamo. Hai bisogno solo di: connessione internet e dispositivi smart home (o il desiderio di acquistarli). Tutto il resto – installazione, configurazione, aggiornamenti, diagnostica – lo facciamo noi."
+      },
+      {
+        "q": "Cos'è Home Assistant e perché mi serve?",
+        "a": "Home Assistant è un sistema smart home gratuito di cui si fidano oltre 500.000 utenti in tutto il mondo. Unisce dispositivi di marche diverse in un unico posto: illuminazione, clima, sicurezza, multimedia. Lo installiamo e configuriamo per te – non devi sapere come funziona internamente."
+      },
+      {
+        "q": "Quanto costa?",
+        "a": "Il prezzo dipende dalle dimensioni della tua casa e dal numero di dispositivi. Scrivici – valutiamo gratuitamente la tua situazione e ti proponiamo la soluzione migliore. Nessun costo nascosto."
+      },
+      {
+        "q": "E se volessi disdire?",
+        "a": "I tuoi dati rimangono con te – perché non hanno mai lasciato casa tua. Home Assistant rimane da te e continua a funzionare. Non perdi nulla. Disconnettiamo semplicemente l'agente – senza perdita di dati e senza obblighi."
+      }
+    ]
+  },
+  "cta": {
+    "badge": "Consulenza gratuita – senza impegno",
+    "h2": "Pronto a rendere la tua casa intelligente?",
+    "lead": "Raccontaci della tua casa. Valutiamo il progetto, proponiamo una soluzione e rispondiamo a tutte le domande – gratuitamente e senza pressioni.",
+    "primary": "Richiedi una consulenza",
+    "secondary": "Scrivici direttamente",
+    "tagline": "Nessun costo nascosto · I tuoi dati restano da te · Disdici quando vuoi"
+  },
+  "footer": {
+    "desc": "Gestione professionale della smart home. Configurazione, monitoraggio e supporto – con la privacy dei dati al primo posto.",
+    "sections": {
+      "platform": "Piattaforma",
+      "account": "Account",
+      "legal": "Legale"
+    },
+    "links": {
+      "features": "Funzionalità",
+      "howItWorks": "Come funziona",
+      "security": "Sicurezza",
+      "devices": "Dispositivi",
+      "faq": "FAQ",
+      "login": "Accedi",
+      "register": "Registrati",
+      "dashboard": "Area personale",
+      "contact": "Contattaci",
+      "impressum": "Impressum",
+      "privacy": "Privacy",
+      "terms": "Termini di servizio"
+    },
+    "copyright": "Tinta Lab. Tutti i diritti riservati."
+  },
+  "impressum": {
+    "title": "Impressum",
+    "note": "Documento legalmente vincolante – disponibile solo in tedesco."
+  },
+  "datenschutz": {
+    "title": "Informativa sulla privacy",
+    "note": "La versione legalmente vincolante è disponibile solo in tedesco."
+  },
+  "agb": {
+    "title": "Condizioni generali di contratto",
+    "note": "La versione legalmente vincolante è disponibile solo in tedesco."
+  },
+  "langSwitcher": {
+    "label": "Lingua"
+  }
+}

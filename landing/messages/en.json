@@ -1,0 +1,219 @@
+{
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How It Works",
+    "security": "Security",
+    "devices": "Devices",
+    "login": "Log In",
+    "start": "Get Started",
+    "startFree": "Get Started Free",
+    "aria": "Main navigation",
+    "logoAriaLabel": "Tinta Lab – go to homepage",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "mobileMenu": "Mobile menu"
+  },
+  "hero": {
+    "eyebrow": "Professional Smart Home Management",
+    "h1a": "Smart Home",
+    "h1b": "without the hassle",
+    "lead": "We set up, monitor, and fix your smart home. A technician connects only when you grant access —",
+    "leadStrong": " with a single tap.",
+    "socialProof": "50+ smart homes already connected",
+    "ctaPrimary": "Start free consultation",
+    "ctaSecondary": "How it works",
+    "badgeData": "Your data stays at home",
+    "badgeAccess": "Access only with your permission",
+    "badgeHome": "Works with any smart home",
+    "scrollHint": "Scroll"
+  },
+  "features": {
+    "eyebrow": "Features",
+    "h2": "Everything included – from setup to support",
+    "lead": "We handle the technical side. You simply live in a comfortable, secure, and smart home.",
+    "items": [
+      {
+        "title": "Your home invisible to outsiders",
+        "desc": "No open ports on your router. Your smart home has no exposed entry point on the internet. Attackers simply can't find it – like a house with no address on the map."
+      },
+      {
+        "title": "You decide who gets in and when",
+        "desc": "The technician can't just walk in. Only you open access with a button press – and only you close it. Like an intercom: you see who's calling and you open the door yourself."
+      },
+      {
+        "title": "Automations without programming",
+        "desc": "Lights turn off when you leave. Heating adjusts on schedule. Ready-made scenes – activated in one click, no technical knowledge needed."
+      },
+      {
+        "title": "Problems solved before you notice them",
+        "desc": "If a sensor stops responding or a device freezes, we're the first to know. The technician fixes the issue while you go about your day."
+      },
+      {
+        "title": "Control from anywhere in the world",
+        "desc": "Your personal dashboard on smartphone, tablet, or PC. Check home status, turn on lights, verify the lock – all in one place."
+      },
+      {
+        "title": "Real people, not chatbots",
+        "desc": "Setup, updates, troubleshooting – our technicians do it all. You just need to grant access."
+      }
+    ]
+  },
+  "howItWorks": {
+    "eyebrow": "How It Works",
+    "h2": "Three simple steps",
+    "lead": "Nothing complicated. From first contact to a working smart home – in less than 15 minutes.",
+    "steps": [
+      {
+        "title": "Submit a request",
+        "desc": "Fill in a short form – your name, email, and what devices you have at home. Our specialist will contact you the same day and help you get started.",
+        "note": "No technical knowledge required"
+      },
+      {
+        "title": "We install everything for you",
+        "desc": "You receive a one-click setup link. Open it on your smart home device – we take care of the rest. No terminal, no manual configuration.",
+        "note": "5–15 minutes to set up"
+      },
+      {
+        "title": "Live your life, we watch over it",
+        "desc": "The system runs, devices are connected. Need help – one click is all it takes. We come in, fix it, and leave. Without your permission, nobody touches your home.",
+        "note": "24/7 support"
+      }
+    ]
+  },
+  "security": {
+    "eyebrow": "Security",
+    "h2": "Your home, your rules",
+    "lead": "We built the system so you are always in charge – even when you use our support.",
+    "pillars": [
+      {
+        "title": "Protection like online banking",
+        "desc": "Your smart home connects to our platform through an encrypted tunnel – just like an online payment. There is no single point from the outside that anyone could breach.",
+        "label": "No open ports"
+      },
+      {
+        "title": "Technician enters only on your invitation",
+        "desc": "We physically cannot connect without your explicit permission. You press «Allow» – the technician is in. You press «Disconnect» – they're gone instantly. Every session is logged.",
+        "label": "Full control is yours"
+      },
+      {
+        "title": "Your data never leaves your home",
+        "desc": "Devices, automations, event history – all stored on your hardware, in your home network. We see only the signal «system is running normally».",
+        "label": "GDPR · Data stays with you"
+      }
+    ],
+    "poweredBy": "Powered by",
+    "poweredByAnd": "and",
+    "poweredByText": "– technologies trusted by millions worldwide",
+    "gdpr": "GDPR compliant"
+  },
+  "devices": {
+    "eyebrow": "Compatibility",
+    "h2": "Works with your devices",
+    "lead": "Home Assistant supports over 3,000 integrations. Tinta Lab manages any of them.",
+    "footer": "And thousands more devices via Home Assistant – Zigbee, Z-Wave, Wi-Fi, Thread, Matter",
+    "categories": [
+      { "title": "Lighting" },
+      { "title": "Climate" },
+      { "title": "Security" },
+      { "title": "Smart Plugs" },
+      { "title": "Multimedia" },
+      { "title": "Sensors" }
+    ],
+    "sensorBrands": ["Temperature", "Humidity", "Motion", "Door/Window", "Smoke", "CO₂"]
+  },
+  "mockup": {
+    "title": "My Smart Home",
+    "status": "All good",
+    "living": "Living Room",
+    "livingSub": "Lighting · 3 bulbs",
+    "on": "On",
+    "climate": "Climate",
+    "climateSub": "Bedroom · Schedule",
+    "door": "Front Door",
+    "doorSub": "Lock · Door sensor",
+    "closed": "Locked",
+    "accessTitle": "Technician Access",
+    "accessSub": "Nobody sees your home",
+    "lastVisit": "Last visit: yesterday, 2:32 PM · 23 min · Session ended",
+    "systemOk": "System OK",
+    "dataTag": "Your data, your home"
+  },
+  "faq": {
+    "eyebrow": "FAQ",
+    "h2": "Frequently asked",
+    "contactPrompt": "Didn't find an answer?",
+    "contactLink": "Write to us",
+    "items": [
+      {
+        "q": "Can technicians monitor me without my knowledge?",
+        "a": "No, and it's technically impossible. The system is built so that we cannot connect to your home without your explicit action. You press «Allow» – the technician is in. You press «Disconnect» – the connection drops instantly. Every session is logged with start and end time."
+      },
+      {
+        "q": "Will my personal data end up on some server?",
+        "a": "No. All your smart home data – devices, automations, history – stays on your hardware, in your home network. We receive only the service signal «system is running normally» and commands you issue yourself. Nothing personal, no tracking. We are GDPR compliant."
+      },
+      {
+        "q": "Do I need to know anything about technology?",
+        "a": "Not at all. That's exactly why we exist. All you need is: internet at home and smart home devices (or the desire to get some). Everything else – installation, configuration, updates, diagnostics – is on us."
+      },
+      {
+        "q": "What is Home Assistant and why do I need it?",
+        "a": "Home Assistant is a free smart home system trusted by over 500,000 users worldwide. It unifies devices from different brands in one place: lighting, climate, security, multimedia. We install and configure it for you – you don't need to know how it works under the hood."
+      },
+      {
+        "q": "How much does it cost?",
+        "a": "The price depends on your home size and the number of devices. Write to us – we'll assess your situation for free and offer the best option. No hidden fees."
+      },
+      {
+        "q": "What if I want to cancel?",
+        "a": "Your data stays with you – because it never left your home. Home Assistant stays with you and keeps running. You lose nothing. We simply disconnect the agent – no data loss, no obligations."
+      }
+    ]
+  },
+  "cta": {
+    "badge": "Free consultation – no obligation",
+    "h2": "Ready to make your home smart?",
+    "lead": "Tell us about your home. We'll evaluate the task, propose a solution, and answer all your questions – for free, no pressure.",
+    "primary": "Get a consultation",
+    "secondary": "Write directly",
+    "tagline": "No hidden fees · Your data stays with you · Cancel anytime"
+  },
+  "footer": {
+    "desc": "Professional smart home management. Setup, monitoring, and support – with data privacy as the top priority.",
+    "sections": {
+      "platform": "Platform",
+      "account": "Account",
+      "legal": "Legal"
+    },
+    "links": {
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "security": "Security",
+      "devices": "Devices",
+      "faq": "FAQ",
+      "login": "Log In",
+      "register": "Register",
+      "dashboard": "My Dashboard",
+      "contact": "Contact Us",
+      "impressum": "Impressum",
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Service"
+    },
+    "copyright": "Tinta Lab. All rights reserved."
+  },
+  "impressum": {
+    "title": "Impressum",
+    "note": "This is a legally binding document available in German only."
+  },
+  "datenschutz": {
+    "title": "Privacy Policy",
+    "note": "The legally binding version is available in German only."
+  },
+  "agb": {
+    "title": "Terms of Service",
+    "note": "The legally binding version is available in German only."
+  },
+  "langSwitcher": {
+    "label": "Language"
+  }
+}
