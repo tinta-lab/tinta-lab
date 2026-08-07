@@ -90,9 +90,7 @@ export class TintaAgentGateway
         this.config.get<string>('AGENT_JWT_SECRET') ??
         this.config.get<string>('JWT_SECRET') ??
         '';
-      this.logger.debug(
-        `Agent auth: secret=${secret.substring(0, 8)}... jwt=${jwt.substring(jwt.length - 20)}`,
-      );
+      this.logger.debug(`Agent auth: clientId=${clientId}`);
       const decoded = this.jwtService.verify(jwt, { secret });
       if (decoded.sub !== clientId || decoded.type !== 'tinta-agent') {
         this.logger.warn(`Agent auth failed for ${clientId}: token mismatch`);
