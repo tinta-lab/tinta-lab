@@ -1,12 +1,28 @@
-import { Injectable, Optional, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Optional,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { AccessLog } from './entities/access-log.entity';
+import { AuditEventType } from './entities/audit-event.entity';
+import { AuditLogService } from './audit-log.service';
 import { ServersService } from '../servers/servers.service';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
+
+const DEFAULT_DURATION_MINUTES = 60;
+const DEFAULT_RETENTION_DAYS = 365;
+
+export interface GrantAccessOptions {
+  reason?: string;
+  ticketId?: string;
+  durationMinutes?: number;
+}
 
 @Injectable()
 export class AccessService {
@@ -15,6 +31,7 @@ export class AccessService {
     private accessLogRepository: Repository<AccessLog>,
     private serversService: ServersService,
     private configService: ConfigService,
+    private auditLog: AuditLogService,
     @Optional() private notifications: NotificationsService,
     @Optional() private agentGateway: TintaAgentGateway,
   ) {}
@@ -30,11 +47,14 @@ export class AccessService {
   async grantAccess(
     serverId: string,
     grantedByUserId: string,
+    options: GrantAccessOptions = {},
   ): Promise<AccessLog> {
-    const timeoutMinutes = this.configService.get<number>(
-      'SUPPORT_ACCESS_TIMEOUT',
-      60,
-    );
+    const timeoutMinutes =
+      options.durationMinutes ??
+      this.configService.get<number>(
+        'SUPPORT_ACCESS_TIMEOUT',
+        DEFAULT_DURATION_MINUTES,
+      );
     const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
 
     const supportPassword = randomBytes(9).toString('base64url'); // 12-char URL-safe random
@@ -48,14 +68,26 @@ export class AccessService {
       grantedAt: new Date(),
       expiresAt,
       supportPassword,
+      reason: options.reason ?? null,
+      ...(options.ticketId ? { ticket: { id: options.ticketId } as any } : {}),
     });
     const saved = await this.accessLogRepository.save(log);
+
+    await this.auditLog.append(saved.id, AuditEventType.GRANTED, grantedByUserId, {
+      serverId,
+      durationMinutes: timeoutMinutes,
+      reason: options.reason ?? null,
+      ticketId: options.ticketId ?? null,
+    });
 
     // Enable tinta-support user with fresh password on the client's HA
     this.agentGateway?.setSupportAccess(
       server.client?.id,
       true,
       supportPassword,
+      saved.grantedAt.toISOString(),
+      saved.id,
+      saved.expiresAt.toISOString(),
     );
 
     // Telegram: notify support team
@@ -77,6 +109,7 @@ export class AccessService {
   async revokeAccess(
     serverId: string,
     reason: 'manual' | 'expired' = 'manual',
+    revokedByUserId?: string,
   ): Promise<void> {
     // Capture active log BEFORE marking as revoked (needed for activity log fetch)
     const activeLog = await this.accessLogRepository.findOne({
@@ -87,8 +120,17 @@ export class AccessService {
     await this.serversService.setAccessEnabled(serverId, false);
     await this.accessLogRepository.update(
       { server: { id: serverId }, isRevoked: false },
-      { isRevoked: true, revokedAt: new Date() },
+      { isRevoked: true, revokedAt: new Date(), supportPassword: null as unknown as string },
     );
+
+    if (activeLog) {
+      await this.auditLog.append(
+        activeLog.id,
+        reason === 'expired' ? AuditEventType.EXPIRED : AuditEventType.REVOKED,
+        revokedByUserId ?? null,
+        { reason },
+      );
+    }
 
     // Disable tinta-support user, scramble password, request activity log from agent
     try {
@@ -122,17 +164,77 @@ export class AccessService {
     }
   }
 
+  // Binds the session to exactly one support employee. Rejects a second
+  // employee trying to grab the same active session's credentials.
   async recordConnection(
     serverId: string,
     supportUserId: string,
-  ): Promise<void> {
-    await this.accessLogRepository.update(
-      { server: { id: serverId }, isRevoked: false },
-      {
-        accessedBy: { id: supportUserId } as any,
-        connectedAt: new Date(),
-      },
+  ): Promise<AccessLog> {
+    const activeLog = await this.accessLogRepository.findOne({
+      where: { server: { id: serverId }, isRevoked: false },
+      relations: ['accessedBy'],
+      order: { grantedAt: 'DESC' },
+    });
+    if (!activeLog) {
+      throw new ForbiddenException('No active support session for this server');
+    }
+    if (activeLog.accessedBy && activeLog.accessedBy.id !== supportUserId) {
+      throw new ConflictException(
+        `Session already claimed by ${activeLog.accessedBy.firstName} ${activeLog.accessedBy.lastName}`,
+      );
+    }
+
+    const isFirstConnect = !activeLog.connectedAt;
+
+    if (isFirstConnect) {
+      await this.accessLogRepository.update(
+        { id: activeLog.id },
+        { accessedBy: { id: supportUserId } as any, connectedAt: new Date() },
+      );
+      await this.auditLog.append(
+        activeLog.id,
+        AuditEventType.CONNECTED,
+        supportUserId,
+        {},
+      );
+    }
+
+    const result = (await this.getActiveAccessForServer(serverId)) as AccessLog;
+
+    // Update the in-HA banner with the connected employee's name
+    if (isFirstConnect && result.accessedBy) {
+      const server = await this.serversService.findById(serverId);
+      if (server.client?.id) {
+        this.agentGateway?.notifySupportConnected(
+          server.client.id,
+          `${result.accessedBy.firstName} ${result.accessedBy.lastName}`,
+          activeLog.expiresAt?.toISOString(),
+        );
+      }
+    }
+
+    return result;
+  }
+
+  async setRetentionHold(id: string, hold: boolean): Promise<void> {
+    await this.accessLogRepository.update({ id }, { retentionHold: hold });
+  }
+
+  // GDPR retention: purge closed sessions older than the retention window.
+  // Skips anything still open or explicitly held (litigation/incident).
+  async purgeExpiredLogs(): Promise<number> {
+    const retentionDays = this.configService.get<number>(
+      'AUDIT_LOG_RETENTION_DAYS',
+      DEFAULT_RETENTION_DAYS,
     );
+    const cutoff = new Date(Date.now() - retentionDays * 24 * 60 * 60 * 1000);
+
+    const result = await this.accessLogRepository.delete({
+      isRevoked: true,
+      retentionHold: false,
+      createdAt: LessThan(cutoff),
+    });
+    return result.affected ?? 0;
   }
 
   async checkAndRevokeExpired(): Promise<void> {
@@ -152,24 +254,35 @@ export class AccessService {
   async getActiveAccessForServer(serverId: string): Promise<AccessLog | null> {
     return this.accessLogRepository.findOne({
       where: { server: { id: serverId }, isRevoked: false },
+      relations: ['accessedBy'],
       order: { grantedAt: 'DESC' },
     });
   }
 
-  async getLogsForServer(serverId: string): Promise<AccessLog[]> {
-    return this.accessLogRepository.find({
+  async getLogsForServer(serverId: string): Promise<Omit<AccessLog, 'supportPassword'>[]> {
+    const logs = await this.accessLogRepository.find({
       where: { server: { id: serverId } },
-      relations: ['grantedBy', 'accessedBy'],
+      relations: ['grantedBy', 'accessedBy', 'ticket'],
       order: { createdAt: 'DESC' },
     });
+    return logs.map(({ supportPassword: _pw, ...log }) => log as AccessLog);
   }
 
-  async getLogsForClient(clientId: string): Promise<AccessLog[]> {
-    return this.accessLogRepository.find({
+  async getLogsForClient(clientId: string): Promise<Omit<AccessLog, 'supportPassword'>[]> {
+    const logs = await this.accessLogRepository.find({
       where: { server: { client: { id: clientId } } },
-      relations: ['grantedBy', 'accessedBy', 'server'],
+      relations: ['grantedBy', 'accessedBy', 'server', 'ticket'],
       order: { createdAt: 'DESC' },
       take: 20,
     });
+    return logs.map(({ supportPassword: _pw, ...log }) => log as AccessLog);
+  }
+
+  async getAuditTrail(accessLogId: string) {
+    return this.auditLog.getEventsForAccessLog(accessLogId);
+  }
+
+  async verifyAuditChain() {
+    return this.auditLog.verifyChain();
   }
 }

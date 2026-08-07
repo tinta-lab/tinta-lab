@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Server } from '../../servers/entities/server.entity';
+import { Ticket } from '../../tickets/entities/ticket.entity';
 
 @Entity('access_logs')
 export class AccessLog {
@@ -25,6 +26,19 @@ export class AccessLog {
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn()
   accessedBy: User;
+
+  // Why this session was opened — free text, shown to client + support
+  @Column({ nullable: true, type: 'text' })
+  reason: string | null;
+
+  // Optional link to a formal support ticket this session addresses
+  @ManyToOne(() => Ticket, { nullable: true })
+  @JoinColumn()
+  ticket: Ticket | null;
+
+  // Litigation/incident hold — excludes this record from GDPR retention purge
+  @Column({ default: false })
+  retentionHold: boolean;
 
   @Column({ type: 'timestamp' })
   grantedAt: Date;
