@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
 import { LogOut, RefreshCw, Shield, ExternalLink, Copy, Check, X, KeyRound, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 interface AccessCredentials {
@@ -157,7 +158,13 @@ export default function SupportDashboard() {
         url,
         password: data?.supportPassword ?? '',
       });
-    } catch { /* log silently */ }
+    } catch (e: any) {
+      if (e?.response?.status === 409) {
+        toast.error(e.response.data?.message ?? t('support_session_claimed'));
+      } else {
+        toast.error(t('support_connect_error'));
+      }
+    }
     setConnecting(null);
   };
 
