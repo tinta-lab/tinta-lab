@@ -1,7 +1,10 @@
-# ── Environment ───────────────────────────────────────
+# ── Environment & credentials ─────────────────────────
 .env
 backend/.env
 frontend/.env.local
+CREDENTIALS.md
+*.credentials
+.git-credentials
 
 # ── Backend ───────────────────────────────────────────
 backend/dist/
