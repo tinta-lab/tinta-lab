@@ -105,9 +105,15 @@ export class TintaAgentGateway
       return { success: false, error: 'Invalid token' };
     }
 
-    // Verify token matches stored agentToken in DB
+    // Require an existing AgentSession — rejects tokens for deleted/unknown clients
     const stored = await this.sessionRepo.findOne({ where: { clientId } });
-    if (stored?.agentToken && stored.agentToken !== jwt) {
+    if (!stored) {
+      this.logger.warn(`Agent registration rejected: no session for ${clientId}`);
+      client.emit('error', { message: 'Unknown client' });
+      client.disconnect();
+      return { success: false, error: 'Unknown client' };
+    }
+    if (stored.agentToken && stored.agentToken !== jwt) {
       this.logger.warn(
         `Agent token mismatch for ${clientId} — possible replay`,
       );
