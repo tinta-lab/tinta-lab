@@ -280,6 +280,14 @@ export default function AgentsPage() {
                   )}
                 </div>
 
+                {/* Token mismatch alert */}
+                {s.lastTokenMismatchAt && s.status === 'disconnected' && (
+                  <div className="mb-3 flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1.5">
+                    <span>⚠</span>
+                    <span>Token mismatch – {new Date(s.lastTokenMismatchAt).toLocaleString()}</span>
+                  </div>
+                )}
+
                 {/* Metrics */}
                 {s.metrics ? (
                   <div className="space-y-2">
@@ -348,7 +356,23 @@ export default function AgentsPage() {
                   </span>
                 </div>
               )}
+              {selected.lastTokenMismatchAt && (
+                <div className="flex justify-between items-center">
+                  <span className="text-amber-500">Token mismatch</span>
+                  <span className="text-amber-400 text-xs">
+                    {new Date(selected.lastTokenMismatchAt).toLocaleString('de-DE')}
+                  </span>
+                </div>
+              )}
             </div>
+
+            {/* Token mismatch explanation */}
+            {selected.lastTokenMismatchAt && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 text-xs text-amber-300 space-y-1">
+                <p className="font-medium">⚠ Token mismatch detected</p>
+                <p className="text-amber-400/80">The agent&apos;s JWT does not match the stored token. The agent was rejected. To fix: check <code>clients/{'{clientId}'}.env</code> or re-provision via <code>POST /tinta-core/provision/{'{clientId}'}</code>.</p>
+              </div>
+            )}
 
             {/* Metrics */}
             {selected.metrics && (

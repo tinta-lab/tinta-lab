@@ -115,8 +115,9 @@ export class TintaAgentGateway
     }
     if (stored.agentToken && stored.agentToken !== jwt) {
       this.logger.warn(
-        `Agent token mismatch for ${clientId} — possible replay`,
+        `Agent token mismatch for ${clientId} — recording and rejecting`,
       );
+      await this.sessionRepo.update({ clientId }, { lastTokenMismatchAt: new Date() });
       client.emit('error', { message: 'Token revoked' });
       client.disconnect();
       return { success: false, error: 'Token revoked' };
