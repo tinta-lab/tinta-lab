@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -36,6 +36,16 @@ export class TintaCoreController {
   async getConnected() {
     const ids = this.coreService.getConnectedAgents();
     return { count: ids.length, clientIds: ids };
+  }
+
+  // Admin: trigger agent self-update via HA Supervisor
+  @Post('update/:clientId')
+  @Roles(UserRole.ADMIN)
+  async updateAgent(
+    @Param('clientId') clientId: string,
+    @Query('version') version: string,
+  ) {
+    return this.coreService.updateAgent(clientId, version ?? '');
   }
 
   @Post('execute/:clientId')

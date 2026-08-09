@@ -129,6 +129,13 @@ export class TintaCoreService {
     return { sent };
   }
 
+  async updateAgent(clientId: string, targetVersion: string): Promise<{ sent: boolean; online: boolean }> {
+    const online = this.gateway.isConnected(clientId);
+    if (!online) return { sent: false, online: false };
+    const sent = this.gateway.sendSelfUpdate(clientId, targetVersion);
+    return { sent, online };
+  }
+
   async applyGoldenTemplate(
     clientId: string,
     templateSlug: string,

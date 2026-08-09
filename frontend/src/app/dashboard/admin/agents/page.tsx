@@ -92,6 +92,7 @@ export default function AgentsPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<AgentSession | null>(null);
   const [applyingSlug, setApplyingSlug] = useState<string | null>(null);
+  const [updatingClientId, setUpdatingClientId] = useState<string | null>(null);
   const [showProvision, setShowProvision] = useState(false);
   const [provisionMode, setProvisionMode] = useState<'new' | 'existing'>('new');
   const [provision, setProvision] = useState({
@@ -131,6 +132,17 @@ export default function AgentsPage() {
       setClients(data);
     } catch { toast.error(t('error')); }
     finally { setLoadingClients(false); }
+  };
+
+  const triggerUpdate = async (clientId: string) => {
+    setUpdatingClientId(clientId);
+    try {
+      const { data } = await api.post(`/tinta-core/update/${clientId}?version=2026.8.1`);
+      if (data.sent) toast.success('Update command sent — agent will restart shortly');
+      else if (!data.online) toast.warning('Agent is offline — update queued until reconnect');
+      else toast.error('Failed to send update command');
+    } catch { toast.error('Update request failed'); }
+    finally { setUpdatingClientId(null); }
   };
 
   const applyTemplate = async (clientId: string, slug: string) => {
@@ -337,9 +349,23 @@ export default function AgentsPage() {
                 <span className="text-slate-300 font-mono text-xs">{selected.clientId}</span>
               </div>
               {selected.agentVersion && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-slate-500">Agent version</span>
-                  <span className="text-slate-300">{selected.agentVersion}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={selected.agentVersion === '2026.8.1' ? 'text-green-400' : 'text-amber-400'}>
+                      {selected.agentVersion}
+                      {selected.agentVersion !== '2026.8.1' && ' ⚠'}
+                    </span>
+                    {selected.agentVersion !== '2026.8.1' && selected.status === 'connected' && (
+                      <button
+                        onClick={() => triggerUpdate(selected.clientId)}
+                        disabled={updatingClientId === selected.clientId}
+                        className="text-xs px-2 py-0.5 rounded bg-teal-600 hover:bg-teal-500 text-white disabled:opacity-50 transition-colors"
+                      >
+                        {updatingClientId === selected.clientId ? '...' : '→ 2026.8.1'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {selected.haVersion && (

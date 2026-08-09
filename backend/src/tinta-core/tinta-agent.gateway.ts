@@ -430,6 +430,14 @@ export class TintaAgentGateway
     );
   }
 
+  sendSelfUpdate(clientId: string, targetVersion: string): boolean {
+    const socket = this.agents.get(clientId);
+    if (!socket) return false;
+    socket.emit('self_update', { targetVersion });
+    this.logger.log(`Self-update v${targetVersion} → agent ${clientId}`);
+    return true;
+  }
+
   isConnected(clientId: string): boolean {
     return this.agents.has(clientId);
   }
