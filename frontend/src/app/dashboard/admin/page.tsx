@@ -117,13 +117,13 @@ export default function AdminDashboard() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Server size={20} className="text-teal-400" />
-                <span className="font-bold text-lg group-hover:text-teal-400 transition-colors">Серверы клиентов</span>
+                <span className="font-bold text-lg group-hover:text-teal-400 transition-colors">{t('admin_nav_hubs_title')}</span>
               </div>
-              <div className="text-sm text-slate-400">Мониторинг, доступ, версии, метрики — всё в одном месте</div>
+              <div className="text-sm text-slate-400">{t('admin_nav_hubs_desc')}</div>
             </div>
             <div className="flex items-center gap-3 text-sm">
-              <span className="text-green-400 flex items-center gap-1"><Wifi size={13} /> {stats.agentsOnline} online</span>
-              <span className="text-slate-400">{stats.servers} gesamt</span>
+              <span className="text-green-400 flex items-center gap-1"><Wifi size={13} /> {stats.agentsOnline} {t('client_status_online')}</span>
+              <span className="text-slate-400">{stats.servers} {t('admin_total_short')}</span>
               <span className="text-teal-500 text-lg">→</span>
             </div>
           </div>
