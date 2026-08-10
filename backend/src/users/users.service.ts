@@ -240,7 +240,20 @@ export class UsersService {
         expiresAt: row.expiresAt,
         isRevoked: row.isRevoked,
         reason: row.reason,
-        activityLog: row.activityLog,
+        // Raw SQL bypasses TypeORM's simple-json transformer on AccessLog —
+        // this column is stored as a JSON-stringified text column, so it
+        // comes back here as a string, not an array. Parse it explicitly so
+        // the API response actually matches its documented shape.
+        activityLog: (() => {
+          if (Array.isArray(row.activityLog)) return row.activityLog;
+          if (typeof row.activityLog !== 'string') return null;
+          try {
+            const parsed = JSON.parse(row.activityLog);
+            return Array.isArray(parsed) ? parsed : null;
+          } catch {
+            return null;
+          }
+        })(),
         server: {
           id: row.serverId,
           name: row.serverName,

@@ -95,7 +95,7 @@ function SessionCard({ s }: { s: AccessSession }) {
         </div>
       </button>
 
-      {expanded && s.activityLog && s.activityLog.length > 0 && (
+      {expanded && Array.isArray(s.activityLog) && s.activityLog.length > 0 && (
         <div className="border-t border-slate-700/50 px-4 py-3 bg-slate-900/30">
           <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">{t('staff_activity_log_title')}</p>
           <ul className="space-y-1">
@@ -108,7 +108,7 @@ function SessionCard({ s }: { s: AccessSession }) {
           </ul>
         </div>
       )}
-      {expanded && (!s.activityLog || s.activityLog.length === 0) && (
+      {expanded && (!Array.isArray(s.activityLog) || s.activityLog.length === 0) && (
         <div className="border-t border-slate-700/50 px-4 py-2 bg-slate-900/30">
           <p className="text-xs text-slate-500">{t('staff_activity_log_empty')}</p>
         </div>
