@@ -65,10 +65,7 @@ export default function Navbar() {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
-          <a href={`${APP}/auth/login`} className="text-sm text-slate-300 hover:text-white transition-colors px-3 py-1.5">
-            {t('login')}
-          </a>
-          <a href={`${APP}/auth/register`} className="text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white px-4 py-1.5 rounded-lg transition-colors">
+          <a href={`${APP}/auth/login`} className="text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white px-4 py-1.5 rounded-lg transition-colors">
             {t('start')}
           </a>
         </div>
@@ -106,16 +103,9 @@ export default function Navbar() {
             <a
               href={`${APP}/auth/login`}
               onClick={close}
-              className="block w-full text-center py-2.5 rounded-lg border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 text-sm transition-colors"
-            >
-              {t('login')}
-            </a>
-            <a
-              href={`${APP}/auth/register`}
-              onClick={close}
               className="block w-full text-center py-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium text-sm transition-colors"
             >
-              {t('startFree')}
+              {t('start')}
             </a>
           </div>
         </div>
