@@ -36,6 +36,7 @@ export interface Hub {
     installToken: string | null;
     installTokenExpiresAt: Date | null;
     isOnline: boolean;
+    appliedTemplates: string[];
   } | null;
 }
 
@@ -68,6 +69,7 @@ export class HubsService {
       installToken: session.installToken ?? null,
       installTokenExpiresAt: session.installTokenExpiresAt ?? null,
       isOnline: this.gateway.isConnected(clientId),
+      appliedTemplates: session.appliedTemplates ?? [],
     };
   }
 

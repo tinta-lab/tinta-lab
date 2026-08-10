@@ -2,8 +2,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { useLocale } from '@/i18n/context';
 import { ChevronLeft, RefreshCw, Circle, Headphones, TrendingUp, Clock, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import api from '@/lib/api';
+import type { TranslationKey } from '@/i18n/translations';
 
 interface AccessSession {
   id: string;
@@ -28,39 +30,40 @@ interface StaffMember {
   recentSessions: AccessSession[];
 }
 
-function sessionEndReason(s: AccessSession): { label: string; color: string; icon: React.ReactNode } {
+function sessionEndReason(s: AccessSession): { labelKey: TranslationKey; color: string; icon: React.ReactNode } {
   if (!s.connectedAt && !s.revokedAt) {
     const expired = new Date(s.expiresAt) < new Date();
-    if (expired) return { label: 'Не подключился', color: 'text-slate-500', icon: <AlertCircle size={13} /> };
-    return { label: 'Ожидает', color: 'text-amber-400', icon: <Clock size={13} /> };
+    if (expired) return { labelKey: 'staff_status_not_connected', color: 'text-slate-500', icon: <AlertCircle size={13} /> };
+    return { labelKey: 'staff_status_pending', color: 'text-amber-400', icon: <Clock size={13} /> };
   }
   if (!s.revokedAt) {
     const expired = new Date(s.expiresAt) < new Date();
-    if (!expired) return { label: 'Активна', color: 'text-green-400', icon: <Circle size={13} className="fill-green-400" /> };
-    return { label: 'Истекла', color: 'text-slate-500', icon: <Clock size={13} /> };
+    if (!expired) return { labelKey: 'staff_status_active', color: 'text-green-400', icon: <Circle size={13} className="fill-green-400" /> };
+    return { labelKey: 'staff_status_expired', color: 'text-slate-500', icon: <Clock size={13} /> };
   }
-  if (s.isRevoked) return { label: 'Отозвана клиентом', color: 'text-red-400', icon: <XCircle size={13} /> };
-  return { label: 'Завершена', color: 'text-slate-400', icon: <CheckCircle2 size={13} /> };
+  if (s.isRevoked) return { labelKey: 'staff_status_revoked_by_client', color: 'text-red-400', icon: <XCircle size={13} /> };
+  return { labelKey: 'staff_status_completed', color: 'text-slate-400', icon: <CheckCircle2 size={13} /> };
 }
 
-function fmtDate(d: string | null) {
+function fmtDate(d: string | null, locale: string) {
   if (!d) return '—';
-  return new Date(d).toLocaleString('ru', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return new Date(d).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
-function fmtDuration(start: string | null, end: string | null) {
+function fmtDuration(start: string | null, end: string | null, minUnit: string, hourUnit: string) {
   if (!start || !end) return null;
   const ms = new Date(end).getTime() - new Date(start).getTime();
   if (ms < 0) return null;
   const m = Math.floor(ms / 60000);
-  if (m < 60) return `${m} мин`;
-  return `${Math.floor(m / 60)}ч ${m % 60}м`;
+  if (m < 60) return `${m} ${minUnit}`;
+  return `${Math.floor(m / 60)}${hourUnit} ${m % 60}${minUnit[0]}`;
 }
 
 function SessionCard({ s }: { s: AccessSession }) {
+  const { t, locale } = useLocale();
   const [expanded, setExpanded] = useState(false);
   const end = s.revokedAt ?? (new Date(s.expiresAt) < new Date() ? s.expiresAt : null);
-  const duration = fmtDuration(s.connectedAt, end);
+  const duration = fmtDuration(s.connectedAt, end, t('staff_duration_min'), t('staff_duration_hour_short'));
   const reason = sessionEndReason(s);
 
   return (
@@ -80,21 +83,21 @@ function SessionCard({ s }: { s: AccessSession }) {
           <div className="text-right shrink-0">
             <div className={`flex items-center gap-1 text-xs ${reason.color} justify-end`}>
               {reason.icon}
-              <span>{reason.label}</span>
+              <span>{t(reason.labelKey)}</span>
             </div>
             {duration && <div className="text-xs text-slate-500 mt-0.5">{duration}</div>}
           </div>
         </div>
         <div className="flex gap-4 mt-1.5 text-xs text-slate-500">
-          <span>Выдан: {fmtDate(s.grantedAt)}</span>
-          {s.connectedAt && <span>Подкл.: {fmtDate(s.connectedAt)}</span>}
-          {s.revokedAt && <span>Завершён: {fmtDate(s.revokedAt)}</span>}
+          <span>{t('staff_granted_label')}: {fmtDate(s.grantedAt, locale)}</span>
+          {s.connectedAt && <span>{t('staff_connected_label')}: {fmtDate(s.connectedAt, locale)}</span>}
+          {s.revokedAt && <span>{t('staff_ended_label')}: {fmtDate(s.revokedAt, locale)}</span>}
         </div>
       </button>
 
       {expanded && s.activityLog && s.activityLog.length > 0 && (
         <div className="border-t border-slate-700/50 px-4 py-3 bg-slate-900/30">
-          <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">Журнал активности</p>
+          <p className="text-xs text-slate-500 mb-2 font-medium uppercase tracking-wide">{t('staff_activity_log_title')}</p>
           <ul className="space-y-1">
             {s.activityLog.map((entry, i) => (
               <li key={i} className="text-xs text-slate-300 flex items-start gap-2">
@@ -107,7 +110,7 @@ function SessionCard({ s }: { s: AccessSession }) {
       )}
       {expanded && (!s.activityLog || s.activityLog.length === 0) && (
         <div className="border-t border-slate-700/50 px-4 py-2 bg-slate-900/30">
-          <p className="text-xs text-slate-500">Журнал активности пуст</p>
+          <p className="text-xs text-slate-500">{t('staff_activity_log_empty')}</p>
         </div>
       )}
     </div>
@@ -115,6 +118,7 @@ function SessionCard({ s }: { s: AccessSession }) {
 }
 
 function StaffCard({ member }: { member: StaffMember }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const activeSessions = member.recentSessions.filter(s => s.connectedAt && !s.revokedAt && new Date(s.expiresAt) > new Date());
   const totalSessions = member.recentSessions.length;
@@ -136,21 +140,21 @@ function StaffCard({ member }: { member: StaffMember }) {
             <div className="flex items-center gap-2">
               <span className="font-semibold text-white">{member.firstName} {member.lastName}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full ${member.role === 'support' ? 'bg-blue-500/15 text-blue-400' : 'bg-amber-500/15 text-amber-400'}`}>
-                {member.role === 'support' ? 'Поддержка' : 'Продажи'}
+                {member.role === 'support' ? t('role_support') : t('role_sales')}
               </span>
-              {!member.isActive && <span className="text-xs text-red-400">неактивен</span>}
+              {!member.isActive && <span className="text-xs text-red-400">{t('staff_inactive')}</span>}
             </div>
             <p className="text-xs text-slate-400 mt-0.5">{member.email}</p>
           </div>
           <div className="text-right shrink-0">
             <div className={`text-sm font-medium ${member.isOnline ? 'text-green-400' : 'text-slate-500'}`}>
-              {member.isOnline ? 'Online' : 'Offline'}
+              {member.isOnline ? t('client_status_online') : t('client_status_offline')}
             </div>
             {activeSessions.length > 0 && (
-              <div className="text-xs text-green-400 mt-0.5">{activeSessions.length} активных сессий</div>
+              <div className="text-xs text-green-400 mt-0.5">{activeSessions.length} {t('staff_active_sessions_n')}</div>
             )}
             {totalSessions > 0 && (
-              <div className="text-xs text-slate-500 mt-0.5">{totalSessions} сессий всего</div>
+              <div className="text-xs text-slate-500 mt-0.5">{totalSessions} {t('staff_total_sessions_n')}</div>
             )}
           </div>
         </div>
@@ -159,7 +163,7 @@ function StaffCard({ member }: { member: StaffMember }) {
       {open && (
         <div className="border-t border-slate-700/50 p-4 space-y-2">
           {member.recentSessions.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-4">Нет истории сессий</p>
+            <p className="text-sm text-slate-500 text-center py-4">{t('staff_no_sessions')}</p>
           ) : (
             member.recentSessions.map(s => <SessionCard key={s.id} s={s} />)
           )}
@@ -172,6 +176,7 @@ function StaffCard({ member }: { member: StaffMember }) {
 export default function StaffActivityPage() {
   const router = useRouter();
   const { user, init } = useAuth();
+  const { t } = useLocale();
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -211,17 +216,17 @@ export default function StaffActivityPage() {
             <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors">
               <ChevronLeft size={20} />
             </button>
-            <h1 className="font-bold text-lg">Команда</h1>
+            <h1 className="font-bold text-lg">{t('staff_title')}</h1>
             {onlineCount > 0 && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/15 text-green-400">
-                {onlineCount} online
+                {onlineCount} {t('client_status_online')}
               </span>
             )}
           </div>
           <button
             onClick={load}
             className="text-slate-400 hover:text-white transition-colors"
-            title="Обновить"
+            title={t('refresh')}
           >
             <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -239,7 +244,7 @@ export default function StaffActivityPage() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <Headphones size={16} className="text-blue-400" />
-                  <h2 className="font-semibold text-slate-300">Поддержка</h2>
+                  <h2 className="font-semibold text-slate-300">{t('role_support')}</h2>
                   <span className="text-slate-600 text-sm">{support.length}</span>
                 </div>
                 <div className="space-y-3">
@@ -252,7 +257,7 @@ export default function StaffActivityPage() {
               <section>
                 <div className="flex items-center gap-2 mb-4">
                   <TrendingUp size={16} className="text-amber-400" />
-                  <h2 className="font-semibold text-slate-300">Продажи</h2>
+                  <h2 className="font-semibold text-slate-300">{t('role_sales')}</h2>
                   <span className="text-slate-600 text-sm">{sales.length}</span>
                 </div>
                 <div className="space-y-3">
@@ -263,7 +268,7 @@ export default function StaffActivityPage() {
 
             {staff.length === 0 && (
               <div className="text-center py-20 text-slate-500">
-                <p>Пользователи поддержки и продаж не найдены</p>
+                <p>{t('staff_no_staff')}</p>
               </div>
             )}
           </>

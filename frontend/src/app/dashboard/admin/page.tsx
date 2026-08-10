@@ -134,8 +134,7 @@ export default function AdminDashboard() {
           {[
             { title: t('admin_nav_users'),   desc: t('admin_nav_users_desc'),   icon: Users,  href: '/dashboard/admin/users',   color: 'text-blue-400' },
             { title: t('admin_nav_tickets'), desc: t('admin_nav_tickets_desc'), icon: Ticket, href: '/dashboard/admin/tickets', color: 'text-amber-400' },
-            { title: t('admin_nav_agents'),  desc: t('admin_nav_agents_desc'),  icon: Wifi,        href: '/dashboard/admin/agents',  color: 'text-purple-400' },
-            { title: 'Команда',             desc: 'Поддержка и продажи — онлайн, история сессий', icon: Headphones, href: '/dashboard/admin/staff',   color: 'text-blue-400' },
+            { title: t('admin_nav_staff'),   desc: t('admin_nav_staff_desc'),   icon: Headphones, href: '/dashboard/admin/staff',   color: 'text-blue-400' },
           ].map((card) => (
             <button
               key={card.title}
