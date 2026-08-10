@@ -20,7 +20,6 @@ export default function Footer() {
     ],
     [t('sections.account')]: [
       { label: l('login'),     href: `${APP}/auth/login`       },
-      { label: l('register'),  href: `${APP}/auth/register`    },
       { label: l('dashboard'), href: `${APP}/dashboard/client` },
       { label: l('contact'),   href: `${APP}/contact`          },
     ],

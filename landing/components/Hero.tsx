@@ -73,7 +73,7 @@ export default function Hero() {
             {/* CTA buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mb-10">
               <a
-                href={`${APP}/auth/register`}
+                href={`${APP}/contact`}
                 className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal-500/25 group"
               >
                 {t('ctaPrimary')}
