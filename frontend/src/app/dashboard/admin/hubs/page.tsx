@@ -369,7 +369,7 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: Hub; onClose: () => void;
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-slate-900 border-l border-slate-700 w-full max-w-lg flex flex-col h-full overflow-hidden shadow-2xl">
         {/* Drawer header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
+        <div className="relative flex items-center justify-between px-6 py-4 border-b border-slate-700 flex-shrink-0">
           <div className="flex items-center gap-3">
             <StatusDot online={isOnline} />
             <div>
@@ -391,7 +391,7 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: Hub; onClose: () => void;
                 → {LATEST_VERSION}
               </button>
             )}
-            <button onClick={() => setEditMode(!editMode)} title={t('edit')}
+            <button onClick={() => { setTab('overview'); setEditMode(!editMode); }} title={t('edit')}
               className={`p-2 rounded-lg transition-colors ${editMode ? 'bg-teal-500/20 text-teal-400' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}`}>
               <Pencil size={15} />
             </button>
