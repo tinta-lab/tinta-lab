@@ -8,10 +8,12 @@ import {
   Body,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { AccessService } from './access.service';
 import { GrantAccessDto } from './dto/grant-access.dto';
 import { ClientsService } from '../clients/clients.service';
+import { ServersService } from '../servers/servers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -23,6 +25,7 @@ export class AccessController {
   constructor(
     private readonly accessService: AccessService,
     private readonly clientsService: ClientsService,
+    private readonly serversService: ServersService,
   ) {}
 
   // CLIENT grants access to their own server (ownership enforced)
@@ -62,10 +65,21 @@ export class AccessController {
     return this.accessService.recordConnection(serverId, req.user.id);
   }
 
-  // ADMIN/SUPPORT see access logs for any server
+  // ADMIN sees access logs for any server.
+  // SUPPORT only for servers with currently active access — mirrors the
+  // restriction on GET /servers/:id so support can't browse history for
+  // servers they were never granted into.
   @Get('logs/:serverId')
   @Roles(UserRole.ADMIN, UserRole.SUPPORT)
-  getLogs(@Param('serverId') serverId: string) {
+  async getLogs(@Param('serverId') serverId: string, @Request() req: any) {
+    if (req.user.role === UserRole.SUPPORT) {
+      const server = await this.serversService.findById(serverId);
+      if (!server.accessEnabled) {
+        throw new ForbiddenException(
+          'Access to this server is not currently granted',
+        );
+      }
+    }
     return this.accessService.getLogsForServer(serverId);
   }
 

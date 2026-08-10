@@ -7,7 +7,6 @@ interface AuthStore {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; firstName: string; lastName: string; phone: string; city?: string }) => Promise<void>;
   logout: () => Promise<void>;
   init: () => void;
 }
@@ -26,14 +25,6 @@ export const useAuth = create<AuthStore>((set, get) => ({
 
   login: async (email, password) => {
     const { data } = await api.post<AuthResponse>('/auth/login', { email, password });
-    localStorage.setItem('access_token', data.access_token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    document.cookie = `access_token=${data.access_token}; path=/; max-age=900`;
-    set({ user: data.user, token: data.access_token });
-  },
-
-  register: async (formData) => {
-    const { data } = await api.post<AuthResponse>('/auth/register', formData);
     localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('user', JSON.stringify(data.user));
     document.cookie = `access_token=${data.access_token}; path=/; max-age=900`;

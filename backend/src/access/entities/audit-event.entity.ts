@@ -17,7 +17,7 @@ export enum AuditEventType {
 
 // Append-only hash-chained audit ledger. Rows are never updated or deleted —
 // enforced both in application code (AuditLogService only ever inserts) and at
-// the DB level (see sql/001_audit_hardening.sql, which blocks UPDATE/DELETE
+// the DB level (see sql/001_access_hardening.sql, which blocks UPDATE/DELETE
 // with a trigger). This is a separate table from `access_logs` on purpose:
 // access_logs is a mutable "current state" projection used by the UI, while
 // this table is the tamper-evident record of what actually happened.

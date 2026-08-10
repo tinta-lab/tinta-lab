@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaAgentGateway } from './tinta-agent.gateway';
-import { TintaCommand } from './entity-mapper.service';
+import { TintaCommand } from './tinta-command.types';
 import { GoldenTemplateService } from './golden-template.service';
 
 @Injectable()
@@ -103,13 +103,6 @@ export class TintaCoreService {
       agentToken: session.agentToken!,
       installTokenExpiresAt: session.installTokenExpiresAt,
     };
-  }
-
-  async getSession(clientId: string): Promise<AgentSession | null> {
-    return this.sessionRepo.findOne({
-      where: { clientId },
-      relations: ['client'],
-    });
   }
 
   async getAllSessions(): Promise<Partial<AgentSession>[]> {

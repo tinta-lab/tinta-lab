@@ -6,10 +6,17 @@ import {
   IsOptional,
   IsBoolean,
   IsUrl,
+  IsUUID,
   Matches,
 } from 'class-validator';
 
 export class ProvisionClientDto {
+  // Attach this server to an existing client instead of creating a new one.
+  // When set, email/password/firstName/lastName/phone/city are ignored.
+  @IsOptional()
+  @IsUUID()
+  existingClientId?: string;
+
   @IsEmail()
   @MaxLength(254)
   email: string;

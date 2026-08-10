@@ -15,12 +15,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
-import { TintaCommand } from './entity-mapper.service';
+import { TintaCommand } from './tinta-command.types';
 import { AccessLog } from '../access/entities/access-log.entity';
 import { AuditEventType } from '../access/entities/audit-event.entity';
 import { AuditLogService } from '../access/audit-log.service';
 import { ServersService } from '../servers/servers.service';
 import { ServerStatus } from '../servers/entities/server.entity';
+import { GoldenTemplateService } from './golden-template.service';
 
 interface AgentRegisterPayload {
   clientId: string;
@@ -52,6 +53,7 @@ export class TintaAgentGateway
     private readonly config: ConfigService,
     private readonly serversService: ServersService,
     private readonly auditLog: AuditLogService,
+    private readonly templateService: GoldenTemplateService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -176,6 +178,28 @@ export class TintaAgentGateway
           });
           this.logger.log(`Resynced active support access → agent ${clientId}`);
         }
+      }
+    }
+
+    // Consume install token — single-use, cleared once agent successfully connects
+    if (stored.installToken) {
+      await this.sessionRepo.update({ clientId }, { installToken: null, installTokenExpiresAt: null });
+    }
+
+    // Apply any default golden templates that couldn't be pushed at
+    // provisioning time because the agent wasn't connected yet.
+    const appliedAlready = new Set(stored.appliedTemplates ?? []);
+    const defaultTemplates = await this.templateService.findAll();
+    for (const template of defaultTemplates) {
+      if (appliedAlready.has(template.slug)) continue;
+      const sent = await this.applyTemplate(clientId, {
+        slug: template.slug,
+        name: template.name,
+        automation: template.automation,
+      });
+      if (sent) {
+        await this.templateService.markApplied(clientId, template.slug);
+        this.logger.log(`Applied default template ${template.slug} → agent ${clientId}`);
       }
     }
 

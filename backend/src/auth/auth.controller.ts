@@ -5,12 +5,12 @@ import {
   HttpCode,
   UseGuards,
   Request,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -24,11 +24,11 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password);
   }
 
-  // 5 registrations per hour per IP — prevents spam accounts
+  // Public self-registration is disabled — accounts are created by admin via POST /users
   @Post('register')
   @Throttle({ default: { ttl: 3_600_000, limit: 5 } })
-  register(@Body() dto: RegisterDto) {
-    return this.authService.register(dto);
+  register() {
+    throw new ForbiddenException('Self-registration is disabled. Contact your administrator.');
   }
 
   // Logout is authenticated — no brute-force risk
