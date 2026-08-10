@@ -25,7 +25,10 @@ function readCookie(header: string | undefined, name: string): string | null {
 }
 
 @WebSocketGateway({
-  cors: { origin: process.env.FRONTEND_URL ?? '*', credentials: true },
+  // Fail closed, not open: an unset FRONTEND_URL should refuse cross-origin
+  // WS connections, not silently allow any origin (matches main.ts's REST
+  // CORS, which already fails closed the same way).
+  cors: { origin: process.env.FRONTEND_URL ?? false, credentials: true },
   namespace: '/servers',
 })
 export class ServersGateway
