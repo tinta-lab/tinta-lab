@@ -218,7 +218,7 @@ export class ProvisioningService {
       ? (this.serversService.getPublicHostname(server) ?? server.subdomain)
       : '';
 
-    return {
+    const config: InstallConfig = {
       clientId: session.clientId,
       agentToken: session.agentToken,
       coreWs,
@@ -229,5 +229,11 @@ export class ProvisioningService {
         `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
       expiresAt: session.installTokenExpiresAt.toISOString(),
     };
+
+    // One-time link: consume it now so a leaked/replayed URL can't be
+    // fetched again for the rest of its 48h expiry window.
+    await this.tintaCore.consumeInstallToken(token);
+
+    return config;
   }
 }

@@ -16,7 +16,7 @@ import { UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ServersGateway } from '../servers/servers.gateway';
+import { PresenceService } from '../presence/presence.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -24,7 +24,7 @@ import { ServersGateway } from '../servers/servers.gateway';
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
-    private readonly serversGateway: ServersGateway,
+    private readonly presence: PresenceService,
   ) {}
 
   @Get()
@@ -62,7 +62,7 @@ export class UsersController {
   @Get('staff-activity')
   staffActivity() {
     return this.usersService.findStaffActivity(
-      this.serversGateway.getConnectedUserIds(),
+      this.presence.getConnectedUserIds(),
     );
   }
 }

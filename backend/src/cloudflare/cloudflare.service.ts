@@ -7,6 +7,13 @@ export interface ProvisionResult {
   tunnelId: string;
   tunnelToken: string;
   cfDnsRecordId: string;
+  cfAccessAppId: string | null;
+}
+
+/** Generates a cryptographically random 6-char alphanumeric hub ID (e.g. "a7f3k9") */
+export function generateHubId(): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789'; // no confusable chars (0/O, 1/I/l)
+  return Array.from(randomBytes(6)).map(b => chars[b % chars.length]).join('');
 }
 
 @Injectable()
@@ -16,12 +23,14 @@ export class CloudflareService {
   private readonly accountId: string | null;
   private readonly zoneId: string | null;
   private readonly baseDomain: string | null;
+  private readonly reusablePolicyId: string | null;
 
   constructor(private config: ConfigService) {
     const token = config.get<string>('CLOUDFLARE_API_TOKEN');
     this.accountId = config.get<string>('CLOUDFLARE_ACCOUNT_ID') ?? null;
     this.zoneId = config.get<string>('CLOUDFLARE_ZONE_ID') ?? null;
     this.baseDomain = config.get<string>('CLOUDFLARE_BASE_DOMAIN') ?? null;
+    this.reusablePolicyId = config.get<string>('CLOUDFLARE_ACCESS_POLICY_ID') ?? null;
 
     if (token && this.accountId && this.zoneId && this.baseDomain) {
       this.http = axios.create({
@@ -77,7 +86,7 @@ export class CloudflareService {
       {
         config: {
           ingress: [
-            { hostname: subdomain, service: 'http://localhost:8123' },
+            { hostname: subdomain, service: 'http://homeassistant:8123' },
             { service: 'http_status:404' },
           ],
         },
@@ -104,7 +113,77 @@ export class CloudflareService {
       `Created DNS record ${dnsName} → ${tunnelId}.cfargotunnel.com`,
     );
 
-    return { tunnelId, tunnelToken, cfDnsRecordId };
+    // 5. Create Cloudflare Access Application (if reusable policy is configured)
+    let cfAccessAppId: string | null = null;
+    if (this.reusablePolicyId) {
+      cfAccessAppId = await this.createAccessApp(subdomain, this.reusablePolicyId).catch(err => {
+        this.logger.warn(`Access app creation failed (non-fatal): ${err.message}`);
+        return null;
+      });
+    }
+
+    return { tunnelId, tunnelToken, cfDnsRecordId, cfAccessAppId };
+  }
+
+  /**
+   * Creates a Cloudflare Access Application for a hostname and attaches a reusable policy.
+   * Returns the Access App ID (needed for cleanup).
+   */
+  async createAccessApp(hostname: string, policyId: string): Promise<string> {
+    if (!this.http || !this.accountId) throw new Error('Cloudflare not configured');
+    const displayName = hostname.split('.')[0]; // e.g. "hub-a7f3k9"
+    const res = await this.http.post(
+      `/accounts/${this.accountId}/access/apps`,
+      {
+        name: displayName,
+        domain: hostname,
+        type: 'self_hosted',
+        session_duration: '720h',
+        policies: [{ id: policyId }],
+        allowed_idps: [],
+        auto_redirect_to_identity: false,
+      },
+    );
+    const appId: string = res.data.result.id;
+    this.logger.log(`Created Access app ${appId} for ${hostname}`);
+    return appId;
+  }
+
+  /**
+   * Ensures a reusable "Client Standard Access" policy exists in the account.
+   * Creates it if missing. Returns the policy ID.
+   * Call this once during initial setup — then store the ID in CLOUDFLARE_ACCESS_POLICY_ID.
+   */
+  async ensureReusablePolicy(): Promise<string> {
+    if (!this.http || !this.accountId) throw new Error('Cloudflare not configured');
+    if (this.reusablePolicyId) return this.reusablePolicyId;
+
+    const listRes = await this.http.get(`/accounts/${this.accountId}/access/policies`);
+    const existing = listRes.data.result?.find((p: any) => p.name === 'Tinta Client Standard Access');
+    if (existing) return existing.id as string;
+
+    const createRes = await this.http.post(
+      `/accounts/${this.accountId}/access/policies`,
+      {
+        name: 'Tinta Client Standard Access',
+        decision: 'allow',
+        session_duration: '720h',
+        include: [{ email_domain: { domain: 'tinta-lab.de' } }],
+      },
+    );
+    const policyId: string = createRes.data.result.id;
+    this.logger.log(`Created reusable Access policy ${policyId} — save as CLOUDFLARE_ACCESS_POLICY_ID`);
+    return policyId;
+  }
+
+  async deleteAccessApp(appId: string): Promise<void> {
+    if (!this.http || !this.accountId) return;
+    try {
+      await this.http.delete(`/accounts/${this.accountId}/access/apps/${appId}`);
+      this.logger.log(`Deleted Access app ${appId}`);
+    } catch (err: any) {
+      this.logger.error(`Failed to delete Access app ${appId}: ${err.message}`);
+    }
   }
 
   async deleteTunnel(tunnelId: string): Promise<void> {

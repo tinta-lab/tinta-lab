@@ -6,9 +6,24 @@ import { useServersSocket } from '@/hooks/useServersSocket';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
+import type { TranslationKey } from '@/i18n/translations';
 import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
+
+type AccessReason = 'general_question' | 'device_not_working' | 'automation_help' | 'connectivity_issue' | 'other' | 'ha_dashboard_toggle';
+
+const ACCESS_REASON_CODES: Exclude<AccessReason, 'ha_dashboard_toggle'>[] = [
+  'general_question', 'device_not_working', 'automation_help', 'connectivity_issue', 'other',
+];
+const ACCESS_REASON_LABEL_KEY: Record<AccessReason, TranslationKey> = {
+  general_question: 'access_reason_general_question',
+  device_not_working: 'access_reason_device_not_working',
+  automation_help: 'access_reason_automation_help',
+  connectivity_issue: 'access_reason_connectivity_issue',
+  other: 'access_reason_other',
+  ha_dashboard_toggle: 'access_reason_ha_toggle',
+};
 
 interface AccessLog {
   id: string;
@@ -22,6 +37,8 @@ interface AccessLog {
   server: { name: string };
   activityLog: string[] | null;
   reason: string | null;
+  reasonCode: AccessReason | null;
+  reasonDetails: string | null;
 }
 
 function StatusDot({ status }: { status: Server['status'] }) {
@@ -267,14 +284,15 @@ function ProfileModal({ user, onClose, t }: { user: any; onClose: () => void; t:
 
 export default function ClientDashboard() {
   const router = useRouter();
-  const { user, logout, init, token } = useAuth();
+  const { user, logout, init } = useAuth();
   const { t } = useLocale();
   const [servers, setServers] = useState<Server[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
+  const [reasonCodeDrafts, setReasonCodeDrafts] = useState<Record<string, Exclude<AccessReason, 'ha_dashboard_toggle'>>>({});
+  const [reasonDetailsDrafts, setReasonDetailsDrafts] = useState<Record<string, string>>({});
   const [durationDrafts, setDurationDrafts] = useState<Record<string, number>>({});
 
   useEffect(() => { init(); }, [init]);
@@ -301,7 +319,7 @@ export default function ClientDashboard() {
   };
 
   useServersSocket({
-    token,
+    enabled: !!user,
     onServerUpdate: useCallback((u) => {
       setServers(prev => prev.map(s => s.id === u.id ? { ...s, ...u } : s));
     }, []),
@@ -314,14 +332,17 @@ export default function ClientDashboard() {
   const grantAccess = async (serverId: string) => {
     setActionLoading(serverId);
     try {
-      const reason = reasonDrafts[serverId]?.trim();
+      const reasonCode = reasonCodeDrafts[serverId];
+      const reasonDetails = reasonCode === 'other' ? reasonDetailsDrafts[serverId]?.trim() : undefined;
       const durationMinutes = durationDrafts[serverId] ?? 60;
       await api.post(`/access/grant/${serverId}`, {
-        ...(reason ? { reason } : {}),
+        ...(reasonCode ? { reasonCode } : {}),
+        ...(reasonDetails ? { reasonDetails } : {}),
         durationMinutes,
       });
       toast.success(t('client_access_granted_toast'));
-      setReasonDrafts(d => ({ ...d, [serverId]: '' }));
+      setReasonCodeDrafts(d => { const n = { ...d }; delete n[serverId]; return n; });
+      setReasonDetailsDrafts(d => ({ ...d, [serverId]: '' }));
       await loadServers();
       await loadLogs();
     } catch {
@@ -457,14 +478,29 @@ export default function ClientDashboard() {
 
                   <div className="mb-3">
                     <label className="block text-xs text-slate-500 mb-1">{t('client_access_reason_label')}</label>
-                    <input
-                      type="text"
-                      value={reasonDrafts[server.id] ?? ''}
-                      onChange={e => setReasonDrafts(d => ({ ...d, [server.id]: e.target.value }))}
-                      placeholder={t('client_access_reason_placeholder')}
-                      maxLength={500}
-                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-teal-500 transition-colors"
-                    />
+                    <select
+                      value={reasonCodeDrafts[server.id] ?? ''}
+                      onChange={e => setReasonCodeDrafts(d => ({ ...d, [server.id]: e.target.value as Exclude<AccessReason, 'ha_dashboard_toggle'> }))}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
+                    >
+                      <option value="">—</option>
+                      {ACCESS_REASON_CODES.map(code => (
+                        <option key={code} value={code}>{t(ACCESS_REASON_LABEL_KEY[code])}</option>
+                      ))}
+                    </select>
+                    {reasonCodeDrafts[server.id] === 'other' && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={reasonDetailsDrafts[server.id] ?? ''}
+                          onChange={e => setReasonDetailsDrafts(d => ({ ...d, [server.id]: e.target.value }))}
+                          placeholder={t('client_access_reason_placeholder')}
+                          maxLength={280}
+                          className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-teal-500 transition-colors"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">{t('access_reason_other_hint')}</p>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mb-4">
@@ -564,10 +600,14 @@ export default function ClientDashboard() {
                       <div className="text-slate-500">{t('client_log_server')}</div>
                       <div className="text-slate-300">{log.server?.name}</div>
 
-                      {log.reason && (
+                      {(log.reasonCode || log.reason) && (
                         <>
                           <div className="text-slate-500">{t('client_log_reason')}</div>
-                          <div className="text-slate-300">{log.reason}</div>
+                          <div className="text-slate-300">
+                            {log.reasonCode
+                              ? `${t(ACCESS_REASON_LABEL_KEY[log.reasonCode])}${log.reasonDetails ? ` — ${log.reasonDetails}` : ''}`
+                              : log.reason /* legacy free-text row from before this field existed */}
+                          </div>
                         </>
                       )}
 

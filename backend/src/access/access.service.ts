@@ -1,6 +1,8 @@
 import {
   Injectable,
   Optional,
+  Inject,
+  forwardRef,
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
@@ -14,14 +16,21 @@ import { ServersService } from '../servers/servers.service';
 import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
+import { AccessReason } from './enums/access-reason.enum';
 
 const DEFAULT_DURATION_MINUTES = 60;
 const DEFAULT_RETENTION_DAYS = 365;
 
 export interface GrantAccessOptions {
-  reason?: string;
+  // Closed reason set — see enums/access-reason.enum.ts. reasonDetails is
+  // only meaningful (and should only be set) when reasonCode === OTHER.
+  reasonCode?: AccessReason;
+  reasonDetails?: string;
   ticketId?: string;
   durationMinutes?: number;
+  // Tags the audit event with where the grant originated — the REST path
+  // leaves this unset; the HA `input_boolean` toggle path passes 'ha_toggle'.
+  source?: string;
 }
 
 @Injectable()
@@ -33,7 +42,9 @@ export class AccessService {
     private configService: ConfigService,
     private auditLog: AuditLogService,
     @Optional() private notifications: NotificationsService,
-    @Optional() private agentGateway: TintaAgentGateway,
+    @Optional()
+    @Inject(forwardRef(() => TintaAgentGateway))
+    private agentGateway: TintaAgentGateway,
   ) {}
 
   // Throws ForbiddenException if the server does not belong to the given user
@@ -68,7 +79,8 @@ export class AccessService {
       grantedAt: new Date(),
       expiresAt,
       supportPassword,
-      reason: options.reason ?? null,
+      reasonCode: options.reasonCode ?? null,
+      reasonDetails: options.reasonDetails ?? null,
       ...(options.ticketId ? { ticket: { id: options.ticketId } as any } : {}),
     });
     const saved = await this.accessLogRepository.save(log);
@@ -76,8 +88,10 @@ export class AccessService {
     await this.auditLog.append(saved.id, AuditEventType.GRANTED, grantedByUserId, {
       serverId,
       durationMinutes: timeoutMinutes,
-      reason: options.reason ?? null,
+      reasonCode: options.reasonCode ?? null,
+      reasonDetails: options.reasonDetails ?? null,
       ticketId: options.ticketId ?? null,
+      ...(options.source ? { source: options.source } : {}),
     });
 
     // Enable tinta-support user with fresh password on the client's HA
@@ -110,6 +124,7 @@ export class AccessService {
     serverId: string,
     reason: 'manual' | 'expired' = 'manual',
     revokedByUserId?: string,
+    source?: string,
   ): Promise<void> {
     // Capture active log BEFORE marking as revoked (needed for activity log fetch)
     const activeLog = await this.accessLogRepository.findOne({
@@ -128,7 +143,7 @@ export class AccessService {
         activeLog.id,
         reason === 'expired' ? AuditEventType.EXPIRED : AuditEventType.REVOKED,
         revokedByUserId ?? null,
-        { reason },
+        { reason, ...(source ? { source } : {}) },
       );
     }
 

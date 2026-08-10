@@ -13,6 +13,7 @@ import { AccessModule } from './access/access.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { TintaCoreModule } from './tinta-core/tinta-core.module';
 import { ProvisioningModule } from './provisioning/provisioning.module';
+import { HubsModule } from './hubs/hubs.module';
 import { User } from './users/entities/user.entity';
 import { Client } from './clients/entities/client.entity';
 import { Server } from './servers/entities/server.entity';
@@ -61,6 +62,7 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
     TicketsModule,
     TintaCoreModule,
     ProvisioningModule,
+    HubsModule,
   ],
   controllers: [AppController],
   providers: [

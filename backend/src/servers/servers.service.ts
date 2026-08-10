@@ -5,10 +5,12 @@ import {
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { Server, ServerStatus } from './entities/server.entity';
 import { ServersGateway } from './servers.gateway';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
+import { ConfigService } from '@nestjs/config';
+import { generateHubId } from '../cloudflare/cloudflare.service';
 
 @Injectable()
 export class ServersService {
@@ -19,6 +21,8 @@ export class ServersService {
     private serversRepository: Repository<Server>,
     @Optional() private serversGateway: ServersGateway,
     @Optional() private cloudflare: CloudflareService,
+    private config: ConfigService,
+    private dataSource: DataSource,
   ) {}
 
   async create(data: {
@@ -28,10 +32,14 @@ export class ServersService {
     tunnelId?: string;
     localUrl?: string;
   }): Promise<Server> {
+    // Generate random hubId for the public Cloudflare hostname
+    const hubId = generateHubId();
+
     const server = this.serversRepository.create({
       client: { id: data.clientId } as any,
       name: data.name,
       subdomain: data.subdomain,
+      hubId,
       ...(data.tunnelId ? { tunnelId: data.tunnelId } : {}),
       ...(data.localUrl ? { localUrl: data.localUrl } : {}),
     } as any);
@@ -42,19 +50,21 @@ export class ServersService {
     // Auto-provision Cloudflare tunnel if API is configured and no tunnelId was provided
     if (!data.tunnelId && this.cloudflare?.isEnabled) {
       try {
-        const cf = await this.cloudflare.provisionServer(
-          data.name,
-          data.subdomain,
-        );
+        const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+        // Use hub-{id}.domain as public hostname — hides client name from URL
+        const hubHostname = `hub-${hubId}.${baseDomain}`;
+        const cf = await this.cloudflare.provisionServer(data.name, hubHostname);
         await this.serversRepository.update(saved.id, {
           tunnelId: cf.tunnelId,
           tunnelToken: cf.tunnelToken,
           cfDnsRecordId: cf.cfDnsRecordId,
+          cfAccessAppId: cf.cfAccessAppId,
         });
         saved.tunnelId = cf.tunnelId;
         saved.tunnelToken = cf.tunnelToken;
         saved.cfDnsRecordId = cf.cfDnsRecordId;
-        this.logger.log(`Cloudflare tunnel provisioned for server ${saved.id}`);
+        (saved as any).cfAccessAppId = cf.cfAccessAppId;
+        this.logger.log(`Cloudflare tunnel provisioned for server ${saved.id} at ${hubHostname}`);
       } catch (err: any) {
         this.logger.error(
           `Cloudflare provisioning failed for ${saved.id}: ${err.message}`,
@@ -64,6 +74,13 @@ export class ServersService {
     }
 
     return saved;
+  }
+
+  /** Returns the public Cloudflare hostname for a server, e.g. hub-a7f3k9.tinta-lab.de */
+  getPublicHostname(server: Server): string | null {
+    if (!server.hubId) return null;
+    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+    return `hub-${server.hubId}.${baseDomain}`;
   }
 
   async findAll(): Promise<Server[]> {
@@ -168,7 +185,12 @@ export class ServersService {
       if (server?.cfDnsRecordId) {
         await this.cloudflare.deleteDnsRecord(server.cfDnsRecordId);
       }
+      if (server?.cfAccessAppId) {
+        await this.cloudflare.deleteAccessApp(server.cfAccessAppId);
+      }
     }
+    // Delete referencing access_logs first (FK has no CASCADE)
+    await this.dataSource.query(`DELETE FROM access_logs WHERE "serverId" = $1`, [id]);
     await this.serversRepository.delete(id);
   }
 

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -15,6 +15,7 @@ import { AgentMonitorScheduler } from './agent-monitor.scheduler';
 import { ServersModule } from '../servers/servers.module';
 import { AuditModule } from '../access/audit.module';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
+import { AccessModule } from '../access/access.module';
 
 @Module({
   imports: [
@@ -22,6 +23,10 @@ import { CloudflareModule } from '../cloudflare/cloudflare.module';
     ServersModule,
     AuditModule,
     CloudflareModule,
+    // AccessModule imports TintaCoreModule (for TintaAgentGateway push events);
+    // TintaAgentGateway now also calls back into AccessService for the HA
+    // toggle path — forwardRef breaks the resulting 2-module cycle.
+    forwardRef(() => AccessModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

@@ -2,9 +2,20 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security headers: CSP, HSTS, X-Frame-Options, etc.
+  app.use(helmet({
+    crossOriginEmbedderPolicy: false, // allow Cloudflare tunnel headers
+    contentSecurityPolicy: false,     // API-only; no HTML served
+  }));
+
+  // Reads the httpOnly access_token cookie the browser sends automatically
+  app.use(cookieParser());
 
   app.useGlobalPipes(
     new ValidationPipe({

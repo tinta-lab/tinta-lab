@@ -7,12 +7,14 @@ type ServerUpdate = Pick<Server, 'id' | 'status' | 'accessEnabled' | 'accessExpi
 type AccessUpdate = Pick<Server, 'id' | 'accessEnabled' | 'accessExpiresAt'>;
 
 interface Options {
-  token: string | null;
+  // Whether the user is logged in — the JWT itself lives only in the
+  // httpOnly cookie now, so the hook has nothing sensitive to receive here.
+  enabled: boolean;
   onServerUpdate: (update: ServerUpdate) => void;
   onAccessChange: (update: AccessUpdate) => void;
 }
 
-export function useServersSocket({ token, onServerUpdate, onAccessChange }: Options) {
+export function useServersSocket({ enabled, onServerUpdate, onAccessChange }: Options) {
   const socketRef = useRef<Socket | null>(null);
   // Stable refs ensure socket handlers always call the latest callback version
   const onServerUpdateRef = useRef(onServerUpdate);
@@ -22,10 +24,10 @@ export function useServersSocket({ token, onServerUpdate, onAccessChange }: Opti
   useEffect(() => { onAccessChangeRef.current = onAccessChange; }, [onAccessChange]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!enabled) return;
 
     const socket = io(`${process.env.NEXT_PUBLIC_API_URL}/servers`, {
-      auth: { token },
+      withCredentials: true,
       transports: ['websocket'],
     });
 
@@ -46,5 +48,5 @@ export function useServersSocket({ token, onServerUpdate, onAccessChange }: Opti
     return () => {
       socket.disconnect();
     };
-  }, [token]);
+  }, [enabled]);
 }

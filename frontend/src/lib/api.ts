@@ -12,23 +12,16 @@ if (!baseURL && typeof window !== 'undefined') {
 const api = axios.create({
   baseURL: baseURL ?? '',
   timeout: 15_000,
-});
-
-api.interceptors.request.use((config) => {
-  const token = typeof window !== 'undefined'
-    ? localStorage.getItem('access_token')
-    : null;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
+  // The auth token travels as an httpOnly cookie (set by the backend on
+  // login) rather than a JS-readable Authorization header — the browser
+  // attaches it automatically as long as this stays true.
+  withCredentials: true,
 });
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       if (typeof window !== 'undefined') {
         window.location.href = '/auth/login';

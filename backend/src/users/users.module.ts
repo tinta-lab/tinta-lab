@@ -5,12 +5,12 @@ import { UsersController } from './users.controller';
 import { User } from './entities/user.entity';
 import { Client } from '../clients/entities/client.entity';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
-import { ServersModule } from '../servers/servers.module';
+import { PresenceModule } from '../presence/presence.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Client]),
     CloudflareModule,
-    ServersModule,
+    PresenceModule,
   ],
   providers: [UsersService],
   controllers: [UsersController],

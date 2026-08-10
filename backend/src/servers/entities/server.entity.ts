@@ -30,8 +30,17 @@ export class Server {
   @Column({ unique: true })
   subdomain: string;
 
+  // Random 6-char ID used in public hostname: hub-{hubId}.tinta-lab.de
+  // Never contains client name — prevents enumeration of client hostnames
+  @Column({ nullable: true, unique: true, type: 'varchar', length: 8 })
+  hubId: string | null;
+
   @Column({ nullable: true })
   tunnelId: string;
+
+  // Cloudflare Access Application ID — for cleanup on server deletion
+  @Column({ nullable: true, type: 'varchar' })
+  cfAccessAppId: string | null;
 
   // Cloudflare tunnel token — used with: cloudflared tunnel run --token <tunnelToken>
   @Column({ nullable: true, type: 'text' })

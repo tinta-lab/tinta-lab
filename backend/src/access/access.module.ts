@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccessService } from './access.service';
 import { AccessController } from './access.controller';
@@ -17,7 +17,7 @@ import { TintaCoreModule } from '../tinta-core/tinta-core.module';
     ServersModule,
     ClientsModule,
     NotificationsModule,
-    TintaCoreModule,
+    forwardRef(() => TintaCoreModule),
   ],
   providers: [AccessService, AccessScheduler],
   controllers: [AccessController],

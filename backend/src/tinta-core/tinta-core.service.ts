@@ -105,6 +105,18 @@ export class TintaCoreService {
     };
   }
 
+  // One-time consumption: called right after a successful GET /install/:token
+  // fetch, not at agent register, so the link can't be replayed for the full
+  // 48h window if it leaks (email, chat, shoulder-surfing). If the client
+  // needs the page again (closed the tab, etc.), re-provision issues a fresh
+  // token rather than the same link staying live.
+  async consumeInstallToken(token: string): Promise<void> {
+    await this.sessionRepo.update(
+      { installToken: token },
+      { installToken: null, installTokenExpiresAt: null },
+    );
+  }
+
   async getAllSessions(): Promise<Partial<AgentSession>[]> {
     const sessions = await this.sessionRepo.find({
       relations: ['client', 'client.user'],

@@ -7,18 +7,19 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomBytes } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaCommand } from './tinta-command.types';
 import { AccessLog } from '../access/entities/access-log.entity';
 import { AuditEventType } from '../access/entities/audit-event.entity';
 import { AuditLogService } from '../access/audit-log.service';
+import { AccessService } from '../access/access.service';
+import { AccessReason } from '../access/enums/access-reason.enum';
 import { ServersService } from '../servers/servers.service';
 import { ServerStatus } from '../servers/entities/server.entity';
 import { GoldenTemplateService } from './golden-template.service';
@@ -54,6 +55,8 @@ export class TintaAgentGateway
     private readonly serversService: ServersService,
     private readonly auditLog: AuditLogService,
     private readonly templateService: GoldenTemplateService,
+    @Inject(forwardRef(() => AccessService))
+    private readonly accessService: AccessService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -338,6 +341,14 @@ export class TintaAgentGateway
     const clientId = client.data.clientId as string | undefined;
     if (!clientId) return;
 
+    // Grant/revoke logic lives in AccessService — the REST-triggered path
+    // (dashboard) and this HA-toggle path used to duplicate it independently,
+    // which had already drifted once (see git history). AccessService pushes
+    // `set_support_access` to this same agent socket itself (via
+    // `agentGateway.setSupportAccess`, looked up by clientId), so this
+    // handler doesn't emit anything back to `client` directly for the
+    // grant/revoke cases — only the resync branch does, since that's not a
+    // state change AccessService has any reason to know about.
     const servers = await this.serversService.findByClientId(clientId);
     for (const srv of servers) {
       if (payload.enabled) {
@@ -359,41 +370,16 @@ export class TintaAgentGateway
           continue;
         }
 
-        const timeoutMinutes = this.config.get<number>(
-          'SUPPORT_ACCESS_TIMEOUT',
-          60,
-        );
-        const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
-        const supportPassword = randomBytes(9).toString('base64url');
-
         const fullServer = await this.serversService.findById(srv.id);
-        await this.serversService.setAccessEnabled(srv.id, true, expiresAt);
+        const grantedByUserId = fullServer.client?.user?.id;
+        if (!grantedByUserId) {
+          this.logger.warn(`Cannot grant via HA toggle — server ${srv.id} has no client user`);
+          continue;
+        }
 
-        const newLog = this.accessLogRepo.create({
-          server: { id: srv.id } as any,
-          ...(fullServer.client?.user?.id
-            ? { grantedBy: { id: fullServer.client.user.id } as any }
-            : {}),
-          grantedAt: new Date(),
-          expiresAt,
-          supportPassword,
-          reason: 'Opened from Home Assistant',
-        });
-        const saved = await this.accessLogRepo.save(newLog);
-
-        await this.auditLog.append(
-          saved.id,
-          AuditEventType.GRANTED,
-          fullServer.client?.user?.id ?? null,
-          { serverId: srv.id, durationMinutes: timeoutMinutes, source: 'ha_toggle' },
-        );
-
-        client.emit('set_support_access', {
-          enabled: true,
-          password: supportPassword,
-          grantedAt: saved.grantedAt.toISOString(),
-          accessLogId: saved.id,
-          expiresAt: saved.expiresAt.toISOString(),
+        await this.accessService.grantAccess(srv.id, grantedByUserId, {
+          reasonCode: AccessReason.HA_DASHBOARD_TOGGLE,
+          source: 'ha_toggle',
         });
         this.logger.log(
           `Access GRANTED via HA toggle → ${clientId} server ${srv.id}`,
@@ -401,31 +387,7 @@ export class TintaAgentGateway
       } else {
         if (!srv.accessEnabled) continue;
 
-        const activeLog = await this.accessLogRepo.findOne({
-          where: { server: { id: srv.id }, isRevoked: false },
-          order: { grantedAt: 'DESC' },
-        });
-
-        await this.serversService.setAccessEnabled(srv.id, false);
-        await this.accessLogRepo.update(
-          { server: { id: srv.id }, isRevoked: false },
-          { isRevoked: true, revokedAt: new Date() },
-        );
-
-        if (activeLog) {
-          await this.auditLog.append(activeLog.id, AuditEventType.REVOKED, null, {
-            source: 'ha_toggle',
-          });
-        }
-
-        // Send disable back so agent deletes HA user and collects activity log
-        const scramble = randomBytes(16).toString('hex');
-        client.emit('set_support_access', {
-          enabled: false,
-          password: scramble,
-          grantedAt: activeLog?.grantedAt?.toISOString(),
-          accessLogId: activeLog?.id,
-        });
+        await this.accessService.revokeAccess(srv.id, 'manual', undefined, 'ha_toggle');
         this.logger.log(
           `Access REVOKED via HA toggle → ${clientId} server ${srv.id}`,
         );

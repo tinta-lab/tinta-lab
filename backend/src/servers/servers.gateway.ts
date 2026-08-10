@@ -10,9 +10,22 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { TokenBlacklistService } from '../auth/token-blacklist.service';
+import { PresenceService } from '../presence/presence.service';
+import { UsersService } from '../users/users.service';
+
+// Parses just the one cookie we need out of a raw `Cookie` header — a full
+// cookie-parsing dependency is overkill for a single httpOnly token lookup.
+function readCookie(header: string | undefined, name: string): string | null {
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const [key, ...rest] = part.trim().split('=');
+    if (key === name) return decodeURIComponent(rest.join('='));
+  }
+  return null;
+}
 
 @WebSocketGateway({
-  cors: { origin: process.env.FRONTEND_URL ?? '*' },
+  cors: { origin: process.env.FRONTEND_URL ?? '*', credentials: true },
   namespace: '/servers',
 })
 export class ServersGateway
@@ -27,6 +40,8 @@ export class ServersGateway
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly blacklist: TokenBlacklistService,
+    private readonly presence: PresenceService,
+    private readonly usersService: UsersService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -35,7 +50,8 @@ export class ServersGateway
       (client.handshake.headers?.authorization as string)?.replace(
         'Bearer ',
         '',
-      );
+      ) ||
+      readCookie(client.handshake.headers?.cookie, 'access_token');
 
     if (!token) {
       this.logger.warn(`WS rejected (no token): ${client.id}`);
@@ -67,7 +83,23 @@ export class ServersGateway
         return;
       }
 
+      // Same passwordChangedAt check as JwtStrategy — a WS session shouldn't
+      // outlive a password reset just because it doesn't go through Passport.
+      const meta = await this.usersService.getAuthMeta(payload.sub);
+      if (meta?.passwordChangedAt && payload.iat) {
+        const changedAtSeconds = Math.floor(meta.passwordChangedAt.getTime() / 1000);
+        if (payload.iat < changedAtSeconds) {
+          this.logger.warn(
+            `WS rejected (password changed since token issued): ${client.id} user=${payload.sub}`,
+          );
+          client.emit('error', { message: 'Token invalidated by password change' });
+          client.disconnect();
+          return;
+        }
+      }
+
       client.data.user = payload;
+      this.presence.markOnline(payload.sub);
       this.logger.log(
         `WS authenticated: ${client.id} user=${payload.sub} role=${payload['role']}`,
       );
@@ -79,7 +111,13 @@ export class ServersGateway
   }
 
   handleDisconnect(client: Socket) {
+    const userId = client.data?.user?.sub;
+    if (userId) this.presence.markOffline(userId);
     this.logger.log(`WS disconnected: ${client.id}`);
+  }
+
+  getConnectedUserIds(): Set<string> {
+    return this.presence.getConnectedUserIds();
   }
 
   @SubscribeMessage('subscribe')

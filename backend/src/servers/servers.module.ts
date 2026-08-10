@@ -9,6 +9,8 @@ import { Server } from './entities/server.entity';
 import { ClientsModule } from '../clients/clients.module';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
 import { AuthModule } from '../auth/auth.module';
+import { PresenceModule } from '../presence/presence.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
@@ -16,6 +18,8 @@ import { AuthModule } from '../auth/auth.module';
     ClientsModule,
     CloudflareModule,
     AuthModule, // provides TokenBlacklistService
+    PresenceModule,
+    UsersModule, // provides UsersService.getAuthMeta for the passwordChangedAt check
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

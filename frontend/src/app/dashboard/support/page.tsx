@@ -115,7 +115,7 @@ function AccessTimer({ expiresAt, label }: { expiresAt: string | null; label: st
 
 export default function SupportDashboard() {
   const router = useRouter();
-  const { user, logout, init, token } = useAuth();
+  const { user, logout, init } = useAuth();
   const { t } = useLocale();
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,7 +139,7 @@ export default function SupportDashboard() {
   };
 
   useServersSocket({
-    token,
+    enabled: !!user,
     onServerUpdate: useCallback((u) => {
       setServers(prev => prev.map(s => s.id === u.id ? { ...s, ...u } : s));
     }, []),
