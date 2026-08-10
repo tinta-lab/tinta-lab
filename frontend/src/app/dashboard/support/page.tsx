@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
 import { LogOut, RefreshCw, Shield, ExternalLink, Copy, Check, X, KeyRound, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 interface AccessCredentials {
@@ -114,7 +115,7 @@ function AccessTimer({ expiresAt, label }: { expiresAt: string | null; label: st
 
 export default function SupportDashboard() {
   const router = useRouter();
-  const { user, logout, init, token } = useAuth();
+  const { user, logout, init } = useAuth();
   const { t } = useLocale();
   const [servers, setServers] = useState<Server[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,7 +139,7 @@ export default function SupportDashboard() {
   };
 
   useServersSocket({
-    token,
+    enabled: !!user,
     onServerUpdate: useCallback((u) => {
       setServers(prev => prev.map(s => s.id === u.id ? { ...s, ...u } : s));
     }, []),
@@ -157,7 +158,13 @@ export default function SupportDashboard() {
         url,
         password: data?.supportPassword ?? '',
       });
-    } catch { /* log silently */ }
+    } catch (e: any) {
+      if (e?.response?.status === 409) {
+        toast.error(e.response.data?.message ?? t('support_session_claimed'));
+      } else {
+        toast.error(t('support_connect_error'));
+      }
+    }
     setConnecting(null);
   };
 

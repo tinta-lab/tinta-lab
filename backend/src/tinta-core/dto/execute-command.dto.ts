@@ -1,16 +1,24 @@
 import {
+  IsIn,
   IsString,
   MinLength,
   MaxLength,
   IsObject,
   IsOptional,
 } from 'class-validator';
+import type { TintaEntityType } from '../tinta-command.types';
+
+const ENTITY_TYPES: TintaEntityType[] = [
+  'light',
+  'climate',
+  'security',
+  'switch',
+  'cover',
+];
 
 export class ExecuteCommandDto {
-  @IsString()
-  @MinLength(1)
-  @MaxLength(64)
-  entityType: string;
+  @IsIn(ENTITY_TYPES)
+  entityType: TintaEntityType;
 
   @IsString()
   @MinLength(1)
@@ -19,9 +27,9 @@ export class ExecuteCommandDto {
 
   @IsString()
   @MinLength(1)
-  entityId: string;
+  haEntityId: string;
 
   @IsOptional()
   @IsObject()
-  params?: Record<string, any>;
+  data?: Record<string, any>;
 }

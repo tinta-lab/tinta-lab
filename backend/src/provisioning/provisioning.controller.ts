@@ -16,6 +16,6 @@ export class ProvisioningController {
   @Post('client')
   @Throttle({ default: { ttl: 3_600_000, limit: 20 } })
   async provisionClient(@Body() dto: ProvisionClientDto) {
-    return this.provisioningService.provisionClient(dto as any);
+    return this.provisioningService.provisionClient(dto);
   }
 }

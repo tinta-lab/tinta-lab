@@ -55,6 +55,7 @@ export interface AgentSession {
   metrics: AgentMetrics | null;
   lastConnectedAt: string | null;
   lastHeartbeatAt: string | null;
+  lastTokenMismatchAt: string | null;
   createdAt: string;
   client?: Client;
 }

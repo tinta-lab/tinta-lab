@@ -7,18 +7,22 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { Logger, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomBytes } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
-import { TintaCommand } from './entity-mapper.service';
+import { TintaCommand } from './tinta-command.types';
 import { AccessLog } from '../access/entities/access-log.entity';
+import { AuditEventType } from '../access/entities/audit-event.entity';
+import { AuditLogService } from '../access/audit-log.service';
+import { AccessService } from '../access/access.service';
+import { AccessReason } from '../access/enums/access-reason.enum';
 import { ServersService } from '../servers/servers.service';
 import { ServerStatus } from '../servers/entities/server.entity';
+import { GoldenTemplateService } from './golden-template.service';
 
 interface AgentRegisterPayload {
   clientId: string;
@@ -49,6 +53,10 @@ export class TintaAgentGateway
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly serversService: ServersService,
+    private readonly auditLog: AuditLogService,
+    private readonly templateService: GoldenTemplateService,
+    @Inject(forwardRef(() => AccessService))
+    private readonly accessService: AccessService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -87,9 +95,7 @@ export class TintaAgentGateway
         this.config.get<string>('AGENT_JWT_SECRET') ??
         this.config.get<string>('JWT_SECRET') ??
         '';
-      this.logger.debug(
-        `Agent auth: secret=${secret.substring(0, 8)}... jwt=${jwt.substring(jwt.length - 20)}`,
-      );
+      this.logger.debug(`Agent auth: clientId=${clientId}`);
       const decoded = this.jwtService.verify(jwt, { secret });
       if (decoded.sub !== clientId || decoded.type !== 'tinta-agent') {
         this.logger.warn(`Agent auth failed for ${clientId}: token mismatch`);
@@ -104,12 +110,19 @@ export class TintaAgentGateway
       return { success: false, error: 'Invalid token' };
     }
 
-    // Verify token matches stored agentToken in DB
+    // Require an existing AgentSession — rejects tokens for deleted/unknown clients
     const stored = await this.sessionRepo.findOne({ where: { clientId } });
-    if (stored?.agentToken && stored.agentToken !== jwt) {
+    if (!stored) {
+      this.logger.warn(`Agent registration rejected: no session for ${clientId}`);
+      client.emit('error', { message: 'Unknown client' });
+      client.disconnect();
+      return { success: false, error: 'Unknown client' };
+    }
+    if (stored.agentToken && stored.agentToken !== jwt) {
       this.logger.warn(
-        `Agent token mismatch for ${clientId} — possible replay`,
+        `Agent token mismatch for ${clientId} — recording and rejecting`,
       );
+      await this.sessionRepo.update({ clientId }, { lastTokenMismatchAt: new Date() });
       client.emit('error', { message: 'Token revoked' });
       client.disconnect();
       return { success: false, error: 'Token revoked' };
@@ -164,9 +177,32 @@ export class TintaAgentGateway
             password: activeLog.supportPassword,
             grantedAt: activeLog.grantedAt?.toISOString(),
             accessLogId: activeLog.id,
+            expiresAt: activeLog.expiresAt?.toISOString(),
           });
           this.logger.log(`Resynced active support access → agent ${clientId}`);
         }
+      }
+    }
+
+    // Consume install token — single-use, cleared once agent successfully connects
+    if (stored.installToken) {
+      await this.sessionRepo.update({ clientId }, { installToken: null, installTokenExpiresAt: null });
+    }
+
+    // Apply any default golden templates that couldn't be pushed at
+    // provisioning time because the agent wasn't connected yet.
+    const appliedAlready = new Set(stored.appliedTemplates ?? []);
+    const defaultTemplates = await this.templateService.findAll();
+    for (const template of defaultTemplates) {
+      if (appliedAlready.has(template.slug)) continue;
+      const sent = await this.applyTemplate(clientId, {
+        slug: template.slug,
+        name: template.name,
+        automation: template.automation,
+      });
+      if (sent) {
+        await this.templateService.markApplied(clientId, template.slug);
+        this.logger.log(`Applied default template ${template.slug} → agent ${clientId}`);
       }
     }
 
@@ -206,7 +242,6 @@ export class TintaAgentGateway
     if (!clientId) return;
 
     await this.sessionRepo.update({ clientId }, { metrics: payload } as any);
-    this.server.to('dashboard').emit('agent:metrics', { clientId, ...payload });
   }
 
   @SubscribeMessage('state_update')
@@ -214,10 +249,11 @@ export class TintaAgentGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() payload: { entities: Record<string, any> },
   ) {
+    // Reserved for a future live control dashboard. Only controllable entities
+    // (light/climate/switch/cover/security) reach this point — the agent never
+    // forwards raw sensor/binary_sensor state (see tinta_agent/src/entities.ts).
     const clientId = client.data.clientId as string | undefined;
     if (!clientId) return;
-
-    this.server.to('dashboard').emit('agent:state', { clientId, ...payload });
   }
 
   // Forcefully disconnect a running agent (called on token rotation)
@@ -266,6 +302,7 @@ export class TintaAgentGateway
     password?: string,
     grantedAt?: string,
     accessLogId?: string,
+    expiresAt?: string,
   ): void {
     const socket = this.agents.get(clientId);
     if (socket) {
@@ -274,10 +311,24 @@ export class TintaAgentGateway
         password,
         grantedAt,
         accessLogId,
+        expiresAt,
       });
       this.logger.log(
         `Support access ${enabled ? 'ENABLED' : 'DISABLED'} → agent ${clientId}`,
       );
+    }
+  }
+
+  // Tells the agent who actually connected, so the in-HA banner can name them
+  notifySupportConnected(
+    clientId: string,
+    accessedByName: string,
+    expiresAt?: string,
+  ): void {
+    const socket = this.agents.get(clientId);
+    if (socket) {
+      socket.emit('support_connected', { accessedByName, expiresAt });
+      this.logger.log(`Support connected notice → agent ${clientId}`);
     }
   }
 
@@ -290,6 +341,14 @@ export class TintaAgentGateway
     const clientId = client.data.clientId as string | undefined;
     if (!clientId) return;
 
+    // Grant/revoke logic lives in AccessService — the REST-triggered path
+    // (dashboard) and this HA-toggle path used to duplicate it independently,
+    // which had already drifted once (see git history). AccessService pushes
+    // `set_support_access` to this same agent socket itself (via
+    // `agentGateway.setSupportAccess`, looked up by clientId), so this
+    // handler doesn't emit anything back to `client` directly for the
+    // grant/revoke cases — only the resync branch does, since that's not a
+    // state change AccessService has any reason to know about.
     const servers = await this.serversService.findByClientId(clientId);
     for (const srv of servers) {
       if (payload.enabled) {
@@ -305,37 +364,22 @@ export class TintaAgentGateway
               password: active.supportPassword,
               grantedAt: active.grantedAt?.toISOString(),
               accessLogId: active.id,
+              expiresAt: active.expiresAt?.toISOString(),
             });
           }
           continue;
         }
 
-        const timeoutMinutes = this.config.get<number>(
-          'SUPPORT_ACCESS_TIMEOUT',
-          60,
-        );
-        const expiresAt = new Date(Date.now() + timeoutMinutes * 60 * 1000);
-        const supportPassword = randomBytes(9).toString('base64url');
-
         const fullServer = await this.serversService.findById(srv.id);
-        await this.serversService.setAccessEnabled(srv.id, true, expiresAt);
+        const grantedByUserId = fullServer.client?.user?.id;
+        if (!grantedByUserId) {
+          this.logger.warn(`Cannot grant via HA toggle — server ${srv.id} has no client user`);
+          continue;
+        }
 
-        const newLog = this.accessLogRepo.create({
-          server: { id: srv.id } as any,
-          ...(fullServer.client?.user?.id
-            ? { grantedBy: { id: fullServer.client.user.id } as any }
-            : {}),
-          grantedAt: new Date(),
-          expiresAt,
-          supportPassword,
-        });
-        const saved = await this.accessLogRepo.save(newLog);
-
-        client.emit('set_support_access', {
-          enabled: true,
-          password: supportPassword,
-          grantedAt: saved.grantedAt.toISOString(),
-          accessLogId: saved.id,
+        await this.accessService.grantAccess(srv.id, grantedByUserId, {
+          reasonCode: AccessReason.HA_DASHBOARD_TOGGLE,
+          source: 'ha_toggle',
         });
         this.logger.log(
           `Access GRANTED via HA toggle → ${clientId} server ${srv.id}`,
@@ -343,25 +387,7 @@ export class TintaAgentGateway
       } else {
         if (!srv.accessEnabled) continue;
 
-        const activeLog = await this.accessLogRepo.findOne({
-          where: { server: { id: srv.id }, isRevoked: false },
-          order: { grantedAt: 'DESC' },
-        });
-
-        await this.serversService.setAccessEnabled(srv.id, false);
-        await this.accessLogRepo.update(
-          { server: { id: srv.id }, isRevoked: false },
-          { isRevoked: true, revokedAt: new Date() },
-        );
-
-        // Send disable back so agent deletes HA user and collects activity log
-        const scramble = randomBytes(16).toString('hex');
-        client.emit('set_support_access', {
-          enabled: false,
-          password: scramble,
-          grantedAt: activeLog?.grantedAt?.toISOString(),
-          accessLogId: activeLog?.id,
-        });
+        await this.accessService.revokeAccess(srv.id, 'manual', undefined, 'ha_toggle');
         this.logger.log(
           `Access REVOKED via HA toggle → ${clientId} server ${srv.id}`,
         );
@@ -379,9 +405,23 @@ export class TintaAgentGateway
     await this.accessLogRepo.update({ id: payload.accessLogId }, {
       activityLog: payload.entries ?? [],
     } as any);
+    await this.auditLog.append(
+      payload.accessLogId,
+      AuditEventType.ACTIVITY_LOG,
+      null,
+      { entryCount: payload.entries?.length ?? 0 },
+    );
     this.logger.log(
       `Activity log stored for ${payload.accessLogId}: ${payload.entries?.length ?? 0} entries`,
     );
+  }
+
+  sendSelfUpdate(clientId: string, targetVersion: string): boolean {
+    const socket = this.agents.get(clientId);
+    if (!socket) return false;
+    socket.emit('self_update', { targetVersion });
+    this.logger.log(`Self-update v${targetVersion} → agent ${clientId}`);
+    return true;
   }
 
   isConnected(clientId: string): boolean {

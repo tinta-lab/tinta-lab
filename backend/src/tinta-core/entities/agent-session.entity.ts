@@ -66,6 +66,9 @@ export class AgentSession {
   @Column({ nullable: true, type: 'timestamp' })
   lastHeartbeatAt: Date | null;
 
+  @Column({ nullable: true, type: 'timestamp' })
+  lastTokenMismatchAt: Date | null;
+
   @Column({ nullable: true, type: 'varchar', unique: true })
   installToken: string | null;
 

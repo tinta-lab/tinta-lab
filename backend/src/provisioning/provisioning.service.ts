@@ -11,7 +11,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { ClientsService } from '../clients/clients.service';
 import { UsersService } from '../users/users.service';
 
-export interface ProvisionClientDto {
+export interface ProvisionClientInput {
   // Use an existing client instead of creating a new one
   existingClientId?: string;
   // New client data
@@ -78,7 +78,7 @@ export class ProvisioningService {
    * 4. Apply default golden templates
    * 5. Send onboarding notification
    */
-  async provisionClient(dto: ProvisionClientDto): Promise<ProvisionResult> {
+  async provisionClient(dto: ProvisionClientInput): Promise<ProvisionResult> {
     this.logger.log(`Provisioning client: ${dto.email}`);
 
     // 1. Resolve or create client account
@@ -140,6 +140,10 @@ export class ProvisioningService {
       localUrl: dto.localUrl,
     });
 
+    // Public URL: hub-{id}.tinta-lab.de if provisioned, else name-based subdomain
+    const publicHostname = this.serversService.getPublicHostname(server) ?? fullSubdomain;
+    const publicUrl = `https://${publicHostname}`;
+
     // 3. Generate Agent JWT + install token
     const { agentToken, installToken } = await this.tintaCore.provisionAgent(
       client.id,
@@ -158,15 +162,14 @@ export class ProvisioningService {
     }
 
     // 5. Notify admin via Telegram
-    const dashboardUrl = `https://${fullSubdomain}`;
     const clientName = `${dto.firstName} ${dto.lastName}`;
 
     await this.notifications.notifyProvisioningComplete({
       clientName,
       clientEmail: dto.email,
       serverName: dto.serverName,
-      subdomain: dto.subdomain,
-      dashboardUrl,
+      subdomain: publicHostname,
+      dashboardUrl: publicUrl,
       agentToken,
       tunnelToken: server.tunnelToken,
     });
@@ -178,11 +181,11 @@ export class ProvisioningService {
     const installUrl = `${frontendUrl}/install/${installToken}`;
 
     const agentInstallCommand = server.tunnelToken
-      ? `# 1. Install Cloudflare tunnel\ncloudflared tunnel run --token ${server.tunnelToken}\n\n# 2. Install Tinta Agent (HA Add-on)\n# Go to HA → Add-ons → Install → set:\n# tinta_client_id: ${client.id}\n# tinta_agent_token: ${agentToken}`
-      : `# Install Tinta Agent (HA Add-on)\n# Set options:\n# tinta_client_id: ${client.id}\n# tinta_agent_token: ${agentToken}`;
+      ? `# 1. Install Cloudflare tunnel\ncloudflared tunnel run --token ${server.tunnelToken}\n\n# 2. Install Tinta Agent (HA Add-on)\n# Go to HA → Add-ons → Install → set tinta_install_token in the Add-on config`
+      : `# Install Tinta Agent (HA Add-on)\n# Set options:\n# tinta_install_token: <use the install link>`;
 
     this.logger.log(
-      `Provisioning complete for ${dto.email} (client: ${client.id}, server: ${server.id})`,
+      `Provisioning complete for ${dto.email} (client: ${client.id}, server: ${server.id}, hub: ${publicHostname})`,
     );
 
     return {
@@ -192,8 +195,8 @@ export class ProvisioningService {
       installToken,
       installUrl,
       tunnelToken: server.tunnelToken,
-      subdomain: fullSubdomain,
-      dashboardUrl,
+      subdomain: publicHostname,
+      dashboardUrl: publicUrl,
       agentInstallCommand,
     };
   }
@@ -210,16 +213,27 @@ export class ProvisioningService {
       'wss://api.tinta-lab.de/tinta/ws',
     );
 
-    return {
+    // Prefer hub-based URL (privacy-safe) over name-based subdomain
+    const serverPublicHostname = server
+      ? (this.serversService.getPublicHostname(server) ?? server.subdomain)
+      : '';
+
+    const config: InstallConfig = {
       clientId: session.clientId,
       agentToken: session.agentToken,
       coreWs,
-      externalUrl: server ? `https://${server.subdomain}` : '',
+      externalUrl: serverPublicHostname ? `https://${serverPublicHostname}` : '',
       tunnelToken: server?.tunnelToken ?? null,
       serverName: server?.name ?? '',
       clientName:
         `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
       expiresAt: session.installTokenExpiresAt.toISOString(),
     };
+
+    // One-time link: consume it now so a leaked/replayed URL can't be
+    // fetched again for the rest of its 48h expiry window.
+    await this.tintaCore.consumeInstallToken(token);
+
+    return config;
   }
 }

@@ -13,10 +13,12 @@ import { AccessModule } from './access/access.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { TintaCoreModule } from './tinta-core/tinta-core.module';
 import { ProvisioningModule } from './provisioning/provisioning.module';
+import { HubsModule } from './hubs/hubs.module';
 import { User } from './users/entities/user.entity';
 import { Client } from './clients/entities/client.entity';
 import { Server } from './servers/entities/server.entity';
 import { AccessLog } from './access/entities/access-log.entity';
+import { AuditEvent } from './access/entities/audit-event.entity';
 import { Ticket } from './tickets/entities/ticket.entity';
 import { GoldenTemplate } from './tinta-core/entities/golden-template.entity';
 import { AgentSession } from './tinta-core/entities/agent-session.entity';
@@ -42,6 +44,7 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
           Client,
           Server,
           AccessLog,
+          AuditEvent,
           Ticket,
           GoldenTemplate,
           AgentSession,
@@ -59,6 +62,7 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
     TicketsModule,
     TintaCoreModule,
     ProvisioningModule,
+    HubsModule,
   ],
   controllers: [AppController],
   providers: [

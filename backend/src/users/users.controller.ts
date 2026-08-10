@@ -16,12 +16,16 @@ import { UserRole } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { PresenceService } from '../presence/presence.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.ADMIN)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly presence: PresenceService,
+  ) {}
 
   @Get()
   findAll() {
@@ -53,5 +57,12 @@ export class UsersController {
   @Patch(':id/reset-password')
   resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
     return this.usersService.resetPassword(id, dto.password);
+  }
+
+  @Get('staff-activity')
+  staffActivity() {
+    return this.usersService.findStaffActivity(
+      this.presence.getConnectedUserIds(),
+    );
   }
 }

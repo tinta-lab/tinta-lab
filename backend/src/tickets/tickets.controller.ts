@@ -8,6 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -21,7 +22,9 @@ import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
 export class TicketsController {
   constructor(private ticketsService: TicketsService) {}
 
+  // 3 tickets per hour per IP — prevents contact form spam
   @Post('public')
+  @Throttle({ default: { ttl: 3_600_000, limit: 3 } })
   createPublic(@Body() dto: CreateTicketDto) {
     return this.ticketsService.create(dto);
   }

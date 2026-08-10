@@ -1,14 +1,29 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
-import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity } from 'lucide-react';
+import type { TranslationKey } from '@/i18n/translations';
+import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
+
+type AccessReason = 'general_question' | 'device_not_working' | 'automation_help' | 'connectivity_issue' | 'other' | 'ha_dashboard_toggle';
+
+const ACCESS_REASON_CODES: Exclude<AccessReason, 'ha_dashboard_toggle'>[] = [
+  'general_question', 'device_not_working', 'automation_help', 'connectivity_issue', 'other',
+];
+const ACCESS_REASON_LABEL_KEY: Record<AccessReason, TranslationKey> = {
+  general_question: 'access_reason_general_question',
+  device_not_working: 'access_reason_device_not_working',
+  automation_help: 'access_reason_automation_help',
+  connectivity_issue: 'access_reason_connectivity_issue',
+  other: 'access_reason_other',
+  ha_dashboard_toggle: 'access_reason_ha_toggle',
+};
 
 interface AccessLog {
   id: string;
@@ -21,6 +36,9 @@ interface AccessLog {
   accessedBy: { firstName: string; lastName: string } | null;
   server: { name: string };
   activityLog: string[] | null;
+  reason: string | null;
+  reasonCode: AccessReason | null;
+  reasonDetails: string | null;
 }
 
 function StatusDot({ status }: { status: Server['status'] }) {
@@ -35,16 +53,20 @@ function StatusDot({ status }: { status: Server['status'] }) {
 function AccessCountdown({ expiresAt, onExpire, label }: { expiresAt: string; onExpire: () => void; label: string }) {
   const [remaining, setRemaining] = useState('');
   const [pct, setPct] = useState(100);
-  const total = 60 * 60 * 1000;
+  // Sessions can now last 15/30/60 min — track the window from first render
+  // instead of assuming a fixed 60 min total.
+  const totalRef = useRef<number | null>(null);
 
   useEffect(() => {
+    totalRef.current = null;
     const tick = () => {
       const diff = new Date(expiresAt).getTime() - Date.now();
+      if (totalRef.current === null) totalRef.current = Math.max(diff, 1);
       if (diff <= 0) { setRemaining('00:00'); setPct(0); onExpire(); return; }
       const m = Math.floor(diff / 60000).toString().padStart(2, '0');
       const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
       setRemaining(`${m}:${s}`);
-      setPct(Math.max(0, (diff / total) * 100));
+      setPct(Math.max(0, (diff / totalRef.current) * 100));
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -94,14 +116,184 @@ function ActivityLogSection({ entries, t }: { entries: string[]; t: (k: any) => 
   );
 }
 
+type ProfileTab = 'info' | 'password';
+
+function ProfileModal({ user, onClose, t }: { user: any; onClose: () => void; t: (k: any) => string }) {
+  const { init } = useAuth();
+  const [tab, setTab] = useState<ProfileTab>('info');
+  const [saving, setSaving] = useState(false);
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+
+  const [infoForm, setInfoForm] = useState({
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
+    phone: '',
+    city: '',
+  });
+  const [pwForm, setPwForm] = useState({ oldPassword: '', newPassword: '', confirm: '' });
+  const [pwErrors, setPwErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    api.get('/clients/me').then(({ data }) => {
+      setInfoForm(f => ({ ...f, phone: data.phone ?? '', city: data.city ?? '' }));
+    }).catch(() => {});
+  }, []);
+
+  const saveInfo = async () => {
+    setSaving(true);
+    try {
+      await api.patch('/auth/me', { firstName: infoForm.firstName, lastName: infoForm.lastName });
+      await api.patch('/auth/me/client-profile', { phone: infoForm.phone, city: infoForm.city });
+      await init();
+      toast.success(t('profile_saved'));
+      onClose();
+    } catch { toast.error(t('error')); }
+    finally { setSaving(false); }
+  };
+
+  const savePassword = async () => {
+    const errs: Record<string, string> = {};
+    if (!pwForm.oldPassword) errs.old = t('err_required');
+    if (!pwForm.newPassword || pwForm.newPassword.length < 8) errs.new = t('err_min8');
+    if (pwForm.newPassword !== pwForm.confirm) errs.confirm = t('reg_val_match');
+    setPwErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSaving(true);
+    try {
+      await api.post('/auth/change-password', { oldPassword: pwForm.oldPassword, newPassword: pwForm.newPassword });
+      toast.success(t('pw_changed'));
+      onClose();
+    } catch (e: any) {
+      if (e.response?.status === 403) toast.error(t('pw_wrong_old'));
+      else toast.error(t('error'));
+    } finally { setSaving(false); }
+  };
+
+  const inputCls = (err?: string) =>
+    `w-full bg-slate-900 border rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${err ? 'border-red-500' : 'border-slate-600 focus:border-teal-500'}`;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <h2 className="font-semibold">{t('profile_title')}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white"><X size={18} /></button>
+        </div>
+
+        <div className="flex border-b border-slate-700">
+          {(['info', 'password'] as ProfileTab[]).map(tab_name => (
+            <button
+              key={tab_name}
+              onClick={() => setTab(tab_name)}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab === tab_name ? 'text-teal-400 border-b-2 border-teal-400' : 'text-slate-400 hover:text-white'}`}
+            >
+              {tab_name === 'info' ? t('profile_tab_info') : t('profile_tab_password')}
+            </button>
+          ))}
+        </div>
+
+        <div className="px-6 py-5 space-y-3.5">
+          {tab === 'info' ? (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">{t('reg_firstname')}</label>
+                  <input className={inputCls()} value={infoForm.firstName} onChange={e => setInfoForm(f => ({ ...f, firstName: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-1">{t('reg_lastname')}</label>
+                  <input className={inputCls()} value={infoForm.lastName} onChange={e => setInfoForm(f => ({ ...f, lastName: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">{t('contact_phone')}</label>
+                <input className={inputCls()} value={infoForm.phone} onChange={e => setInfoForm(f => ({ ...f, phone: e.target.value }))} placeholder="+49 151 …" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">{t('reg_city')}</label>
+                <input className={inputCls()} value={infoForm.city} onChange={e => setInfoForm(f => ({ ...f, city: e.target.value }))} placeholder="Berlin" />
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
+                <button onClick={saveInfo} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium disabled:opacity-50">
+                  {saving ? t('saving') : t('save')}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">{t('pw_current')}</label>
+                <div className="relative">
+                  <input
+                    type={showOld ? 'text' : 'password'}
+                    className={`${inputCls(pwErrors.old)} pr-9`}
+                    value={pwForm.oldPassword}
+                    onChange={e => { setPwForm(f => ({ ...f, oldPassword: e.target.value })); setPwErrors(er => ({ ...er, old: '' })); }}
+                    autoComplete="current-password"
+                  />
+                  <button type="button" tabIndex={-1} onClick={() => setShowOld(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    {showOld ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                {pwErrors.old && <p className="text-red-400 text-xs mt-0.5">{pwErrors.old}</p>}
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">{t('pw_new')}</label>
+                <div className="relative">
+                  <input
+                    type={showNew ? 'text' : 'password'}
+                    className={`${inputCls(pwErrors.new)} pr-9`}
+                    value={pwForm.newPassword}
+                    onChange={e => { setPwForm(f => ({ ...f, newPassword: e.target.value })); setPwErrors(er => ({ ...er, new: '' })); }}
+                    autoComplete="new-password"
+                    placeholder={t('reg_hint_length')}
+                  />
+                  <button type="button" tabIndex={-1} onClick={() => setShowNew(v => !v)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                    {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                {pwErrors.new && <p className="text-red-400 text-xs mt-0.5">{pwErrors.new}</p>}
+              </div>
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">{t('reg_confirm')}</label>
+                <input
+                  type="password"
+                  className={inputCls(pwErrors.confirm)}
+                  value={pwForm.confirm}
+                  onChange={e => { setPwForm(f => ({ ...f, confirm: e.target.value })); setPwErrors(er => ({ ...er, confirm: '' })); }}
+                  autoComplete="new-password"
+                />
+                {pwErrors.confirm && <p className="text-red-400 text-xs mt-0.5">{pwErrors.confirm}</p>}
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
+                <button onClick={savePassword} disabled={saving} className="flex-1 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium disabled:opacity-50">
+                  {saving ? t('saving') : t('change_pw')}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ClientDashboard() {
   const router = useRouter();
-  const { user, logout, init, token } = useAuth();
+  const { user, logout, init } = useAuth();
   const { t } = useLocale();
   const [servers, setServers] = useState<Server[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [reasonCodeDrafts, setReasonCodeDrafts] = useState<Record<string, Exclude<AccessReason, 'ha_dashboard_toggle'>>>({});
+  const [reasonDetailsDrafts, setReasonDetailsDrafts] = useState<Record<string, string>>({});
+  const [durationDrafts, setDurationDrafts] = useState<Record<string, number>>({});
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
@@ -127,7 +319,7 @@ export default function ClientDashboard() {
   };
 
   useServersSocket({
-    token,
+    enabled: !!user,
     onServerUpdate: useCallback((u) => {
       setServers(prev => prev.map(s => s.id === u.id ? { ...s, ...u } : s));
     }, []),
@@ -140,8 +332,17 @@ export default function ClientDashboard() {
   const grantAccess = async (serverId: string) => {
     setActionLoading(serverId);
     try {
-      await api.post(`/access/grant/${serverId}`);
+      const reasonCode = reasonCodeDrafts[serverId];
+      const reasonDetails = reasonCode === 'other' ? reasonDetailsDrafts[serverId]?.trim() : undefined;
+      const durationMinutes = durationDrafts[serverId] ?? 60;
+      await api.post(`/access/grant/${serverId}`, {
+        ...(reasonCode ? { reasonCode } : {}),
+        ...(reasonDetails ? { reasonDetails } : {}),
+        durationMinutes,
+      });
       toast.success(t('client_access_granted_toast'));
+      setReasonCodeDrafts(d => { const n = { ...d }; delete n[serverId]; return n; });
+      setReasonDetailsDrafts(d => ({ ...d, [serverId]: '' }));
       await loadServers();
       await loadLogs();
     } catch {
@@ -168,11 +369,13 @@ export default function ClientDashboard() {
   if (!user) return null;
 
   const statusLabel = (status: Server['status']) =>
+
     status === 'online' ? t('client_status_online') :
     status === 'offline' ? t('client_status_offline') : t('client_status_unknown');
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
+      {showProfile && <ProfileModal user={user} onClose={() => setShowProfile(false)} t={t} />}
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -183,7 +386,14 @@ export default function ClientDashboard() {
           </div>
           <div className="flex items-center gap-4">
             <AppLanguageSwitcher />
-            <span className="text-sm text-slate-400">{user.firstName} {user.lastName}</span>
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors"
+              title={t('profile_title')}
+            >
+              <UserCog size={15} />
+              <span className="hidden sm:inline">{user.firstName} {user.lastName}</span>
+            </button>
             <button onClick={() => logout()} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm">
               <LogOut size={15} /> {t('logout')}
             </button>
@@ -265,6 +475,57 @@ export default function ClientDashboard() {
                     <span className="font-medium text-slate-300">{t('client_access_closed')}</span>
                   </div>
                   <p className="text-xs text-slate-400 mb-4">{t('client_access_closed_desc')}</p>
+
+                  <div className="mb-3">
+                    <label className="block text-xs text-slate-500 mb-1">{t('client_access_reason_label')}</label>
+                    <select
+                      value={reasonCodeDrafts[server.id] ?? ''}
+                      onChange={e => setReasonCodeDrafts(d => ({ ...d, [server.id]: e.target.value as Exclude<AccessReason, 'ha_dashboard_toggle'> }))}
+                      className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 transition-colors"
+                    >
+                      <option value="">—</option>
+                      {ACCESS_REASON_CODES.map(code => (
+                        <option key={code} value={code}>{t(ACCESS_REASON_LABEL_KEY[code])}</option>
+                      ))}
+                    </select>
+                    {reasonCodeDrafts[server.id] === 'other' && (
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          value={reasonDetailsDrafts[server.id] ?? ''}
+                          onChange={e => setReasonDetailsDrafts(d => ({ ...d, [server.id]: e.target.value }))}
+                          placeholder={t('client_access_reason_placeholder')}
+                          maxLength={280}
+                          className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-teal-500 transition-colors"
+                        />
+                        <p className="text-xs text-slate-500 mt-1">{t('access_reason_other_hint')}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="block text-xs text-slate-500 mb-1.5">{t('client_access_duration_label')}</label>
+                    <div className="flex gap-2">
+                      {[15, 30, 60].map(minutes => {
+                        const selected = (durationDrafts[server.id] ?? 60) === minutes;
+                        return (
+                          <button
+                            key={minutes}
+                            type="button"
+                            onClick={() => setDurationDrafts(d => ({ ...d, [server.id]: minutes }))}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                              selected
+                                ? 'bg-teal-600/20 border-teal-500 text-teal-300'
+                                : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
+                            }`}
+                          >
+                            {minutes} {t('client_access_minutes_short')}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   <button
                     onClick={() => grantAccess(server.id)}
                     disabled={actionLoading === server.id}
@@ -338,6 +599,17 @@ export default function ClientDashboard() {
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pl-5">
                       <div className="text-slate-500">{t('client_log_server')}</div>
                       <div className="text-slate-300">{log.server?.name}</div>
+
+                      {(log.reasonCode || log.reason) && (
+                        <>
+                          <div className="text-slate-500">{t('client_log_reason')}</div>
+                          <div className="text-slate-300">
+                            {log.reasonCode
+                              ? `${t(ACCESS_REASON_LABEL_KEY[log.reasonCode])}${log.reasonDetails ? ` — ${log.reasonDetails}` : ''}`
+                              : log.reason /* legacy free-text row from before this field existed */}
+                          </div>
+                        </>
+                      )}
 
                       {log.accessedBy ? (
                         <>

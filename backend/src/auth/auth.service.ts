@@ -3,14 +3,12 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
-import { ClientsService } from '../clients/clients.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly clientsService: ClientsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly blacklist: TokenBlacklistService,
@@ -35,19 +33,6 @@ export class AuthService {
         role: user.role,
       },
     };
-  }
-
-  async register(data: {
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    city?: string;
-  }) {
-    await this.clientsService.create(data);
-    // Auto-login after registration
-    return this.login(data.email, data.password);
   }
 
   async logout(token: string): Promise<void> {

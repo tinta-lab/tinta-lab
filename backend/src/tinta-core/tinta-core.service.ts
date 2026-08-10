@@ -11,7 +11,7 @@ import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaAgentGateway } from './tinta-agent.gateway';
-import { TintaCommand } from './entity-mapper.service';
+import { TintaCommand } from './tinta-command.types';
 import { GoldenTemplateService } from './golden-template.service';
 
 @Injectable()
@@ -105,11 +105,16 @@ export class TintaCoreService {
     };
   }
 
-  async getSession(clientId: string): Promise<AgentSession | null> {
-    return this.sessionRepo.findOne({
-      where: { clientId },
-      relations: ['client'],
-    });
+  // One-time consumption: called right after a successful GET /install/:token
+  // fetch, not at agent register, so the link can't be replayed for the full
+  // 48h window if it leaks (email, chat, shoulder-surfing). If the client
+  // needs the page again (closed the tab, etc.), re-provision issues a fresh
+  // token rather than the same link staying live.
+  async consumeInstallToken(token: string): Promise<void> {
+    await this.sessionRepo.update(
+      { installToken: token },
+      { installToken: null, installTokenExpiresAt: null },
+    );
   }
 
   async getAllSessions(): Promise<Partial<AgentSession>[]> {
@@ -127,6 +132,13 @@ export class TintaCoreService {
     if (!sent)
       this.logger.warn(`Client ${clientId} agent offline, command queued`);
     return { sent };
+  }
+
+  async updateAgent(clientId: string, targetVersion: string): Promise<{ sent: boolean; online: boolean }> {
+    const online = this.gateway.isConnected(clientId);
+    if (!online) return { sent: false, online: false };
+    const sent = this.gateway.sendSelfUpdate(clientId, targetVersion);
+    return { sent, online };
   }
 
   async applyGoldenTemplate(

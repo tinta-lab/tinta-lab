@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
-import { Users, Server, Ticket, Activity, LogOut, RefreshCw, Wifi } from 'lucide-react';
+import { Users, Server, Ticket, Activity, LogOut, RefreshCw, Wifi, Headphones } from 'lucide-react';
 import api from '@/lib/api';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
@@ -108,13 +108,33 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Nav */}
+        {/* Primary nav — Hubs */}
+        <button
+          onClick={() => router.push('/dashboard/admin/hubs')}
+          className="w-full text-left rounded-2xl border border-teal-500/30 bg-teal-500/5 p-6 hover:bg-teal-500/10 hover:border-teal-500/50 transition-all group mb-4"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Server size={20} className="text-teal-400" />
+                <span className="font-bold text-lg group-hover:text-teal-400 transition-colors">Серверы клиентов</span>
+              </div>
+              <div className="text-sm text-slate-400">Мониторинг, доступ, версии, метрики — всё в одном месте</div>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <span className="text-green-400 flex items-center gap-1"><Wifi size={13} /> {stats.agentsOnline} online</span>
+              <span className="text-slate-400">{stats.servers} gesamt</span>
+              <span className="text-teal-500 text-lg">→</span>
+            </div>
+          </div>
+        </button>
+
+        {/* Secondary nav */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { title: t('admin_nav_users'),   desc: t('admin_nav_users_desc'),   icon: Users,  href: '/dashboard/admin/users',   color: 'text-blue-400' },
-            { title: t('admin_nav_servers'), desc: t('admin_nav_servers_desc'), icon: Server, href: '/dashboard/admin/servers', color: 'text-teal-400' },
             { title: t('admin_nav_tickets'), desc: t('admin_nav_tickets_desc'), icon: Ticket, href: '/dashboard/admin/tickets', color: 'text-amber-400' },
-            { title: t('admin_nav_agents'),  desc: t('admin_nav_agents_desc'),  icon: Wifi,   href: '/dashboard/admin/agents',  color: 'text-purple-400' },
+            { title: t('admin_nav_staff'),   desc: t('admin_nav_staff_desc'),   icon: Headphones, href: '/dashboard/admin/staff',   color: 'text-blue-400' },
           ].map((card) => (
             <button
               key={card.title}
