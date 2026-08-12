@@ -107,7 +107,7 @@ interface ProvisionResult {
   dashboardUrl: string;
 }
 
-const LATEST_VERSION = '2026.8.2';
+const LATEST_VERSION = '2026.8.3';
 
 // ─── Utility components ───────────────────────────────────────────────────────
 
