@@ -177,22 +177,43 @@ export class ServersService {
   }
 
   async delete(id: string): Promise<void> {
+    const server = await this.serversRepository.findOne({
+      where: { id },
+      relations: ['client'],
+    });
+
     // Cleanup Cloudflare resources before deleting
-    if (this.cloudflare?.isEnabled) {
-      const server = await this.serversRepository.findOne({ where: { id } });
-      if (server?.tunnelId) {
+    if (this.cloudflare?.isEnabled && server) {
+      if (server.tunnelId) {
         await this.cloudflare.deleteTunnel(server.tunnelId);
       }
-      if (server?.cfDnsRecordId) {
+      if (server.cfDnsRecordId) {
         await this.cloudflare.deleteDnsRecord(server.cfDnsRecordId);
       }
-      if (server?.cfAccessAppId) {
+      if (server.cfAccessAppId) {
         await this.cloudflare.deleteAccessApp(server.cfAccessAppId);
       }
     }
     // Delete referencing access_logs first (FK has no CASCADE)
     await this.dataSource.query(`DELETE FROM access_logs WHERE "serverId" = $1`, [id]);
     await this.serversRepository.delete(id);
+
+    // agent_sessions is keyed per-client (not per-server) — an agent install
+    // is shared across all of a client's hubs, not owned by one. Only tear
+    // it down once this was the client's last remaining hub; otherwise a
+    // sibling hub would lose its live agent connection too. Leaves the
+    // user/client account itself untouched — that's a separate action.
+    if (server?.client?.id) {
+      const remaining = await this.serversRepository.count({
+        where: { client: { id: server.client.id } },
+      });
+      if (remaining === 0) {
+        await this.dataSource.query(
+          `DELETE FROM agent_sessions WHERE "clientId" = $1`,
+          [server.client.id],
+        );
+      }
+    }
   }
 
   async setAccessEnabled(
