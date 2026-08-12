@@ -98,6 +98,7 @@ export class ServersService {
     return servers.map(
       ({ localUrl, tunnelToken, tunnelId, cfDnsRecordId, ...safe }) => ({
         ...safe,
+        publicUrl: this.getPublicHostname(safe as Server),
         client: safe.client
           ? {
               id: safe.client.id,

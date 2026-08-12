@@ -152,7 +152,7 @@ export default function SupportDashboard() {
     setConnecting(server.id);
     try {
       const { data } = await api.post(`/access/connect/${server.id}`);
-      const url = `https://${server.subdomain}`;
+      const url = server.publicUrl ? `https://${server.publicUrl}` : `https://${server.subdomain}`;
       setCredentials({
         serverId: server.id,
         url,

@@ -17,6 +17,7 @@ export interface Server {
   id: string;
   name: string;
   subdomain: string;
+  publicUrl?: string | null;
   status: 'online' | 'offline' | 'unknown';
   accessEnabled: boolean;
   accessExpiresAt: string | null;
