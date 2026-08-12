@@ -7,6 +7,7 @@ import {
   Body,
   Param,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -55,7 +56,17 @@ export class UsersController {
   }
 
   @Patch(':id/reset-password')
-  resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+  async resetPassword(@Param('id') id: string, @Body() dto: ResetPasswordDto) {
+    // Clients own their credentials — admin can deactivate/delete an
+    // account, but silently taking over a client's login by setting their
+    // password is off the table. Staff (support/sales/admin) accounts are
+    // ours to manage, so those are unaffected.
+    const target = await this.usersService.findById(id);
+    if (target.role === UserRole.CLIENT) {
+      throw new ForbiddenException(
+        'Cannot reset a client\'s password — clients manage their own credentials',
+      );
+    }
     return this.usersService.resetPassword(id, dto.password);
   }
 

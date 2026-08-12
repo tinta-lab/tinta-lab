@@ -269,13 +269,15 @@ export default function AdminUsersPage() {
                       >
                         <Pencil size={14} />
                       </button>
-                      <button
-                        onClick={() => setResetUser(u)}
-                        className="text-slate-400 hover:text-amber-400 transition-colors p-1"
-                        title={t('change_pw')}
-                      >
-                        <KeyRound size={14} />
-                      </button>
+                      {u.role !== 'client' && (
+                        <button
+                          onClick={() => setResetUser(u)}
+                          className="text-slate-400 hover:text-amber-400 transition-colors p-1"
+                          title={t('change_pw')}
+                        >
+                          <KeyRound size={14} />
+                        </button>
+                      )}
                       {u.id !== user.id && (
                         <button
                           onClick={() => setDeleteUser(u)}
