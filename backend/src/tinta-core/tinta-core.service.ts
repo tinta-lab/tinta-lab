@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
-import { TintaAgentGateway } from './tinta-agent.gateway';
+import { TintaAgentGateway, DiagnosticsReport } from './tinta-agent.gateway';
 import { TintaCommand } from './tinta-command.types';
 import { GoldenTemplateService } from './golden-template.service';
 
@@ -171,5 +171,18 @@ export class TintaCoreService {
 
   getConnectedAgents(): string[] {
     return this.gateway.getConnectedAgents();
+  }
+
+  // Live check — distinct from the stale `haVersion` snapshot taken at agent
+  // startup. `agentOnline: false` means the agent itself has no socket to us;
+  // `agentOnline: true, report: null` means it's connected but didn't answer
+  // within the timeout (e.g. busy, or the HA websocket call is hanging).
+  async getDiagnostics(
+    clientId: string,
+  ): Promise<{ agentOnline: boolean; report: DiagnosticsReport | null }> {
+    const agentOnline = this.gateway.isConnected(clientId);
+    if (!agentOnline) return { agentOnline: false, report: null };
+    const report = await this.gateway.requestDiagnostics(clientId);
+    return { agentOnline: true, report };
   }
 }

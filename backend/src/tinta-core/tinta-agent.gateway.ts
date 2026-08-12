@@ -31,6 +31,20 @@ interface AgentRegisterPayload {
   haVersion?: string;
 }
 
+export interface DiagnosticsReport {
+  clientId: string;
+  agentVersion: string;
+  haVersion: string;
+  haConnected: boolean;
+  uptimeSeconds: number;
+  nodeVersion: string;
+  platform: string;
+  cpuPercent: number;
+  memPercent: number;
+  diskPercent: number;
+  timestamp: string;
+}
+
 @WebSocketGateway({
   namespace: '/tinta/ws',
   cors: { origin: process.env.FRONTEND_URL ?? false },
@@ -44,6 +58,11 @@ export class TintaAgentGateway
   private readonly logger = new Logger(TintaAgentGateway.name);
   // clientId → socket
   private readonly agents = new Map<string, Socket>();
+  // clientId → pending diagnostics request awaiting the agent's report
+  private readonly pendingDiagnostics = new Map<
+    string,
+    { resolve: (report: DiagnosticsReport | null) => void; timer: NodeJS.Timeout }
+  >();
 
   constructor(
     @InjectRepository(AgentSession)
@@ -414,6 +433,50 @@ export class TintaAgentGateway
     this.logger.log(
       `Activity log stored for ${payload.accessLogId}: ${payload.entries?.length ?? 0} entries`,
     );
+  }
+
+  // Asks the agent to report its current live state (notably whether its
+  // local WebSocket link to Home Assistant is actually up right now — the
+  // `haVersion` shown elsewhere is a one-time snapshot from agent startup
+  // and goes stale if HA reconnects later, so this is the only way to see
+  // live status). Resolves null if the agent is offline or doesn't answer
+  // within the timeout.
+  requestDiagnostics(
+    clientId: string,
+    timeoutMs = 5000,
+  ): Promise<DiagnosticsReport | null> {
+    const socket = this.agents.get(clientId);
+    if (!socket) return Promise.resolve(null);
+
+    // Only one pending request per client — an in-flight one wins
+    const existing = this.pendingDiagnostics.get(clientId);
+    if (existing) {
+      clearTimeout(existing.timer);
+      existing.resolve(null);
+    }
+
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        this.pendingDiagnostics.delete(clientId);
+        resolve(null);
+      }, timeoutMs);
+      this.pendingDiagnostics.set(clientId, { resolve, timer });
+      socket.emit('diagnostics_request');
+    });
+  }
+
+  @SubscribeMessage('diagnostics_report')
+  handleDiagnosticsReport(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() report: DiagnosticsReport,
+  ) {
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId) return;
+    const pending = this.pendingDiagnostics.get(clientId);
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    this.pendingDiagnostics.delete(clientId);
+    pending.resolve(report);
   }
 
   sendSelfUpdate(clientId: string, targetVersion: string): boolean {

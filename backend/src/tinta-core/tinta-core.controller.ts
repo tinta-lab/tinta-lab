@@ -42,6 +42,15 @@ export class TintaCoreController {
     return { count: ids.length, clientIds: ids };
   }
 
+  // Admin: live diagnostics from the agent (haConnected right now, not the
+  // stale startup snapshot) — round-trips over the agent's WebSocket, so
+  // this can take a few seconds and may time out if the agent is stuck.
+  @Get('diagnostics/:clientId')
+  @Roles(UserRole.ADMIN)
+  async getDiagnostics(@Param('clientId') clientId: string) {
+    return this.coreService.getDiagnostics(clientId);
+  }
+
   // Admin: trigger agent self-update via HA Supervisor
   @Post('update/:clientId')
   @Roles(UserRole.ADMIN)
