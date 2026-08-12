@@ -421,23 +421,32 @@ pm2 restart tinta-agent-vigol
 pm2 restart all
 ```
 
-### Деплой обновлений бекенда
+### Деплой tinta-lab (backend + frontend + landing)
+
+> `pm2` запускает всё из `/home/tinta/current/tinta-lab` (symlink на
+> `~/releases/tinta-lab/<релиз>/`) — см. `ecosystem.config.js`. Правка кода
+> прямо в `~/tinta-lab` и `pm2 restart` **ничего не задеплоят**, пока не
+> собран новый релиз и не переключён symlink.
 
 ```bash
-cd /home/tinta/tinta-lab/backend
+cd /home/tinta/tinta-lab
 git pull
-npm run build
-pm2 restart tinta-backend
+scripts/deploy.sh <slug-описывающий-изменение>
 ```
 
-### Деплой обновлений фронтенда
+Скрипт сам: собирает backend+frontend+landing, копирует в новый
+`~/releases/tinta-lab/<дата>-<slug>/`, **проверяет копию по числу файлов**
+(не только по exit-коду `rsync` — см. ниже, почему), переключает symlink
+`current`, делает `pm2 reload`, чистит старые релизы (оставляет 2 — текущий
+и один для отката).
 
-```bash
-cd /home/tinta/tinta-lab/frontend
-git pull
-npm run build
-pm2 restart tinta-frontend
-```
+> **Почему проверка по числу файлов, а не просто «rsync прошёл успешно»:**
+> 12.08.2026 `rsync -a` дважды подряд тихо (exit 0, без единой ошибки) не
+> докопировал часть `node_modules`, когда на диске оставалось 1-3 ГБ —
+> `tinta-landing` ушёл в креш-луп на отсутствующем `caniuse-lite/data`.
+> Причина — накопившиеся старые релизы (~1.8 ГБ каждый), не нехватка места
+> на самой VM или баг в rsync. `scripts/deploy.sh` теперь чистит место
+> заранее и сверяет копию по точному числу файлов до переключения трафика.
 
 ### Деплой обновлений агента
 
