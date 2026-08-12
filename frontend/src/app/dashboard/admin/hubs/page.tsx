@@ -9,7 +9,7 @@ import {
   ArrowLeft, RefreshCw, LogOut, Plus, X, ChevronRight, Copy, Check,
   Wifi, WifiOff, Globe, Shield, ShieldOff, AlertTriangle, ArrowUpCircle,
   Clock, ExternalLink, Loader2, Server, Activity, Trash2, Pencil, Zap,
-  BookTemplate,
+  BookTemplate, Cpu, MemoryStick, HardDrive, Router,
 } from 'lucide-react';
 import { PhoneInput } from '@/components/PhoneInput';
 import { AgentMetrics, Client, GoldenTemplate } from '@/types';
@@ -155,6 +155,53 @@ function StatusDot({ online }: { online: boolean }) {
   );
 }
 
+const AVATAR_HUES = [
+  'from-teal-500/30 to-teal-500/10 text-teal-300',
+  'from-blue-500/30 to-blue-500/10 text-blue-300',
+  'from-purple-500/30 to-purple-500/10 text-purple-300',
+  'from-amber-500/30 to-amber-500/10 text-amber-300',
+  'from-pink-500/30 to-pink-500/10 text-pink-300',
+];
+
+function ClientAvatar({ firstName, lastName, online }: { firstName: string; lastName: string; online: boolean }) {
+  const initials = `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase();
+  const hue = AVATAR_HUES[(firstName.charCodeAt(0) + lastName.charCodeAt(0)) % AVATAR_HUES.length];
+  return (
+    <div className="relative flex-shrink-0">
+      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${hue} flex items-center justify-center font-semibold text-sm ring-1 ring-white/5`}>
+        {initials || <Server size={16} />}
+      </div>
+      <span
+        className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-800 transition-colors ${
+          online ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.7)]' : 'bg-slate-600'
+        }`}
+      />
+    </div>
+  );
+}
+
+// Thresholds tuned for a home HAOS box, not a datacenter — 90%+ sustained is
+// the level that's actually worth an admin's attention.
+function metricTone(value: number): { bar: string; text: string } {
+  if (value >= 90) return { bar: 'bg-red-500', text: 'text-red-400' };
+  if (value >= 70) return { bar: 'bg-amber-500', text: 'text-amber-400' };
+  return { bar: 'bg-teal-500', text: 'text-slate-400' };
+}
+
+function MetricRow({ icon: Icon, value, label }: { icon: React.ElementType; value: number; label: string }) {
+  const tone = metricTone(value);
+  return (
+    <div className="flex items-center gap-2">
+      <Icon size={12} className="text-slate-500 flex-shrink-0" />
+      <span className="text-[11px] text-slate-500 w-8 flex-shrink-0">{label}</span>
+      <div className="flex-1 h-1.5 bg-slate-700/70 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${tone.bar}`} style={{ width: `${Math.min(value, 100)}%` }} />
+      </div>
+      <span className={`text-[11px] w-8 text-right tabular-nums flex-shrink-0 ${tone.text}`}>{value.toFixed(0)}%</span>
+    </div>
+  );
+}
+
 function TimeAgo({ iso }: { iso: string | null }) {
   if (!iso) return <span className="text-slate-500">—</span>;
   const diff = Date.now() - new Date(iso).getTime();
@@ -172,27 +219,38 @@ function TimeAgo({ iso }: { iso: string | null }) {
 
 function HubCard({ hub, onSelect, onUpdate }: { hub: Hub; onSelect: () => void; onUpdate: (clientId: string) => void }) {
   const { t } = useLocale();
+  const [urlCopied, setUrlCopied] = useState(false);
   const isOnline = hub.agent?.isOnline ?? false;
   const needsUpdate = hub.agent?.agentVersion && hub.agent.agentVersion !== LATEST_VERSION;
   const hasTokenMismatch = !!hub.agent?.lastTokenMismatchAt;
 
+  const copyUrl = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hub.publicUrl) return;
+    navigator.clipboard.writeText(hub.publicUrl);
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 1500);
+  };
+
   return (
     <div
       onClick={onSelect}
-      className="bg-slate-800 border border-slate-700/50 rounded-2xl p-5 hover:border-teal-500/40 hover:bg-slate-750 transition-all cursor-pointer group relative"
+      className={`bg-slate-800 border rounded-2xl p-5 transition-all duration-200 cursor-pointer group relative
+        hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20
+        ${isOnline ? 'border-slate-700/50 hover:border-teal-500/50' : 'border-slate-700/30 hover:border-slate-600/60 opacity-90 hover:opacity-100'}`}
     >
-      {/* Status + Actions row */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <StatusDot online={isOnline} />
-          <div>
-            <div className="font-semibold text-white group-hover:text-teal-400 transition-colors leading-tight">
+      {/* Header: avatar + name + actions */}
+      <div className="flex items-start justify-between mb-4 gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <ClientAvatar firstName={hub.client.user.firstName} lastName={hub.client.user.lastName} online={isOnline} />
+          <div className="min-w-0">
+            <div className="font-semibold text-white group-hover:text-teal-400 transition-colors leading-tight truncate">
               {hub.client.user.firstName} {hub.client.user.lastName}
             </div>
-            <div className="text-xs text-slate-500">{hub.name}</div>
+            <div className="text-xs text-slate-500 truncate">{hub.name}</div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
           {needsUpdate && (
             <button
               onClick={() => onUpdate(hub.client.id)}
@@ -207,55 +265,74 @@ function HubCard({ hub, onSelect, onUpdate }: { hub: Hub; onSelect: () => void; 
               <AlertTriangle size={14} />
             </span>
           )}
-          <ChevronRight size={16} className="text-slate-600 group-hover:text-teal-400 transition-colors" />
+          {hub.publicUrl && (
+            <a
+              href={hub.publicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              title={t('hub_open_ha')}
+              className="p-1.5 rounded-lg text-slate-500 opacity-0 group-hover:opacity-100 hover:bg-slate-700 hover:text-teal-400 transition-all"
+            >
+              <ExternalLink size={14} />
+            </a>
+          )}
+          <ChevronRight size={16} className="text-slate-600 group-hover:text-teal-400 group-hover:translate-x-0.5 transition-all" />
         </div>
       </div>
 
-      {/* Version badges */}
+      {/* Badges row */}
       <div className="flex gap-1.5 mb-4 flex-wrap">
         <AgentBadge version={hub.agent?.agentVersion ?? null} latest={LATEST_VERSION} />
         <HABadge version={hub.haVersion ?? hub.agent?.metrics ? hub.haVersion : null} />
         {hub.accessEnabled && (
-          <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 flex items-center gap-1">
-            <Shield size={10} /> {t('support_access_open')}
+          <span className="text-xs pl-1.5 pr-2 py-0.5 rounded-full bg-green-500/15 text-green-300 flex items-center gap-1 ring-1 ring-green-500/20">
+            <span className="relative flex w-1.5 h-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-400" />
+            </span>
+            {t('support_access_open')}
           </span>
         )}
       </div>
 
       {/* Metrics */}
-      {isOnline && hub.agent?.metrics && (
-        <div className="space-y-2 mb-4">
-          <MetricBar value={hub.agent.metrics.cpuPercent ?? 0} label="CPU" color="bg-teal-500" />
-          <MetricBar value={hub.agent.metrics.memPercent ?? 0} label="RAM" color="bg-blue-500" />
-          <MetricBar value={hub.agent.metrics.diskPercent ?? 0} label="Disk" color="bg-purple-500" />
+      {isOnline && hub.agent?.metrics ? (
+        <div className="space-y-1.5 mb-4">
+          <MetricRow icon={Cpu} value={hub.agent.metrics.cpuPercent ?? 0} label="CPU" />
+          <MetricRow icon={MemoryStick} value={hub.agent.metrics.memPercent ?? 0} label="RAM" />
+          <MetricRow icon={HardDrive} value={hub.agent.metrics.diskPercent ?? 0} label="Disk" />
         </div>
+      ) : (
+        <div className="mb-4 text-xs text-slate-600 italic">{t('hub_no_live_metrics')}</div>
       )}
 
-      {/* Footer info */}
+      {/* Footer: device/automation counts + last seen */}
       <div className="flex items-center justify-between text-xs text-slate-500 pt-3 border-t border-slate-700/50">
         <div className="flex items-center gap-3">
           {hub.agent?.metrics?.deviceCount != null && (
-            <span>{hub.agent.metrics.deviceCount} {t('devices_unit')}</span>
+            <span className="flex items-center gap-1"><Router size={11} className="text-slate-600" />{hub.agent.metrics.deviceCount}</span>
           )}
           {hub.agent?.metrics?.automationCount != null && (
-            <span>{hub.agent.metrics.automationCount} {t('automations_unit')}</span>
+            <span className="flex items-center gap-1"><Zap size={11} className="text-slate-600" />{hub.agent.metrics.automationCount}</span>
+          )}
+          {(hub.agent?.appliedTemplates?.length ?? 0) > 0 && (
+            <span className="flex items-center gap-1"><BookTemplate size={11} className="text-slate-600" />{hub.agent!.appliedTemplates.length}</span>
           )}
         </div>
         <TimeAgo iso={hub.lastSeenAt} />
       </div>
 
-      {/* Hub URL */}
+      {/* Hub URL — click to copy without opening the drawer */}
       {hub.publicUrl && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-slate-600 truncate">
-          <Globe size={10} />
-          <span className="truncate">{hub.publicUrl.replace('https://', '')}</span>
-        </div>
-      )}
-
-      {(hub.agent?.appliedTemplates?.length ?? 0) > 0 && (
-        <div className="mt-2 text-xs text-slate-500">
-          {hub.agent!.appliedTemplates.length} {t('templates_applied_n')}
-        </div>
+        <button
+          onClick={copyUrl}
+          className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-600 hover:text-teal-400 transition-colors w-full min-w-0"
+        >
+          <Globe size={10} className="flex-shrink-0" />
+          <span className="truncate flex-1 text-left">{hub.publicUrl.replace('https://', '')}</span>
+          {urlCopied ? <Check size={11} className="text-green-400 flex-shrink-0" /> : <Copy size={11} className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />}
+        </button>
       )}
     </div>
   );
