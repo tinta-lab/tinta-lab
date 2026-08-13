@@ -11,6 +11,7 @@ export enum AuditEventType {
   GRANTED = 'granted',
   CONNECTED = 'connected',
   ACTIVITY_LOG = 'activity_log',
+  SECURITY_ANOMALY = 'security_anomaly',
   REVOKED = 'revoked',
   EXPIRED = 'expired',
 }

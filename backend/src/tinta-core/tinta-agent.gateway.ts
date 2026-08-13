@@ -7,7 +7,7 @@ import {
   MessageBody,
   ConnectedSocket,
 } from '@nestjs/websockets';
-import { Logger, Inject, forwardRef } from '@nestjs/common';
+import { Logger, Inject, Optional, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
@@ -23,6 +23,7 @@ import { AccessReason } from '../access/enums/access-reason.enum';
 import { ServersService } from '../servers/servers.service';
 import { ServerStatus } from '../servers/entities/server.entity';
 import { GoldenTemplateService } from './golden-template.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 interface AgentRegisterPayload {
   clientId: string;
@@ -76,6 +77,7 @@ export class TintaAgentGateway
     private readonly templateService: GoldenTemplateService,
     @Inject(forwardRef(() => AccessService))
     private readonly accessService: AccessService,
+    @Optional() private readonly notifications: NotificationsService,
   ) {}
 
   handleConnection(client: Socket) {
@@ -228,7 +230,12 @@ export class TintaAgentGateway
     this.logger.log(
       `Agent registered: ${clientId} (v${agentVersion ?? '?'}, HA ${haVersion ?? '?'})`,
     );
-    return { success: true };
+
+    // Handed back on every (re)connect, not just at install time — so an
+    // agent that was enrolled before per-client Cloudflare Tunnels were
+    // auto-managed (or whose tunnel was recreated) picks up the current
+    // token on its own next reconnect, with no re-enrollment needed.
+    return { success: true, tunnelToken: servers[0]?.tunnelToken ?? null };
   }
 
   @SubscribeMessage('heartbeat')
@@ -433,6 +440,55 @@ export class TintaAgentGateway
     this.logger.log(
       `Activity log stored for ${payload.accessLogId}: ${payload.entries?.length ?? 0} entries`,
     );
+  }
+
+  // Agent-side auth audit (see ha-security-audit.ts) found something that
+  // changed in HA's user/credential list while a system-admin support
+  // session was active. The agent has already best-effort remediated
+  // (deleted) any brand-new admin user it found — this only ever fires for
+  // findings worth a human looking at: a possible backdoor, or an existing
+  // account's credentials changing underneath it.
+  @SubscribeMessage('security_alert')
+  async handleSecurityAlert(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    payload: {
+      accessLogId: string;
+      anomalies: { type: string; detail: string; userId?: string }[];
+    },
+  ) {
+    const clientId = client.data.clientId as string | undefined;
+    if (!clientId || !payload?.accessLogId || !payload.anomalies?.length) return;
+
+    await this.auditLog.append(
+      payload.accessLogId,
+      AuditEventType.SECURITY_ANOMALY,
+      null,
+      { anomalies: payload.anomalies },
+    );
+    this.logger.warn(
+      `SECURITY ANOMALY for access ${payload.accessLogId} (client ${clientId}): ` +
+        `${payload.anomalies.length} finding(s) — ${payload.anomalies.map((a) => a.type).join(', ')}`,
+    );
+
+    try {
+      const log = await this.accessLogRepo.findOne({
+        where: { id: payload.accessLogId },
+        relations: ['server'],
+      });
+      if (log?.server?.id) {
+        const server = await this.serversService.findById(log.server.id);
+        if (server.client?.user) {
+          await this.notifications?.notifySecurityAnomaly({
+            clientName: `${server.client.user.firstName} ${server.client.user.lastName}`,
+            serverName: server.name,
+            anomalies: payload.anomalies,
+          });
+        }
+      }
+    } catch (e) {
+      this.logger.error('Failed to send security anomaly notification', e as Error);
+    }
   }
 
   // Asks the agent to report its current live state (notably whether its

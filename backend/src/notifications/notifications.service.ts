@@ -111,6 +111,25 @@ export class NotificationsService implements OnModuleInit {
     );
   }
 
+  async notifySecurityAnomaly(params: {
+    clientName: string;
+    serverName: string;
+    anomalies: { type: string; detail: string }[];
+  }) {
+    const { clientName, serverName, anomalies } = params;
+    const lines = anomalies.map((a) => `• ${a.detail}`).join('\n');
+
+    await this.send(
+      `🚨 *ПОДОЗРИТЕЛЬНАЯ АКТИВНОСТЬ В SUPPORT-СЕССИИ*\n\n` +
+        `👤 Клиент: ${clientName}\n` +
+        `🏠 Сервер: ${serverName}\n\n` +
+        `${lines}\n\n` +
+        `_Обнаружено при закрытии доступа поддержки. Найденные новые администраторы ` +
+        `в HA клиента уже удалены автоматически. Проверьте журнал аудита и, если это ` +
+        `не действие клиента, свяжитесь с сотрудником, который вёл сессию._`,
+    );
+  }
+
   private async send(text: string) {
     if (!this.bot || !this.chatId) return;
     try {

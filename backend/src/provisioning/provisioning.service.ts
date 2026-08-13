@@ -180,9 +180,21 @@ export class ProvisioningService {
     );
     const installUrl = `${frontendUrl}/install/${installToken}`;
 
-    const agentInstallCommand = server.tunnelToken
-      ? `# 1. Install Cloudflare tunnel\ncloudflared tunnel run --token ${server.tunnelToken}\n\n# 2. Install Tinta Agent (HA Add-on)\n# Go to HA → Add-ons → Install → set tinta_install_token in the Add-on config`
-      : `# Install Tinta Agent (HA Add-on)\n# Set options:\n# tinta_install_token: <use the install link>`;
+    // Tinta Agent bundles cloudflared and manages the tunnel itself — it
+    // fetches the tunnel token from Core on enroll/register using nothing
+    // but tinta_install_token, so there is no separate "install a Cloudflare
+    // tunnel" step to hand the installer anymore. (There used to be one here
+    // instructing `cloudflared tunnel run --token ...` as a manual first
+    // step — that's exactly what caused a client's individual tunnel to
+    // never come up until someone noticed the 1033 and pieced it together by
+    // hand. Don't reintroduce it.)
+    const agentInstallCommand =
+      `# Install Tinta Agent (HA Add-on)\n` +
+      `# HA → Settings → Add-ons → Add-on Store → ⋮ → Repositories → add the Tinta Agent repo\n` +
+      `# Install the "Tinta Agent" add-on, then set in its config:\n` +
+      `# tinta_install_token: ${installToken}\n` +
+      `# tinta_external_url: https://${publicHostname}\n` +
+      `# Start the add-on — it self-enrolls and brings up its own Cloudflare Tunnel automatically.`;
 
     this.logger.log(
       `Provisioning complete for ${dto.email} (client: ${client.id}, server: ${server.id}, hub: ${publicHostname})`,

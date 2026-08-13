@@ -126,46 +126,21 @@ export default function InstallPage() {
 
         {/* Steps */}
         <div>
-          {config.tunnelToken && (
-            <Step n={1} title="Установите Cloudflare Tunnel">
-              <p className="text-sm text-slate-400 mb-3">
-                Запустите на сервере с Home Assistant:
-              </p>
-              <CopyField
-                label="Команда установки"
-                value={`cloudflared tunnel run --token ${config.tunnelToken}`}
-              />
-            </Step>
-          )}
-
-          <Step n={config.tunnelToken ? 2 : 1} title="Установите Tinta Agent (HA Add-on)">
+          <Step n={1} title="Установите Tinta Agent (HA Add-on)">
             <p className="text-sm text-slate-400 mb-3">
-              В Home Assistant перейдите в <strong className="text-slate-200">Настройки → Дополнения → Магазин</strong> и
-              найдите <strong className="text-slate-200">Tinta Agent</strong>.
+              В Home Assistant перейдите в <strong className="text-slate-200">Настройки → Дополнения → Магазин</strong>,
+              добавьте репозиторий Tinta Agent и установите дополнение.
             </p>
-            <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 mb-3">
-              <Wifi size={14} className="text-slate-400 shrink-0" />
-              <a
-                href={config.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
-              >
-                {config.externalUrl}
-                <ExternalLink size={11} />
-              </a>
-            </div>
           </Step>
 
-          <Step n={config.tunnelToken ? 3 : 2} title="Введите параметры агента">
+          <Step n={2} title="Введите код активации">
             <p className="text-sm text-slate-400 mb-4">
-              В настройках дополнения укажите следующие значения:
+              В настройках дополнения нужно заполнить только одно поле — всё остальное
+              (адрес сервера, доступ к Home Assistant, публичный туннель) дополнение настроит
+              само после сохранения.
             </p>
             <div className="space-y-3">
-              <CopyField label="tinta_client_id" value={config.clientId} />
-              <CopyField label="tinta_agent_token" value={config.agentToken} />
-              <CopyField label="tinta_core_ws" value={config.coreWs} />
-              <CopyField label="tinta_external_url" value={config.externalUrl} mono={false} />
+              <CopyField label="tinta_install_token" value={token} />
             </div>
           </Step>
 
@@ -177,8 +152,24 @@ export default function InstallPage() {
             <div className="flex-1 pt-1">
               <h3 className="font-semibold text-white">Готово</h3>
               <p className="text-sm text-slate-400 mt-1">
-                После сохранения параметров дополнение подключится к Tinta Lab автоматически.
-                Статус появится на вашем{' '}
+                После сохранения и запуска дополнение подключится к Tinta Lab и само поднимет
+                защищённый доступ к вашей Home Assistant — без дополнительных дополнений и
+                ручных токенов. Ваш Home Assistant будет доступен по адресу:
+              </p>
+              <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 mt-3 mb-3">
+                <Wifi size={14} className="text-slate-400 shrink-0" />
+                <a
+                  href={config.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                >
+                  {config.externalUrl}
+                  <ExternalLink size={11} />
+                </a>
+              </div>
+              <p className="text-sm text-slate-400">
+                Статус подключения появится на вашем{' '}
                 <a href="https://app.tinta-lab.de" className="text-blue-400 hover:underline">
                   дашборде
                 </a>.

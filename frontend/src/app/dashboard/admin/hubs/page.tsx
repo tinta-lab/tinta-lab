@@ -9,7 +9,7 @@ import {
   ArrowLeft, RefreshCw, LogOut, Plus, X, ChevronRight, Copy, Check,
   Wifi, WifiOff, Globe, Shield, ShieldOff, AlertTriangle, ArrowUpCircle,
   Clock, ExternalLink, Loader2, Server, Activity, Trash2, Pencil, Zap,
-  BookTemplate, Cpu, MemoryStick, HardDrive, Router,
+  BookTemplate, Cpu, MemoryStick, HardDrive, Router, Eye, EyeOff, Dices,
 } from 'lucide-react';
 import { PhoneInput } from '@/components/PhoneInput';
 import { AgentMetrics, Client, GoldenTemplate } from '@/types';
@@ -905,19 +905,28 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
                   ))}
                 </select>
               ) : (
-                <>
+                // autoComplete="off" on every field here on purpose, not the semantically
+                // "correct" tokens (email/given-name/new-password/etc). This form creates
+                // an ACCOUNT FOR SOMEONE ELSE from inside the admin's own logged-in browser
+                // — giving Chrome accurate login-shaped hints just teaches it to recognize
+                // this as a login form for the CURRENT origin and offer the admin's own
+                // saved app.tinta-lab.de credentials into it (first landing on whatever text
+                // field sat closest to the password field — city, in the version of this
+                // form that shipped before). "off" is what stops Chrome from touching it at
+                // all; matches the same pattern already used in admin/users/page.tsx.
+                <form autoComplete="off" onSubmit={e => e.preventDefault()} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label={t('reg_firstname')} value={firstName} onChange={setFirstName} />
-                    <Field label={t('reg_lastname')} value={lastName} onChange={setLastName} />
+                    <Field label={t('reg_firstname')} value={firstName} onChange={setFirstName} autoComplete="off" placeholder="Max" />
+                    <Field label={t('reg_lastname')} value={lastName} onChange={setLastName} autoComplete="off" placeholder="Mustermann" />
                   </div>
-                  <Field label="E-Mail" value={email} onChange={setEmail} type="email" />
+                  <Field label="E-Mail" value={email} onChange={setEmail} type="email" autoComplete="off" placeholder="max@mustermann.de" />
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">{t('contact_phone')}</label>
                     <PhoneInput value={phone} onChange={setPhone} />
                   </div>
-                  <Field label={t('hub_wizard_city_optional')} value={city} onChange={setCity} />
-                  <Field label={t('reg_password')} value={password} onChange={setPassword} type="password" />
-                </>
+                  <Field label={t('hub_wizard_city_optional')} value={city} onChange={setCity} autoComplete="off" placeholder="Berlin" />
+                  <PasswordField label={t('reg_password')} value={password} onChange={setPassword} placeholder={t('reg_hint_length')} />
+                </form>
               )}
 
               <div className="flex gap-3 pt-2">
@@ -995,12 +1004,94 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
   );
 }
 
-function Field({ label, value, onChange, type = 'text', placeholder }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string }) {
+function Field({ label, value, onChange, type = 'text', placeholder, autoComplete }: { label: string; value: string; onChange: (v: string) => void; type?: string; placeholder?: string; autoComplete?: string }) {
+  // autoComplete="off" alone doesn't stop Chrome's password manager from
+  // pre-filling this form the moment it mounts — Chrome has deliberately
+  // ignored autocomplete="off" for login-manager autofill since ~2014
+  // specifically so sites can't opt out of it. `readOnly` DOES stop it
+  // (browsers don't autofill fields the user can't type into), and real
+  // user clicks still fire onFocus normally on a readOnly input, so this
+  // unlocks on genuine interaction and never blocks actual typing.
+  const [locked, setLocked] = useState(true);
   return (
     <div>
       <label className="text-xs text-slate-400 mb-1 block">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoComplete={autoComplete}
+        readOnly={locked} onFocus={() => setLocked(false)}
         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500 placeholder:text-slate-600" />
+    </div>
+  );
+}
+
+// Client-side password generator — deliberately not requested from the
+// backend: it's just randomness, and doing it locally means "Generate" is
+// instant with no round trip. Excludes visually-confusable characters
+// (0/O, 1/I/l) to match generateHubId()'s charset choice on the backend, and
+// guarantees at least one char of each class up front so it always satisfies
+// the site's stated policy (min 8 chars, 1 uppercase, 1 digit) regardless of
+// how the shuffle lands.
+function generatePassword(length = 14): string {
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*-_=+';
+  const all = upper + lower + digits + symbols;
+
+  const randomChar = (set: string) => {
+    const bytes = new Uint32Array(1);
+    crypto.getRandomValues(bytes);
+    return set[bytes[0] % set.length];
+  };
+
+  const chars = [
+    randomChar(upper),
+    randomChar(lower),
+    randomChar(digits),
+    randomChar(symbols),
+    ...Array.from({ length: Math.max(0, length - 4) }, () => randomChar(all)),
+  ];
+
+  // Fisher-Yates shuffle so the guaranteed classes aren't always in the
+  // first four positions.
+  for (let i = chars.length - 1; i > 0; i--) {
+    const bytes = new Uint32Array(1);
+    crypto.getRandomValues(bytes);
+    const j = bytes[0] % (i + 1);
+    [chars[i], chars[j]] = [chars[j], chars[i]];
+  }
+  return chars.join('');
+}
+
+function PasswordField({ label, value, onChange, placeholder }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const { t } = useLocale();
+  const [visible, setVisible] = useState(false);
+  // See the comment on Field() above — same readOnly-until-focus trick,
+  // needed here even more: this is exactly the field Chrome's password
+  // manager targets first.
+  const [locked, setLocked] = useState(true);
+  return (
+    <div>
+      <label className="text-xs text-slate-400 mb-1 block">{label}</label>
+      <div className="flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-lg pl-3 pr-1.5 focus-within:border-teal-500">
+        <input
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete="off"
+          readOnly={locked}
+          onFocus={() => setLocked(false)}
+          className="flex-1 min-w-0 bg-transparent py-2 text-sm text-white focus:outline-none placeholder:text-slate-600"
+        />
+        <button type="button" onClick={() => setVisible(v => !v)} title={visible ? t('pw_hide') : t('pw_show')}
+          className="p-1.5 rounded-md text-slate-500 hover:text-slate-200 hover:bg-slate-700 transition-colors shrink-0">
+          {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+        <button type="button" onClick={() => { onChange(generatePassword()); setVisible(true); }} title={t('pw_generate')}
+          className="p-1.5 rounded-md text-slate-500 hover:text-teal-400 hover:bg-slate-700 transition-colors shrink-0">
+          <Dices size={15} />
+        </button>
+      </div>
     </div>
   );
 }

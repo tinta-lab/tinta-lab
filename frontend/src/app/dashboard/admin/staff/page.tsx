@@ -108,7 +108,19 @@ function SessionCard({ s }: { s: AccessSession }) {
           </ul>
         </div>
       )}
-      {expanded && (!Array.isArray(s.activityLog) || s.activityLog.length === 0) && (
+      {/* activityLog === null means the agent never got to report (e.g. it was
+          offline right when access was revoked) — distinct from `[]`, which
+          means it DID check Home Assistant's logbook and genuinely found no
+          entries attributable to the support user. These read as the same
+          "nothing here" to an admin unless labeled differently, which made a
+          perfectly normal "support only looked, didn't touch anything" result
+          look like a broken feature. */}
+      {expanded && s.activityLog === null && (
+        <div className="border-t border-slate-700/50 px-4 py-2 bg-slate-900/30">
+          <p className="text-xs text-amber-500/80">{t('staff_activity_log_unavailable')}</p>
+        </div>
+      )}
+      {expanded && Array.isArray(s.activityLog) && s.activityLog.length === 0 && (
         <div className="border-t border-slate-700/50 px-4 py-2 bg-slate-900/30">
           <p className="text-xs text-slate-500">{t('staff_activity_log_empty')}</p>
         </div>

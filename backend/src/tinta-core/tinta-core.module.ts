@@ -16,6 +16,7 @@ import { ServersModule } from '../servers/servers.module';
 import { AuditModule } from '../access/audit.module';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
 import { AccessModule } from '../access/access.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { AccessModule } from '../access/access.module';
     ServersModule,
     AuditModule,
     CloudflareModule,
+    NotificationsModule,
     // AccessModule imports TintaCoreModule (for TintaAgentGateway push events);
     // TintaAgentGateway now also calls back into AccessService for the HA
     // toggle path — forwardRef breaks the resulting 2-module cycle.

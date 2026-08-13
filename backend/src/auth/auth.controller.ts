@@ -22,19 +22,13 @@ import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UpdateClientDto } from '../clients/dto/update-client.dto';
+import { AUTH_COOKIE, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from './auth-cookie.constants';
 
 // Same cookie name/domain the frontend previously set from JS for `tl_locale`
 // — shared across app./api. subdomains. Now httpOnly: JS can no longer read
 // the token (closes the XSS-steals-localStorage-token vector); the browser
 // just attaches it automatically on same-site requests.
-const AUTH_COOKIE = 'access_token';
-const AUTH_COOKIE_OPTS = {
-  httpOnly: true,
-  secure: true,
-  sameSite: 'lax' as const,
-  domain: process.env.COOKIE_DOMAIN ?? '.tinta-lab.de',
-  path: '/',
-};
+const AUTH_COOKIE_OPTS = authCookieOptions(process.env.COOKIE_DOMAIN ?? '.tinta-lab.de');
 
 @Controller('auth')
 export class AuthController {
@@ -55,7 +49,7 @@ export class AuthController {
     const result = await this.authService.login(dto.email, dto.password);
     res.cookie(AUTH_COOKIE, result.access_token, {
       ...AUTH_COOKIE_OPTS,
-      maxAge: 15 * 60 * 1000,
+      maxAge: AUTH_COOKIE_MAX_AGE_MS,
     });
     return result;
   }

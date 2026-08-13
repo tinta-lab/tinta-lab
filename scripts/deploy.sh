@@ -19,6 +19,17 @@
 #    post-switch health check. Fixed by verifying full project file counts
 #    (not just node_modules) and by health-checking + auto-rolling-back
 #    after the switch instead of trusting it blindly.
+# 3. On 2026-08-13, the site went down (dangling `current` symlink) because
+#    the disk-space prune below sorted releases by mtime and kept the
+#    newest N *including* an abandoned, never-linked release dir left behind
+#    by an earlier failed deploy (see "Broken release left at ... for
+#    inspection" below — that message means exactly this can happen). That
+#    abandoned dir was newer than the real `current` release, so it got kept
+#    and the actually-live release got pruned instead — out from under a
+#    running PM2 process, which then crash-looped for hours (581 restarts on
+#    one service) until someone noticed. Fixed by excluding whatever
+#    `current` resolves to from deletion candidates entirely, regardless of
+#    mtime ordering, in both prune passes below.
 #
 # Usage: scripts/deploy.sh <slug>
 #   e.g. scripts/deploy.sh fix-support-hub-url
@@ -34,11 +45,27 @@ KEEP=2  # current release + this many rollback points
 RELEASE="$RELEASES/$(date +%Y-%m-%d-%H%M)-$SLUG"
 PREVIOUS_RELEASE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
 
+prune_releases() {
+  # Lists releases newest-first, drops whatever `current` points to from
+  # consideration (re-resolved fresh on every call — this runs both before
+  # and after the symlink switch below, and must never delete the live
+  # release regardless of which release that currently is), keeps the next
+  # $((KEEP - 1)) as rollback points, deletes the rest. See incident #3
+  # above for why "current" can't just be inferred from mtime ordering.
+  local live
+  live="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+  ls -1dt "$RELEASES"/*/ 2>/dev/null \
+    | sed 's:/$::' \
+    | grep -vxF "${live:-__none_will_match__}" \
+    | tail -n +"$KEEP" \
+    | xargs -r rm -rf
+}
+
 echo "==> Disk space check"
 avail_kb=$(df --output=avail / | tail -1 | tr -d ' ')
 if [ "$avail_kb" -lt 4000000 ]; then  # < ~4GB free
   echo "Only $((avail_kb / 1024))MB free — pruning old releases before building"
-  ls -1dt "$RELEASES"/*/ 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -rf
+  prune_releases
 fi
 
 echo "==> Building backend"
@@ -120,7 +147,7 @@ fi
 echo "  OK — backend=$backend_code frontend=$frontend_code landing=$landing_code"
 
 echo "==> Pruning old releases (keeping current + $((KEEP - 1)) rollback point(s))"
-ls -1dt "$RELEASES"/*/ | tail -n +$((KEEP + 1)) | xargs -r rm -rf
+prune_releases
 
 echo "==> Done: $RELEASE"
 df -h /
