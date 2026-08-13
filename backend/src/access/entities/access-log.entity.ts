@@ -5,6 +5,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Server } from '../../servers/entities/server.entity';
@@ -16,6 +17,10 @@ export class AccessLog {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  // Indexed — server.id is filtered on directly in getLogsForServer /
+  // getActiveAccessForServer, and Postgres doesn't auto-index FK columns
+  // the way MySQL does. See sql/005_access_logs_fk_indexes.sql.
+  @Index()
   @ManyToOne(() => Server)
   @JoinColumn()
   server: Server;
@@ -24,6 +29,9 @@ export class AccessLog {
   @JoinColumn()
   grantedBy: User;
 
+  // Indexed — findStaffActivity's raw query filters `WHERE "accessedById" =
+  // ANY($1)` directly. See sql/005_access_logs_fk_indexes.sql.
+  @Index()
   @ManyToOne(() => User, { nullable: true })
   @JoinColumn()
   accessedBy: User;

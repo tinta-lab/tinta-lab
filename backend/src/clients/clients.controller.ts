@@ -5,6 +5,7 @@ import {
   Patch,
   Param,
   Body,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('clients')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,8 +31,8 @@ export class ClientsController {
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPPORT, UserRole.SALES)
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(@Query() pagination: PaginationDto) {
+    return this.clientsService.findAll(pagination.skip, pagination.take);
   }
 
   @Get('me')

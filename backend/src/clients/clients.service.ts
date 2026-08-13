@@ -39,8 +39,14 @@ export class ClientsService {
     return this.clientsRepository.save(client);
   }
 
-  async findAll(): Promise<Client[]> {
-    return this.clientsRepository.find({ relations: ['user'] });
+  // skip/take are opt-in — see common/dto/pagination.dto.ts
+  async findAll(skip?: number, take?: number): Promise<Client[]> {
+    return this.clientsRepository.find({
+      relations: ['user'],
+      ...(skip !== undefined ? { skip } : {}),
+      ...(take !== undefined ? { take } : {}),
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async findById(id: string): Promise<Client> {

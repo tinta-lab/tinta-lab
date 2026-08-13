@@ -22,12 +22,17 @@ export class TicketsService {
     return this.ticketsRepository.save(ticket);
   }
 
-  async findAll(status?: TicketStatus): Promise<Ticket[]> {
+  // skip/take are opt-in — see common/dto/pagination.dto.ts. Tickets is the
+  // one list here that genuinely grows without bound over time, so this is
+  // the endpoint most worth actually using pagination on once volume shows up.
+  async findAll(status?: TicketStatus, skip?: number, take?: number): Promise<Ticket[]> {
     const where = status ? { status } : {};
     return this.ticketsRepository.find({
       where,
       relations: ['assignedTo'],
       order: { createdAt: 'DESC' },
+      ...(skip !== undefined ? { skip } : {}),
+      ...(take !== undefined ? { take } : {}),
     });
   }
 

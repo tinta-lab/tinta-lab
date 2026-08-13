@@ -5,6 +5,7 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import { csrfOriginGuard } from './common/csrf-origin-guard.middleware';
+import { AllExceptionsFilter } from './common/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -31,6 +32,8 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   app.enableCors({
     origin: frontendUrl ? [frontendUrl] : false,

@@ -83,9 +83,14 @@ export class ServersService {
     return `hub-${server.hubId}.${baseDomain}`;
   }
 
-  async findAll(): Promise<Server[]> {
+  // skip/take are opt-in — omitted entirely, this returns every row exactly
+  // as before. See common/dto/pagination.dto.ts for why.
+  async findAll(skip?: number, take?: number): Promise<Server[]> {
     return this.serversRepository.find({
       relations: ['client', 'client.user'],
+      ...(skip !== undefined ? { skip } : {}),
+      ...(take !== undefined ? { take } : {}),
+      order: { createdAt: 'DESC' },
     });
   }
 

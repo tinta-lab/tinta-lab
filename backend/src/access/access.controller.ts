@@ -7,7 +7,6 @@ import {
   Param,
   Body,
   UseGuards,
-  Request,
   ForbiddenException,
 } from '@nestjs/common';
 import { AccessService } from './access.service';
@@ -17,6 +16,8 @@ import { ServersService } from '../servers/servers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
 
 @Controller('access')
@@ -35,23 +36,23 @@ export class AccessController {
   async grantAccess(
     @Param('serverId') serverId: string,
     @Body() dto: GrantAccessDto,
-    @Request() req: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    if (req.user.role === UserRole.CLIENT) {
-      await this.accessService.assertOwnership(serverId, req.user.id);
+    if (user.role === UserRole.CLIENT) {
+      await this.accessService.assertOwnership(serverId, user.id);
     }
-    return this.accessService.grantAccess(serverId, req.user.id, dto);
+    return this.accessService.grantAccess(serverId, user.id, dto);
   }
 
   // CLIENT revokes access to their own server (ownership enforced)
   // ADMIN can revoke access to any server
   @Delete('revoke/:serverId')
   @Roles(UserRole.CLIENT, UserRole.ADMIN)
-  async revokeAccess(@Param('serverId') serverId: string, @Request() req: any) {
-    if (req.user.role === UserRole.CLIENT) {
-      await this.accessService.assertOwnership(serverId, req.user.id);
+  async revokeAccess(@Param('serverId') serverId: string, @CurrentUser() user: AuthenticatedUser) {
+    if (user.role === UserRole.CLIENT) {
+      await this.accessService.assertOwnership(serverId, user.id);
     }
-    return this.accessService.revokeAccess(serverId, 'manual', req.user.id);
+    return this.accessService.revokeAccess(serverId, 'manual', user.id);
   }
 
   // SUPPORT records their connection and gets credentials.
@@ -60,9 +61,9 @@ export class AccessController {
   @Roles(UserRole.SUPPORT, UserRole.ADMIN)
   async recordConnection(
     @Param('serverId') serverId: string,
-    @Request() req: any,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.accessService.recordConnection(serverId, req.user.id);
+    return this.accessService.recordConnection(serverId, user.id);
   }
 
   // ADMIN sees access logs for any server.
@@ -71,8 +72,8 @@ export class AccessController {
   // servers they were never granted into.
   @Get('logs/:serverId')
   @Roles(UserRole.ADMIN, UserRole.SUPPORT)
-  async getLogs(@Param('serverId') serverId: string, @Request() req: any) {
-    if (req.user.role === UserRole.SUPPORT) {
+  async getLogs(@Param('serverId') serverId: string, @CurrentUser() user: AuthenticatedUser) {
+    if (user.role === UserRole.SUPPORT) {
       const server = await this.serversService.findById(serverId);
       if (!server.accessEnabled) {
         throw new ForbiddenException(
@@ -86,8 +87,8 @@ export class AccessController {
   // CLIENT sees their own access history
   @Get('my-logs')
   @Roles(UserRole.CLIENT)
-  async getMyLogs(@Request() req: any) {
-    const client = await this.clientsService.findByUserId(req.user.id);
+  async getMyLogs(@CurrentUser() user: AuthenticatedUser) {
+    const client = await this.clientsService.findByUserId(user.id);
     return this.accessService.getLogsForClient(client.id);
   }
 

@@ -17,6 +17,7 @@ import { UserRole } from '../users/entities/user.entity';
 import { TicketStatus } from './entities/ticket.entity';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketStatusDto } from './dto/update-ticket-status.dto';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('tickets')
 export class TicketsController {
@@ -32,8 +33,8 @@ export class TicketsController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.SALES, UserRole.SUPPORT)
-  findAll(@Query('status') status?: TicketStatus) {
-    return this.ticketsService.findAll(status);
+  findAll(@Query('status') status: TicketStatus | undefined, @Query() pagination: PaginationDto) {
+    return this.ticketsService.findAll(status, pagination.skip, pagination.take);
   }
 
   @Get(':id')

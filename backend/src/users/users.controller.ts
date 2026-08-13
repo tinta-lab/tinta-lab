@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   ForbiddenException,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PresenceService } from '../presence/presence.service';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,8 +31,8 @@ export class UsersController {
   ) {}
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query() pagination: PaginationDto) {
+    return this.usersService.findAll(pagination.skip, pagination.take);
   }
 
   @Post()

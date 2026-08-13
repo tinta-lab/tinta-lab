@@ -67,7 +67,8 @@ export class UsersService {
     return user;
   }
 
-  async findAll(): Promise<User[]> {
+  // skip/take are opt-in — see common/dto/pagination.dto.ts
+  async findAll(skip?: number, take?: number): Promise<User[]> {
     return this.usersRepository.find({
       select: [
         'id',
@@ -78,6 +79,9 @@ export class UsersService {
         'isActive',
         'createdAt',
       ],
+      ...(skip !== undefined ? { skip } : {}),
+      ...(take !== undefined ? { take } : {}),
+      order: { createdAt: 'DESC' },
     });
   }
 

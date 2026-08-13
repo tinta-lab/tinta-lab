@@ -73,9 +73,17 @@ export class HubsService {
     };
   }
 
-  async findAll(): Promise<Hub[]> {
+  // skip/take are opt-in — see common/dto/pagination.dto.ts. Only paginates
+  // the servers query; sessions stay a full fetch since it's one row per
+  // client either way and is needed in full to build the lookup map.
+  async findAll(skip?: number, take?: number): Promise<Hub[]> {
     const [servers, sessions] = await Promise.all([
-      this.serverRepo.find({ relations: ['client', 'client.user'] }),
+      this.serverRepo.find({
+        relations: ['client', 'client.user'],
+        ...(skip !== undefined ? { skip } : {}),
+        ...(take !== undefined ? { take } : {}),
+        order: { createdAt: 'DESC' },
+      }),
       this.sessionRepo.find({ relations: ['client'] }),
     ]);
 

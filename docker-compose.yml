@@ -11,24 +11,35 @@ services:
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Bound to loopback only — was "5432:5432" (binds 0.0.0.0, reachable
+      # from the whole LAN with just the DB password as the only barrier).
+      # The backend connects via REDIS_HOST/DB_HOST=localhost anyway (it
+      # runs on this same host outside Docker), so this doesn't change how
+      # the app reaches it.
+      - "127.0.0.1:5432:5432"
 
   redis:
     image: redis:7-alpine
     container_name: tinta-redis
     restart: always
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - ./data/redis:/data
     ports:
-      - "6379:6379"
+      # Was "6379:6379" (0.0.0.0, no password) — this instance backs the
+      # JWT revocation blacklist (token-blacklist.service.ts), so anyone on
+      # the LAN could previously clear an entry and un-revoke a dead token.
+      - "127.0.0.1:6379:6379"
 
   adminer:
     image: adminer
     container_name: tinta-adminer
     restart: always
     ports:
-      - "8080:8080"
+      # Was "8080:8080" — a full DB console reachable LAN-wide with only the
+      # DB password as a gate. RUNBOOK.md already documented this as
+      # "только с сервера"; this makes the config actually match that.
+      - "127.0.0.1:8080:8080"
 
   grafana:
     image: grafana/grafana:latest
