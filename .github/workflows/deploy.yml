@@ -1,0 +1,26 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    # Runs on tinta-backend-vm itself (registered as a self-hosted runner,
+    # started via PM2 — no root/systemd on this box). Deliberately not an
+    # SSH-from-a-hosted-runner setup: the server only has a private LAN
+    # address (192.168.2.63) plus a public IPv6, and opening SSH to the
+    # public internet just to let GitHub reach it would be a worse trade
+    # than a runner that polls GitHub outbound and needs no inbound port at
+    # all. This also means no SSH key/host secrets exist anywhere.
+    runs-on: [self-hosted, tinta-backend]
+    steps:
+      - name: Disk space check
+        run: df -h /
+
+      - name: Deploy
+        working-directory: /home/tinta/tinta-lab
+        run: |
+          set -e
+          git pull --ff-only
+          scripts/deploy.sh "gha-${GITHUB_SHA::7}"
