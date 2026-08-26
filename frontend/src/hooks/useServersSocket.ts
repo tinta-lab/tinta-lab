@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { Server } from '@/types';
 
-type ServerUpdate = Pick<Server, 'id' | 'status' | 'accessEnabled' | 'accessExpiresAt' | 'lastSeenAt'>;
+type ServerUpdate = Pick<Server, 'id' | 'status' | 'accessEnabled' | 'accessExpiresAt' | 'lastSeenAt' | 'publicStatus' | 'publicCheckedAt'>;
 type AccessUpdate = Pick<Server, 'id' | 'accessEnabled' | 'accessExpiresAt'>;
 
 interface Options {

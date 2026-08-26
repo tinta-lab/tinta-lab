@@ -5,6 +5,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ServersService } from './servers.service';
 import { ServersController } from './servers.controller';
 import { ServersGateway } from './servers.gateway';
+import { ServersPublicStatusScheduler } from './servers-public-status.scheduler';
 import { Server } from './entities/server.entity';
 import { ClientsModule } from '../clients/clients.module';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
@@ -29,7 +30,7 @@ import { UsersModule } from '../users/users.module';
       inject: [ConfigService],
     }),
   ],
-  providers: [ServersService, ServersGateway],
+  providers: [ServersService, ServersGateway, ServersPublicStatusScheduler],
   controllers: [ServersController],
   exports: [ServersService, ServersGateway],
 })

@@ -15,6 +15,17 @@ export enum ServerStatus {
   UNKNOWN = 'unknown',
 }
 
+// Distinct from ServerStatus: that tracks the agent's outbound WS link to
+// Tinta Core, this tracks whether the Cloudflare Tunnel actually serves the
+// client's public hostname. The two are independent — the runbook already
+// documents cases where an agent shows "online" while the tunnel returns
+// 502/1033, so the UI must not collapse them into a single dot.
+export enum ServerPublicStatus {
+  REACHABLE = 'reachable',
+  UNREACHABLE = 'unreachable',
+  UNKNOWN = 'unknown',
+}
+
 @Entity('servers')
 export class Server {
   @PrimaryGeneratedColumn('uuid')
@@ -61,6 +72,16 @@ export class Server {
 
   @Column({ nullable: true, type: 'timestamp' })
   lastSeenAt: Date | null;
+
+  @Column({
+    type: 'enum',
+    enum: ServerPublicStatus,
+    default: ServerPublicStatus.UNKNOWN,
+  })
+  publicStatus: ServerPublicStatus;
+
+  @Column({ nullable: true, type: 'timestamp' })
+  publicCheckedAt: Date | null;
 
   @Column({ nullable: true, type: 'varchar' })
   haVersion: string | null;

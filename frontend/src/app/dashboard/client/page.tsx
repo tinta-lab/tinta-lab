@@ -7,7 +7,7 @@ import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { Server } from '@/types';
 import type { TranslationKey } from '@/i18n/translations';
-import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff } from 'lucide-react';
+import { LogOut, RefreshCw, Unlock, Lock, Clock, Shield, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
@@ -48,6 +48,35 @@ function StatusDot({ status }: { status: Server['status'] }) {
     unknown: 'bg-slate-500',
   };
   return <span className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${map[status]}`} />;
+}
+
+// Deliberately separate from StatusDot: server.status is the agent's link to
+// Tinta Core, publicStatus is whether the Cloudflare Tunnel hostname actually
+// answers. The runbook documents real cases where these disagree (agent
+// "online" while the public URL 502s) — collapsing them into one dot would
+// hide exactly the failure mode clients most need to see.
+function PublicStatusBadge({ status, t }: { status: Server['publicStatus']; t: (k: TranslationKey) => string }) {
+  const resolved = status ?? 'unknown';
+  const colorMap = {
+    reachable:   'text-green-400',
+    unreachable: 'text-red-400',
+    unknown:     'text-slate-500',
+  } as const;
+  const labelKey = {
+    reachable:   'client_public_status_reachable',
+    unreachable: 'client_public_status_unreachable',
+    unknown:     'client_public_status_unknown',
+  } as const;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 ${colorMap[resolved]}`}
+      title={t('client_public_status_tooltip')}
+    >
+      <Globe size={11} />
+      {t('client_public_status_label')}: {t(labelKey[resolved])}
+    </span>
+  );
 }
 
 function AccessCountdown({ expiresAt, onExpire, label }: { expiresAt: string; onExpire: () => void; label: string }) {
@@ -429,7 +458,7 @@ export default function ClientDashboard() {
                 <StatusDot status={server.status} />
                 <div>
                   <div className="font-semibold">{server.name}</div>
-                  <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                  <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
                     <span>{server.subdomain}</span>
                     {server.haVersion && <span className="bg-slate-700/60 rounded px-1.5 py-0.5">HA {server.haVersion}</span>}
                     <span className={`capitalize ${
@@ -438,6 +467,7 @@ export default function ClientDashboard() {
                     }`}>
                       {statusLabel(server.status)}
                     </span>
+                    <PublicStatusBadge status={server.publicStatus} t={t} />
                   </div>
                 </div>
               </div>

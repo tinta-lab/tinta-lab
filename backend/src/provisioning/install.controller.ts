@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Post, Param, HttpCode } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ProvisioningService } from './provisioning.service';
 
@@ -13,5 +13,15 @@ export class InstallController {
   @Throttle({ default: { ttl: 900_000, limit: 10 } })
   getInstallConfig(@Param('token') token: string) {
     return this.provisioningService.getInstallConfig(token);
+  }
+
+  // Must be called (and succeed) before GET :token will reveal anything —
+  // see AgentSession.serviceStartConsentAt.
+  @Post(':token/consent')
+  @HttpCode(200)
+  @Throttle({ default: { ttl: 900_000, limit: 10 } })
+  async confirmConsent(@Param('token') token: string) {
+    await this.provisioningService.confirmInstallConsent(token);
+    return { ok: true };
   }
 }

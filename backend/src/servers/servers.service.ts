@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { Server, ServerStatus } from './entities/server.entity';
+import axios from 'axios';
+import { Server, ServerStatus, ServerPublicStatus } from './entities/server.entity';
 import { ServersGateway } from './servers.gateway';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
 import { ConfigService } from '@nestjs/config';
@@ -121,10 +122,17 @@ export class ServersService {
   }
 
   async findByClientId(clientId: string): Promise<Server[]> {
-    return this.serversRepository.find({
+    const servers = await this.serversRepository.find({
       where: { client: { id: clientId } },
       relations: ['client'],
     });
+    // Client's own dashboard needs the actual public hostname to render the
+    // reachability indicator against — findAll/support already compute this
+    // the same way, so it stays consistent across every view.
+    return servers.map((server) => ({
+      ...server,
+      publicUrl: this.getPublicHostname(server),
+    })) as Server[];
   }
 
   async findById(id: string): Promise<Server> {
@@ -146,6 +154,8 @@ export class ServersService {
         accessEnabled: server.accessEnabled,
         accessExpiresAt: server.accessExpiresAt,
         lastSeenAt: server.lastSeenAt,
+        publicStatus: server.publicStatus,
+        publicCheckedAt: server.publicCheckedAt,
       });
     }
   }
@@ -164,7 +174,64 @@ export class ServersService {
         accessEnabled: server.accessEnabled,
         accessExpiresAt: server.accessExpiresAt,
         lastSeenAt: server.lastSeenAt,
+        publicStatus: server.publicStatus,
+        publicCheckedAt: server.publicCheckedAt,
       });
+    }
+  }
+
+  // Independent of agent heartbeat: probes the actual public Cloudflare
+  // Tunnel hostname so the dashboard can show "public access" separately
+  // from "agent online" instead of implying one from the other (see
+  // ServerPublicStatus doc comment for why that conflation was a problem).
+  // Treats any HTTP response (including Cloudflare Access's redirect/401 for
+  // protected apps) as reachable — only a network-level failure or timeout
+  // means the tunnel itself is down.
+  async checkPublicReachability(): Promise<void> {
+    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+    const servers = await this.serversRepository.find({
+      where: {},
+      select: ['id', 'hubId', 'publicStatus'],
+    });
+
+    for (const server of servers) {
+      if (!server.hubId) continue;
+      const hostname = `hub-${server.hubId}.${baseDomain}`;
+      let reachable: boolean;
+      try {
+        await axios.get(`https://${hostname}`, {
+          timeout: 5000,
+          validateStatus: (s) => s < 500,
+          maxRedirects: 5,
+        });
+        reachable = true;
+      } catch {
+        reachable = false;
+      }
+
+      const newStatus = reachable
+        ? ServerPublicStatus.REACHABLE
+        : ServerPublicStatus.UNREACHABLE;
+      const publicCheckedAt = new Date();
+      await this.serversRepository.update(server.id, {
+        publicStatus: newStatus,
+        publicCheckedAt,
+      });
+
+      if (newStatus !== server.publicStatus) {
+        const full = await this.serversRepository.findOne({ where: { id: server.id } });
+        if (full) {
+          this.serversGateway?.emitServerUpdate({
+            id: server.id,
+            status: full.status,
+            accessEnabled: full.accessEnabled,
+            accessExpiresAt: full.accessExpiresAt,
+            lastSeenAt: full.lastSeenAt,
+            publicStatus: newStatus,
+            publicCheckedAt,
+          });
+        }
+      }
     }
   }
 

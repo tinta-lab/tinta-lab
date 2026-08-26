@@ -87,6 +87,7 @@ export class TintaCoreService {
     clientId: string;
     agentToken: string;
     installTokenExpiresAt: Date;
+    serviceStartConsentAt: Date | null;
   }> {
     const session = await this.sessionRepo.findOne({
       where: { installToken: token },
@@ -102,7 +103,29 @@ export class TintaCoreService {
       clientId: session.clientId,
       agentToken: session.agentToken!,
       installTokenExpiresAt: session.installTokenExpiresAt,
+      serviceStartConsentAt: session.serviceStartConsentAt,
     };
+  }
+
+  // Records the § 356 Abs. 4 BGB consent (see entity doc comment). Idempotent
+  // on purpose: a client re-opening the link after already consenting must
+  // not have their original consent timestamp overwritten.
+  async recordServiceStartConsent(token: string): Promise<void> {
+    const session = await this.sessionRepo.findOne({
+      where: { installToken: token },
+    });
+    if (!session) throw new NotFoundException('Install link not found');
+    if (
+      !session.installTokenExpiresAt ||
+      session.installTokenExpiresAt < new Date()
+    ) {
+      throw new GoneException('Install link has expired');
+    }
+    if (!session.serviceStartConsentAt) {
+      await this.sessionRepo.update(session.id, {
+        serviceStartConsentAt: new Date(),
+      });
+    }
   }
 
   // One-time consumption: called right after a successful GET /install/:token

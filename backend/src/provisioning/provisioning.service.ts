@@ -1,4 +1,4 @@
-import { Injectable, Logger, ConflictException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -213,8 +213,20 @@ export class ProvisioningService {
     };
   }
 
+  // Called from POST /install/:token/consent, before the client ever sees
+  // GET /install/:token's response — see AgentSession.serviceStartConsentAt
+  // for why the order matters.
+  async confirmInstallConsent(token: string): Promise<void> {
+    await this.tintaCore.recordServiceStartConsent(token);
+  }
+
   async getInstallConfig(token: string): Promise<InstallConfig> {
     const session = await this.tintaCore.getSessionByInstallToken(token);
+    if (!session.serviceStartConsentAt) {
+      throw new ForbiddenException(
+        'Service start consent required before install config can be revealed',
+      );
+    }
     const [servers, client] = await Promise.all([
       this.serversService.findByClientId(session.clientId),
       this.clientsService.findById(session.clientId),

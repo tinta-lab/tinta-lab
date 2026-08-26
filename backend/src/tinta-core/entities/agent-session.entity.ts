@@ -75,6 +75,16 @@ export class AgentSession {
   @Column({ nullable: true, type: 'timestamp' })
   installTokenExpiresAt: Date | null;
 
+  // § 356 Abs. 4 BGB: a consumer's right of withdrawal ends early only if
+  // they explicitly requested the service start before the 14-day window
+  // closes AND acknowledged they lose that right once we fully perform. This
+  // timestamp is the durable record of that consent — recorded server-side,
+  // before GET /install/:token reveals the agent token or install steps, so
+  // "the client started installing" can't itself be read as the required
+  // consent after the fact.
+  @Column({ nullable: true, type: 'timestamp' })
+  serviceStartConsentAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

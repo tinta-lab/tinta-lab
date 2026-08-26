@@ -59,11 +59,17 @@ export default function InstallPage() {
   const { token } = useParams<{ token: string }>();
   const [config, setConfig] = useState<InstallConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [consentChecked, setConsentChecked] = useState(false);
+  const [consenting, setConsenting] = useState(false);
 
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
-    axios.get<InstallConfig>(`${apiUrl}/install/${token}`)
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? '';
+
+  const confirmConsentAndLoad = () => {
+    setLoading(true);
+    setConsenting(true);
+    axios.post(`${apiUrl}/install/${token}/consent`)
+      .then(() => axios.get<InstallConfig>(`${apiUrl}/install/${token}`))
       .then(r => setConfig(r.data))
       .catch(err => {
         const status = err.response?.status;
@@ -71,13 +77,60 @@ export default function InstallPage() {
         else if (status === 404) setError('Ссылка не найдена или уже использована.');
         else setError('Не удалось загрузить конфигурацию. Попробуйте позже.');
       })
-      .finally(() => setLoading(false));
-  }, [token]);
+      .finally(() => { setLoading(false); setConsenting(false); });
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Consent gate — must be confirmed before the config request fires at all,
+  // so "the client started installing" can never stand in for the explicit
+  // § 356 Abs. 4 BGB acknowledgment (see AgentSession.serviceStartConsentAt).
+  if (!config && !error && !consenting) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="flex items-center gap-3 mb-6">
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-8 w-auto" />
+          </div>
+          <h1 className="text-xl font-bold mb-3">Bevor wir beginnen</h1>
+          <p className="text-sm text-slate-400 mb-4">
+            Sobald Sie fortfahren, beginnt Tinta Lab mit der Ausführung der
+            gebuchten Dienstleistung (Einrichtung des Fernzugriffs auf Ihr
+            Home-Assistant-System).
+          </p>
+          <label className="flex items-start gap-3 mb-5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={consentChecked}
+              onChange={e => setConsentChecked(e.target.checked)}
+              className="mt-1 w-4 h-4 accent-blue-600 shrink-0"
+            />
+            <span className="text-sm text-slate-300">
+              Ich stimme ausdrücklich zu, dass Tinta Lab mit der Ausführung der
+              Dienstleistung vor Ablauf der 14-tägigen Widerrufsfrist beginnt.
+              Mir ist bekannt, dass ich bei vollständiger Vertragserfüllung mein
+              Widerrufsrecht verliere (§ 356 Abs. 4 BGB).
+              <span className="block text-slate-500 mt-1">
+                Я согласен(на), что Tinta Lab начнёт оказание услуги до истечения
+                14-дневного срока отказа от договора, и понимаю, что при полном
+                исполнении услуги теряю право на отказ.
+              </span>
+            </span>
+          </label>
+          <button
+            onClick={confirmConsentAndLoad}
+            disabled={!consentChecked}
+            className="w-full py-2.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Bestätigen und fortfahren
+          </button>
+        </div>
       </div>
     );
   }

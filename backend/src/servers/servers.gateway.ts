@@ -136,6 +136,8 @@ export class ServersGateway
     accessEnabled: boolean;
     accessExpiresAt: Date | null;
     lastSeenAt: Date | null;
+    publicStatus?: string;
+    publicCheckedAt?: Date | null;
   }) {
     this.server.to('servers-room').emit('server:update', payload);
   }
