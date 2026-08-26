@@ -24,9 +24,10 @@ export default function Footer() {
       { label: l('contact'),   href: `${APP}/contact`          },
     ],
     [t('sections.legal')]: [
-      { label: l('impressum'), href: '/impressum'   },
-      { label: l('privacy'),   href: '/datenschutz' },
-      { label: l('terms'),     href: '/agb'         },
+      { label: l('impressum'),  href: '/impressum'   },
+      { label: l('privacy'),    href: '/datenschutz' },
+      { label: l('terms'),      href: '/agb'         },
+      { label: l('withdrawal'), href: '/widerruf'    },
     ],
   };
 
@@ -87,6 +88,7 @@ export default function Footer() {
             <a href="/impressum"   className="hover:text-slate-400 transition-colors">{l('impressum')}</a>
             <a href="/datenschutz" className="hover:text-slate-400 transition-colors">{l('privacy')}</a>
             <a href="/agb"         className="hover:text-slate-400 transition-colors">{l('terms')}</a>
+            <a href="/widerruf"    className="hover:text-slate-400 transition-colors">{l('withdrawal')}</a>
             <div className="h-3 w-px bg-slate-800 hidden sm:block" aria-hidden="true" />
             <LanguageSwitcher />
           </div>

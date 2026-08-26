@@ -41,17 +41,31 @@ export default async function Datenschutz({ params }: { params: Promise<{ locale
         Rechtsgrundlage: Art. 6 Abs. 1 lit. b und lit. f DSGVO.
       </p>
 
-      <h3>2.3 Plattform-Nutzung (App)</h3>
+      <h3>2.3 Plattform-Nutzung (App) und Tinta Agent</h3>
       <p>Bei Registrierung und Nutzung der Tinta Lab Plattform (app.tinta-lab.de) werden folgende Daten verarbeitet:</p>
       <ul>
         <li>Name und E-Mail-Adresse (zur Kontoführung und Kommunikation)</li>
-        <li>Betriebszustandssignale Ihres Home-Assistant-Systems (ob das System erreichbar ist)</li>
-        <li>Support-Sitzungsprotokoll: Zeitpunkt und Dauer von Fernwartungszugriffen, die Sie explizit freigegeben haben</li>
+        <li>Betriebszustandssignale Ihres Home-Assistant-Systems (Heartbeat, Systemstatus, Agenten-Version — ob das System erreichbar ist)</li>
+        <li>
+          Support-Sitzungsprotokoll: Bei jeder Fernwartungssitzung, die Sie explizit
+          freigegeben haben, protokollieren wir Zeitpunkt, Dauer, den von Ihnen gewählten
+          Zugriffsgrund und die zugewiesene Support-Mitarbeiter-ID. Dieses Protokoll ist
+          zur Nachvollziehbarkeit kryptografisch fälschungssicher verkettet (SHA-256
+          Hash-Chain) und kann nachträglich nicht unbemerkt verändert werden.
+        </li>
       </ul>
       <p>
-        Ihre Home-Automation-Daten (Geräte, Szenen, Verlauf) verbleiben ausschließlich
-        auf Ihrer eigenen Hardware. Wir haben darauf keinen Zugriff.
-        Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+        <strong>Nicht verarbeitet</strong> werden dabei: Passwörter, Rohdaten von Sensoren
+        oder Binärsensoren, Kamerabilder oder -videos, sowie sonstige personenbezogene
+        Nutzungsdaten Ihrer Smart-Home-Geräte. Ihre Home-Automation-Daten (Geräte,
+        Szenen, Verlauf) verbleiben ausschließlich auf Ihrer eigenen Hardware — wir haben
+        darauf keinen Zugriff.
+      </p>
+      <p>
+        Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) für Kontoführung
+        und Systemwartung; Art. 6 Abs. 1 lit. a DSGVO (Einwilligung) sowie Art. 6 Abs. 1
+        lit. f DSGVO (berechtigtes Interesse an IT-Sicherheit und Nachweisbarkeit) für
+        das Support-Sitzungsprotokoll.
       </p>
 
       <h2>3. Cookies und Tracking</h2>
@@ -64,7 +78,19 @@ export default async function Datenschutz({ params }: { params: Promise<{ locale
       <h2>4. Weitergabe an Dritte</h2>
       <ul>
         <li><strong>Hosting-Infrastruktur</strong>: DSGVO-konformer EU-Anbieter.</li>
-        <li><strong>Cloudflare</strong>: Verschlüsselte Tunnelverbindung; verarbeitet nur Transportmetadaten. EU-US DPF zertifiziert.</li>
+        <li>
+          <strong>Cloudflare</strong> (Cloudflare, Inc., 101 Townsend St, San Francisco,
+          CA 94107, USA): stellt den verschlüsselten Reverse-Tunnel (Cloudflare Tunnel)
+          bereit, über den der Fernzugriff auf Ihr Tinta-Box-System ohne Öffnung lokaler
+          Router-Ports erfolgt, sowie die Auslieferung dieser Website. Cloudflare
+          verarbeitet dabei nur Transportmetadaten. Die Datenübertragung in die USA
+          stützt sich auf die Zertifizierung von Cloudflare unter dem EU-U.S. Data
+          Privacy Framework (DPF), ergänzt um Standardvertragsklauseln (SCC) der
+          EU-Kommission als zusätzliche Absicherung. Weitere Informationen:{' '}
+          <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">
+            cloudflare.com/privacypolicy
+          </a>.
+        </li>
       </ul>
 
       <h2>5. Speicherdauer</h2>
@@ -82,10 +108,23 @@ export default async function Datenschutz({ params }: { params: Promise<{ locale
         <li><strong>Einschränkung</strong> (Art. 18)</li>
         <li><strong>Datenübertragbarkeit</strong> (Art. 20)</li>
         <li><strong>Widerspruch</strong> (Art. 21)</li>
+        <li><strong>Widerruf einer erteilten Einwilligung</strong> mit Wirkung für die Zukunft (Art. 7 Abs. 3)</li>
       </ul>
       <p>
         Zur Ausübung Ihrer Rechte:{' '}
         <a href="mailto:support@tinta-lab.de">support@tinta-lab.de</a>
+      </p>
+
+      <h2>7. Beschwerderecht bei der zuständigen Aufsichtsbehörde</h2>
+      <p>
+        Im Falle von Verstößen gegen die DSGVO steht Ihnen ein Beschwerderecht bei einer
+        Aufsichtsbehörde zu. Die für uns zuständige Aufsichtsbehörde ist:
+      </p>
+      <p>
+        Der Hessische Beauftragte für Datenschutz und Informationsfreiheit<br />
+        Postfach 3163<br />
+        65021 Wiesbaden<br />
+        Website: <a href="https://datenschutz.hessen.de/" target="_blank" rel="noopener noreferrer">datenschutz.hessen.de</a>
       </p>
     </LegalPage>
   );

@@ -24,7 +24,7 @@
     "ctaSecondary": "So funktioniert's",
     "badgeData": "Ihre Daten bleiben zuhause",
     "badgeAccess": "Zugang nur mit Ihrer Erlaubnis",
-    "badgeHome": "Funktioniert mit jedem Smart Home",
+    "badgeHome": "Kompatibel mit jedem Gerät, das Home Assistant unterstützt",
     "scrollHint": "Scrollen"
   },
   "features": {
@@ -86,8 +86,8 @@
     "lead": "Wir haben das System so gebaut, dass Sie immer Herr der Lage sind – auch wenn Sie unseren Support nutzen.",
     "pillars": [
       {
-        "title": "Schutz wie beim Online-Banking",
-        "desc": "Ihr Smart Home verbindet sich mit unserer Plattform über einen verschlüsselten Tunnel – wie bei einer Online-Zahlung. Von außen gibt es keine einzige Stelle, über die jemand eindringen könnte.",
+        "title": "Verschlüsselte TLS-Verbindung",
+        "desc": "Ihr Smart Home verbindet sich mit unserer Plattform über einen verschlüsselten Tunnel (TLS) – demselben Verschlüsselungsstandard, der für die sichere Datenübertragung im Internet verwendet wird. Von außen gibt es keine einzige Stelle, über die jemand eindringen könnte.",
         "label": "Keine offenen Ports"
       },
       {
@@ -97,14 +97,14 @@
       },
       {
         "title": "Ihre Daten verlassen Ihr Zuhause nicht",
-        "desc": "Geräte, Automatisierungen, Ereignisverlauf – alles liegt auf Ihrer Hardware, in Ihrem Heimnetz. Wir sehen nur das Signal «System läuft normal».",
+        "desc": "Geräte, Automatisierungen und Ereignisverläufe werden auf Ihrer eigenen Hardware in Ihrem Heimnetzwerk gespeichert. An unsere Plattform werden ausschließlich technische Kennzahlen und Gerätestatus übermittelt – zum Beispiel, dass ein Sensor nicht mehr reagiert. Passwörter, Kamerainhalte und detaillierte Nutzungsverläufe verlassen Ihr Zuhause zu keinem Zeitpunkt.",
         "label": "DSGVO · Daten nur bei Ihnen"
       }
     ],
     "poweredBy": "Basiert auf",
     "poweredByAnd": "und",
     "poweredByText": "– Technologien, denen Millionen Menschen weltweit vertrauen",
-    "gdpr": "DSGVO-konform"
+    "gdpr": "Im Einklang mit den Anforderungen der DSGVO entwickelt"
   },
   "devices": {
     "eyebrow": "Kompatibilität",
@@ -146,11 +146,11 @@
     "items": [
       {
         "q": "Können Techniker mich ohne mein Wissen überwachen?",
-        "a": "Nein, und das ist technisch unmöglich. Das System ist so gebaut, dass wir keine Verbindung zu Ihrem Zuhause herstellen können, ohne dass Sie aktiv handeln. Sie drücken «Freigeben» – der Techniker ist drin. Sie drücken «Trennen» – die Verbindung wird sofort getrennt. Jede Sitzung wird mit Start- und Endzeit im Protokoll erfasst."
+        "a": "Nein. Ein Mitarbeiter erhält Zugriff erst, nachdem Sie die Freigabe aktiv bestätigt haben, und verliert ihn, sobald Sie sie deaktivieren. Jede Zugriffssitzung wird in einem manipulationssicheren Protokoll erfasst, das Sie jederzeit in Ihrem Kundenkonto einsehen können – Sie sehen genau, wer wann zugegriffen und was getan hat."
       },
       {
         "q": "Landen meine persönlichen Daten auf irgendwelchen Servern?",
-        "a": "Nein. Alle Daten Ihres Smart Homes – Geräte, Automatisierungen, Verlauf – bleiben auf Ihrer Hardware, in Ihrem Heimnetz. Wir erhalten nur das Dienstsignal «System läuft normal» und Befehle, die Sie selbst erteilen. Keine persönlichen Daten, keine Überwachung. Wir sind DSGVO-konform."
+        "a": "Nein. Alle Daten Ihres Smart Homes – Geräte, Automatisierungen, Verlauf – bleiben auf Ihrer Hardware, in Ihrem Heimnetz. An unsere Plattform werden nur technische Kennzahlen und Gerätestatus sowie die Befehle übermittelt, die Sie selbst erteilen. Passwörter, Kamerainhalte und detaillierte Nutzungsverläufe verlassen Ihr Zuhause zu keinem Zeitpunkt. Die Plattform wurde im Einklang mit den Anforderungen der DSGVO entwickelt."
       },
       {
         "q": "Muss ich mich mit Technik auskennen?",
@@ -197,7 +197,8 @@
       "contact": "Kontakt",
       "impressum": "Impressum",
       "privacy": "Datenschutz",
-      "terms": "AGB"
+      "terms": "AGB",
+      "withdrawal": "Widerruf"
     },
     "copyright": "Tinta Lab. Alle Rechte vorbehalten."
   },
@@ -220,6 +221,10 @@
   },
   "agb": {
     "title": "Allgemeine Geschäftsbedingungen",
+    "note": "Rechtlich bindende Fassung – nur auf Deutsch verfügbar"
+  },
+  "widerruf": {
+    "title": "Widerrufsbelehrung",
     "note": "Rechtlich bindende Fassung – nur auf Deutsch verfügbar"
   }
 }

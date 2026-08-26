@@ -24,7 +24,7 @@
     "ctaSecondary": "Come funziona",
     "badgeData": "I tuoi dati restano a casa",
     "badgeAccess": "Accesso solo con il tuo permesso",
-    "badgeHome": "Compatibile con qualsiasi smart home",
+    "badgeHome": "Compatibile con qualsiasi dispositivo supportato da Home Assistant",
     "scrollHint": "Scorri"
   },
   "features": {
@@ -86,8 +86,8 @@
     "lead": "Abbiamo costruito il sistema in modo che tu sia sempre al comando – anche quando utilizzi il nostro supporto.",
     "pillars": [
       {
-        "title": "Protezione come nell'home banking",
-        "desc": "La tua smart home si connette alla nostra piattaforma tramite un tunnel cifrato – come un pagamento online. Dall'esterno non esiste alcun punto attraverso cui qualcuno potrebbe intrufolarsi.",
+        "title": "Connessione TLS crittografata",
+        "desc": "La tua smart home si connette alla nostra piattaforma tramite un tunnel crittografato (TLS) – lo stesso standard di crittografia utilizzato per la trasmissione sicura dei dati su internet. Dall'esterno non esiste alcun punto attraverso cui qualcuno potrebbe intrufolarsi.",
         "label": "Nessuna porta aperta"
       },
       {
@@ -97,14 +97,14 @@
       },
       {
         "title": "I tuoi dati non lasciano mai casa tua",
-        "desc": "Dispositivi, automazioni, cronologia eventi – tutto è archiviato sul tuo hardware, nella tua rete domestica. Vediamo solo il segnale «il sistema funziona regolarmente».",
+        "desc": "Dispositivi, automazioni e cronologia degli eventi sono conservati sul vostro hardware, all'interno della vostra rete domestica. Alla nostra piattaforma vengono inviate solo metriche tecniche e lo stato dei dispositivi – ad esempio che un sensore ha smesso di rispondere. Password, contenuti delle telecamere e cronologia d'uso dettagliata non lasciano mai la vostra casa.",
         "label": "GDPR · Dati solo da te"
       }
     ],
     "poweredBy": "Basato su",
     "poweredByAnd": "e",
     "poweredByText": "– tecnologie di cui si fidano milioni di persone nel mondo",
-    "gdpr": "Conforme al GDPR"
+    "gdpr": "Sviluppato nel rispetto dei requisiti del GDPR"
   },
   "devices": {
     "eyebrow": "Compatibilità",
@@ -146,11 +146,11 @@
     "items": [
       {
         "q": "I tecnici possono monitorarmi senza che io lo sappia?",
-        "a": "No, ed è tecnicamente impossibile. Il sistema è costruito in modo che non possiamo connetterci alla tua casa senza una tua azione esplicita. Premi «Consenti» – il tecnico è dentro. Premi «Disconnetti» – la connessione si interrompe immediatamente. Ogni sessione viene registrata con ora di inizio e fine."
+        "a": "No. Uno specialista ottiene l'accesso solo dopo che avete attivato manualmente l'autorizzazione, e lo perde non appena la disattivate. Ogni sessione di accesso viene registrata in un log a prova di manomissione, sempre visibile nel vostro account – potete sempre vedere chi ha effettuato l'accesso, quando e cosa ha fatto."
       },
       {
         "q": "I miei dati personali finiranno su qualche server?",
-        "a": "No. Tutti i dati della tua smart home – dispositivi, automazioni, cronologia – rimangono sul tuo hardware, nella tua rete domestica. Riceviamo solo il segnale di servizio «il sistema funziona regolarmente» e i comandi che tu stesso impartisci. Nessun dato personale, nessun tracciamento. Siamo conformi al GDPR."
+        "a": "No. Tutti i dati della tua smart home – dispositivi, automazioni, cronologia – rimangono sul tuo hardware, nella tua rete domestica. Alla nostra piattaforma vengono inviate solo metriche tecniche e stato dei dispositivi, oltre ai comandi che tu stesso impartisci. Password, contenuti delle telecamere e cronologia d'uso dettagliata non lasciano mai la tua casa. La piattaforma è sviluppata nel rispetto dei requisiti del GDPR."
       },
       {
         "q": "Devo avere competenze tecniche?",
@@ -197,7 +197,8 @@
       "contact": "Contattaci",
       "impressum": "Impressum",
       "privacy": "Privacy",
-      "terms": "Termini di servizio"
+      "terms": "Termini di servizio",
+      "withdrawal": "Diritto di recesso"
     },
     "copyright": "Tinta Lab. Tutti i diritti riservati."
   },
@@ -211,6 +212,10 @@
   },
   "agb": {
     "title": "Condizioni generali di contratto",
+    "note": "La versione legalmente vincolante è disponibile solo in tedesco."
+  },
+  "widerruf": {
+    "title": "Diritto di recesso",
     "note": "La versione legalmente vincolante è disponibile solo in tedesco."
   }
 }

@@ -53,10 +53,17 @@ export default async function AGB({ params }: { params: Promise<{ locale: string
         Gebühren. Die Abrechnung erfolgt je nach Vereinbarung monatlich oder einmalig.
       </p>
 
-      <h2>§ 6 Datenschutz</h2>
+      <h2>§ 6 Datenschutz und Auftragsverarbeitung</h2>
       <p>
         Alle Smart-Home-Daten verbleiben auf der Hardware des Kunden. Details:{' '}
         <a href="/datenschutz">Datenschutzerklärung</a>.
+      </p>
+      <p>
+        Soweit der Kunde die Dienste von Tinta Lab als Unternehmer im Sinne des § 14 BGB
+        nutzt und hierbei personenbezogene Daten Dritter verarbeitet werden, schließen
+        die Parteien eine Vereinbarung zur Auftragsverarbeitung (AVV) gemäß Art. 28
+        DSGVO. Tinta Lab stellt hierfür auf Anfrage ein entsprechendes Standard-AVV-Muster
+        zur Verfügung.
       </p>
 
       <h2>§ 7 Fernwartungszugriff</h2>

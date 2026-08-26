@@ -17,40 +17,41 @@ export default async function Impressum({
 
   return (
     <LegalPage title={t('title')} note={note}>
-      <p className="text-slate-500 text-sm mb-8">Angaben gemäß § 5 TMG</p>
+      <p className="text-slate-500 text-sm mb-8">Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)</p>
 
       <h2>Verantwortlicher</h2>
       <p>
         Viktor Goloviznin<br />
         Tinta Lab<br />
         [Straße und Hausnummer]<br />
-        [PLZ] [Stadt]<br />
+        65719 Hofheim am Taunus (Ortsteil Diedenbergen)<br />
         Deutschland
       </p>
 
       <h2>Kontakt</h2>
       <p>
+        Telefon: [Telefonnummer]<br />
         E-Mail: <a href="mailto:support@tinta-lab.de">support@tinta-lab.de</a>
       </p>
 
-      <h2>Berufshaftpflichtversicherung</h2>
+      <h2>Umsatzsteuer</h2>
       <p>
-        Tinta Lab erbringt IT-Dienstleistungen im Bereich Smart Home als freiberufliche
-        Tätigkeit. Eine Berufshaftpflichtversicherung besteht entsprechend dem Umfang
-        der angebotenen Dienstleistungen.
+        Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer berechnet
+        und ausgewiesen.<br />
+        Steuernummer: [Steuernummer folgt nach Erteilung durch das Finanzamt]
       </p>
 
       <hr />
 
       <h2>Haftung für Inhalte</h2>
       <p>
-        Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen
-        Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind
-        wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte
-        fremde Informationen zu überwachen. Verpflichtungen zur Entfernung oder Sperrung
-        der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon
-        unberührt. Bei Bekanntwerden von entsprechenden Rechtsverletzungen werden wir
-        diese Inhalte umgehend entfernen.
+        Als Diensteanbieter sind wir für eigene Inhalte auf diesen Seiten nach den
+        allgemeinen Gesetzen verantwortlich. Wir sind als Diensteanbieter jedoch nicht
+        verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen
+        oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen.
+        Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach
+        den allgemeinen Gesetzen bleiben hiervon unberührt. Bei Bekanntwerden von
+        entsprechenden Rechtsverletzungen werden wir diese Inhalte umgehend entfernen.
       </p>
 
       <h2>Haftung für Links</h2>
@@ -66,6 +67,21 @@ export default async function Impressum({
         unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung,
         Verbreitung und jede Art der Verwertung außerhalb der Grenzen des Urheberrechtes
         bedürfen der schriftlichen Zustimmung des jeweiligen Autors.
+      </p>
+
+      <hr />
+
+      <h2>EU-Streitschlichtung</h2>
+      <p>
+        Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung
+        (OS) bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr/</a>.
+        Unsere E-Mail-Adresse finden Sie oben im Impressum.
+      </p>
+
+      <h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
+      <p>
+        Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer
+        Verbraucherschlichtungsstelle teilzunehmen.
       </p>
     </LegalPage>
   );
