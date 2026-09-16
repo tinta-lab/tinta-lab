@@ -142,13 +142,18 @@ export class ServersGateway
     this.server.to('servers-room').emit('server:update', payload);
   }
 
+  // Field named accessExpiresAt (not expiresAt) to match server:update and
+  // every HTTP Server view — a naming mismatch here previously meant
+  // frontend code merging this event into its server state silently kept
+  // the stale accessExpiresAt (the spread added a stray, differently-named
+  // `expiresAt` key instead of overwriting the one actually rendered).
   emitAccessChanged(
     serverId: string,
     accessEnabled: boolean,
-    expiresAt: Date | null,
+    accessExpiresAt: Date | null,
   ) {
     this.server
       .to('servers-room')
-      .emit('server:access', { id: serverId, accessEnabled, expiresAt });
+      .emit('server:access', { id: serverId, accessEnabled, accessExpiresAt });
   }
 }

@@ -5,6 +5,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { HubsService } from './hubs.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { HubViewDto } from './dto/hub-view.dto';
 
 @Controller('hubs')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -13,12 +14,12 @@ export class HubsController {
   constructor(private readonly hubsService: HubsService) {}
 
   @Get()
-  findAll(@Query() pagination: PaginationDto) {
+  findAll(@Query() pagination: PaginationDto): Promise<HubViewDto[]> {
     return this.hubsService.findAll(pagination.skip, pagination.take);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string): Promise<HubViewDto> {
     const hub = await this.hubsService.findOne(id);
     if (!hub) throw new NotFoundException('Hub not found');
     return hub;

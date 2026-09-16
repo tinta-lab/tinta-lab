@@ -7,11 +7,20 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import axios from 'axios';
-import { Server, ServerStatus, ServerPublicStatus } from './entities/server.entity';
+import {
+  Server,
+  ServerStatus,
+  ServerPublicStatus,
+} from './entities/server.entity';
 import { ServersGateway } from './servers.gateway';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
 import { ConfigService } from '@nestjs/config';
 import { generateHubId } from '../cloudflare/cloudflare.service';
+import { toSupportServerView } from './dto/support-server-view.dto';
+import {
+  toClientServerView,
+  ClientServerView,
+} from './dto/client-server-view.dto';
 
 @Injectable()
 export class ServersService {
@@ -51,10 +60,16 @@ export class ServersService {
     // Auto-provision Cloudflare tunnel if API is configured and no tunnelId was provided
     if (!data.tunnelId && this.cloudflare?.isEnabled) {
       try {
-        const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+        const baseDomain = this.config.get(
+          'CLOUDFLARE_BASE_DOMAIN',
+          'tinta-lab.de',
+        );
         // Use hub-{id}.domain as public hostname — hides client name from URL
         const hubHostname = `hub-${hubId}.${baseDomain}`;
-        const cf = await this.cloudflare.provisionServer(data.name, hubHostname);
+        const cf = await this.cloudflare.provisionServer(
+          data.name,
+          hubHostname,
+        );
         await this.serversRepository.update(saved.id, {
           tunnelId: cf.tunnelId,
           tunnelToken: cf.tunnelToken,
@@ -65,7 +80,9 @@ export class ServersService {
         saved.tunnelToken = cf.tunnelToken;
         saved.cfDnsRecordId = cf.cfDnsRecordId;
         (saved as any).cfAccessAppId = cf.cfAccessAppId;
-        this.logger.log(`Cloudflare tunnel provisioned for server ${saved.id} at ${hubHostname}`);
+        this.logger.log(
+          `Cloudflare tunnel provisioned for server ${saved.id} at ${hubHostname}`,
+        );
       } catch (err: any) {
         this.logger.error(
           `Cloudflare provisioning failed for ${saved.id}: ${err.message}`,
@@ -80,7 +97,10 @@ export class ServersService {
   /** Returns the public Cloudflare hostname for a server, e.g. hub-a7f3k9.tinta-lab.de */
   getPublicHostname(server: Server): string | null {
     if (!server.hubId) return null;
-    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+    const baseDomain = this.config.get(
+      'CLOUDFLARE_BASE_DOMAIN',
+      'tinta-lab.de',
+    );
     return `hub-${server.hubId}.${baseDomain}`;
   }
 
@@ -96,31 +116,21 @@ export class ServersService {
   }
 
   // Support role: only accessible servers, no sensitive infra fields, no client PII beyond name
-  async findAccessibleForSupport(): Promise<Record<string, any>[]> {
+  async findAccessibleForSupport() {
     const servers = await this.serversRepository.find({
       where: { accessEnabled: true },
       relations: ['client', 'client.user'],
     });
-    return servers.map(
-      ({ localUrl, tunnelToken, tunnelId, cfDnsRecordId, ...safe }) => ({
-        ...safe,
-        publicUrl: this.getPublicHostname(safe as Server),
-        client: safe.client
-          ? {
-              id: safe.client.id,
-              user: safe.client.user
-                ? {
-                    id: safe.client.user.id,
-                    firstName: safe.client.user.firstName,
-                    lastName: safe.client.user.lastName,
-                  }
-                : undefined,
-            }
-          : undefined,
-      }),
-    );
+    return servers.map((server) => ({
+      ...toSupportServerView(server),
+      publicUrl: this.getPublicHostname(server),
+    }));
   }
 
+  // Internal use only (agent gateway, provisioning, ownership checks) —
+  // returns the FULL entity including infra secrets, since those callers
+  // genuinely need tunnelToken etc. to operate. Never return this directly
+  // from an HTTP handler — use findMyServers (CLIENT-safe) instead.
   async findByClientId(clientId: string): Promise<Server[]> {
     const servers = await this.serversRepository.find({
       where: { client: { id: clientId } },
@@ -133,6 +143,11 @@ export class ServersService {
       ...server,
       publicUrl: this.getPublicHostname(server),
     })) as Server[];
+  }
+
+  async findMyServers(clientId: string): Promise<ClientServerView[]> {
+    const servers = await this.findByClientId(clientId);
+    return servers.map(toClientServerView);
   }
 
   async findById(id: string): Promise<Server> {
@@ -188,7 +203,10 @@ export class ServersService {
   // protected apps) as reachable — only a network-level failure or timeout
   // means the tunnel itself is down.
   async checkPublicReachability(): Promise<void> {
-    const baseDomain = this.config.get('CLOUDFLARE_BASE_DOMAIN', 'tinta-lab.de');
+    const baseDomain = this.config.get(
+      'CLOUDFLARE_BASE_DOMAIN',
+      'tinta-lab.de',
+    );
     const servers = await this.serversRepository.find({
       where: {},
       select: ['id', 'hubId', 'publicStatus'],
@@ -219,7 +237,9 @@ export class ServersService {
       });
 
       if (newStatus !== server.publicStatus) {
-        const full = await this.serversRepository.findOne({ where: { id: server.id } });
+        const full = await this.serversRepository.findOne({
+          where: { id: server.id },
+        });
         if (full) {
           this.serversGateway?.emitServerUpdate({
             id: server.id,
@@ -267,7 +287,10 @@ export class ServersService {
       }
     }
     // Delete referencing access_logs first (FK has no CASCADE)
-    await this.dataSource.query(`DELETE FROM access_logs WHERE "serverId" = $1`, [id]);
+    await this.dataSource.query(
+      `DELETE FROM access_logs WHERE "serverId" = $1`,
+      [id],
+    );
     await this.serversRepository.delete(id);
 
     // agent_sessions is keyed per-client (not per-server) — an agent install

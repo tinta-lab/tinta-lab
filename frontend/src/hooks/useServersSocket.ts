@@ -1,10 +1,28 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { Server } from '@/types';
 
-type ServerUpdate = Pick<Server, 'id' | 'status' | 'accessEnabled' | 'accessExpiresAt' | 'lastSeenAt' | 'publicStatus' | 'publicCheckedAt'>;
-type AccessUpdate = Pick<Server, 'id' | 'accessEnabled' | 'accessExpiresAt'>;
+// Transport types for the `/servers` WS namespace — deliberately NOT
+// `Pick<SomeHttpView, ...>`. This event reaches both the client and support
+// dashboards, which consume different HTTP views (ClientServer vs
+// SupportServer); pinning it to either would wrongly couple a shared
+// real-time transport to one HTTP representation. Field names/shapes here
+// are taken directly from the emitting side — servers.gateway.ts's
+// `emitServerUpdate`/`emitAccessChanged` — not copied from an HTTP DTO.
+type ServerUpdate = {
+  id: string;
+  status: 'online' | 'offline' | 'unknown';
+  accessEnabled: boolean;
+  accessExpiresAt: string | null;
+  lastSeenAt: string | null;
+  publicStatus?: 'reachable' | 'unreachable' | 'unknown';
+  publicCheckedAt?: string | null;
+};
+type AccessUpdate = {
+  id: string;
+  accessEnabled: boolean;
+  accessExpiresAt: string | null;
+};
 
 interface Options {
   // Whether the user is logged in — the JWT itself lives only in the
