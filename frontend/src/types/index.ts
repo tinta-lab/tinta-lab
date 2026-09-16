@@ -200,3 +200,23 @@ export interface ClientAccessLogView {
   server: { id: string; name: string } | null;
   ticket: { id: string; subject: string; status: TicketStatus } | null;
 }
+
+// Mirrors backend/src/access/dto/audit-trail-view.dto.ts — ADMIN-only
+// cryptographic view of one audit_events row (GET /access/audit/:accessLogId).
+export interface AuditTrailEventView {
+  id: string;
+  seq: string;
+  accessLogId: string;
+  eventType: AuditEventType;
+  actorUserId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  prevHash: string | null;
+  hash: string;
+}
+
+// Mirrors AuditLogService.verifyChain()'s return shape (GET /access/audit-verify).
+export interface AuditChainVerification {
+  valid: boolean;
+  brokenAtEventId?: string;
+}

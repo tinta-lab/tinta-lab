@@ -6,11 +6,15 @@ import {
   Patch,
   Param,
   Body,
+  Query,
   UseGuards,
   ForbiddenException,
 } from '@nestjs/common';
 import { AccessService } from './access.service';
 import { GrantAccessDto } from './dto/grant-access.dto';
+import { AccessLogsQueryDto } from './dto/access-logs-query.dto';
+import { MyLogsQueryDto } from './dto/my-logs-query.dto';
+import { toAccessGrantView } from './dto/access-grant-view.dto';
 import { ClientsService } from '../clients/clients.service';
 import { ServersService } from '../servers/servers.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -19,6 +23,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../auth/decorators/current-user.decorator';
 import { UserRole } from '../users/entities/user.entity';
+import {
+  SECURITY_CENTER_ROLES,
+  AUDIT_LEDGER_ADMIN_ROLES,
+} from '../auth/role-groups';
 
 @Controller('access')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -41,7 +49,8 @@ export class AccessController {
     if (user.role === UserRole.CLIENT) {
       await this.accessService.assertOwnership(serverId, user.id);
     }
-    return this.accessService.grantAccess(serverId, user.id, dto);
+    const log = await this.accessService.grantAccess(serverId, user.id, dto);
+    return toAccessGrantView(log);
   }
 
   // CLIENT revokes access to their own server (ownership enforced)
@@ -84,12 +93,50 @@ export class AccessController {
     return this.accessService.getLogsForServer(serverId);
   }
 
-  // CLIENT sees their own access history
+  // Event-level Access Logs browser (audit_events, not access_logs — see
+  // AccessService.queryAuditEvents for why). ADMIN gets the unrestricted,
+  // globally filterable view, including filtering *by* a staff member via
+  // `staffId`. SUPPORT/SALES get the same shape but scoped server-side to
+  // events on tickets they posted a message on — `staffId` is dropped
+  // entirely for them, never honored as "browse someone else's activity".
+  @Get('logs')
+  @Roles(...SECURITY_CENTER_ROLES)
+  async getAuditEvents(
+    @Query() query: AccessLogsQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (user.role === UserRole.ADMIN) {
+      return this.accessService.queryAuditEvents(query);
+    }
+    const { staffId: _ignoredForStaff, ...staffQuery } = query;
+    return this.accessService.queryAuditEvents(staffQuery, user.id);
+  }
+
+  // Session-level drill-down for one access_logs row — full lifecycle
+  // fields plus its ordered audit_events chain. Named `sessions`, not
+  // `logs/:id`, specifically to avoid colliding with GET /access/logs/:serverId
+  // above (same path shape, different id space — serverId vs accessLogId).
+  @Get('sessions/:accessLogId')
+  @Roles(...SECURITY_CENTER_ROLES)
+  async getAccessLogDetail(
+    @Param('accessLogId') accessLogId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (user.role === UserRole.ADMIN) {
+      return this.accessService.getAccessLogDetail(accessLogId);
+    }
+    return this.accessService.getAccessLogDetail(accessLogId, user.id);
+  }
+
+  // CLIENT sees their own access history, optionally scoped to one ticket
   @Get('my-logs')
   @Roles(UserRole.CLIENT)
-  async getMyLogs(@CurrentUser() user: AuthenticatedUser) {
+  async getMyLogs(
+    @Query() query: MyLogsQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     const client = await this.clientsService.findByUserId(user.id);
-    return this.accessService.getLogsForClient(client.id);
+    return this.accessService.getLogsForClient(client.id, query.ticketId);
   }
 
   // ADMIN: put/lift a litigation/incident hold — excludes the log from GDPR purge
@@ -101,14 +148,14 @@ export class AccessController {
 
   // ADMIN: technical audit trail for one session (hash-chained events)
   @Get('audit/:accessLogId')
-  @Roles(UserRole.ADMIN)
+  @Roles(...AUDIT_LEDGER_ADMIN_ROLES)
   getAuditTrail(@Param('accessLogId') accessLogId: string) {
     return this.accessService.getAuditTrail(accessLogId);
   }
 
   // ADMIN: verify the whole audit ledger hasn't been tampered with
   @Get('audit-verify')
-  @Roles(UserRole.ADMIN)
+  @Roles(...AUDIT_LEDGER_ADMIN_ROLES)
   verifyAuditChain() {
     return this.accessService.verifyAuditChain();
   }

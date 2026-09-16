@@ -42,12 +42,18 @@ export class AuditEvent {
   eventType: AuditEventType;
 
   // Never store secrets here (passwords, tokens, WiFi keys, raw payloads).
+  // Indexed — filtered directly on GET /access/logs (?staffId=) and by the
+  // STAFF-scope query. See sql/010_access_logs_browser_indexes.sql.
+  @Index()
   @Column({ nullable: true, type: 'uuid' })
   actorUserId: string | null;
 
   @Column({ nullable: true, type: 'jsonb' })
   metadata: Record<string, unknown> | null;
 
+  // Indexed — date-range filter on GET /access/logs (?dateFrom=/?dateTo=).
+  // See sql/010_access_logs_browser_indexes.sql.
+  @Index()
   @CreateDateColumn()
   createdAt: Date;
 

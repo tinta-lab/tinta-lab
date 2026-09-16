@@ -230,9 +230,17 @@ export default function SupportDashboard() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">{t('support_title')}</h1>
-          <p className="text-slate-400 text-sm mt-1">{t('support_subtitle')}</p>
+        <div className="mb-6 flex items-start justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">{t('support_title')}</h1>
+            <p className="text-slate-400 text-sm mt-1">{t('support_subtitle')}</p>
+          </div>
+          <Link
+            href="/dashboard/support/security"
+            className="flex items-center gap-1.5 text-xs font-medium text-slate-300 hover:text-white border border-slate-700 rounded-lg px-3 py-1.5"
+          >
+            <Shield size={13} className="text-amber-400" /> {t('security_center_title')}
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

@@ -25,6 +25,10 @@ export class AccessLog {
   @JoinColumn()
   server: Server;
 
+  // Indexed — filterable dimension on GET /access/logs (?staffId= filters
+  // audit_events.actorUserId, but "who opened the session" is grantedBy).
+  // See sql/010_access_logs_browser_indexes.sql.
+  @Index()
   @ManyToOne(() => User)
   @JoinColumn()
   grantedBy: User;
@@ -49,7 +53,11 @@ export class AccessLog {
   @Column({ nullable: true, type: 'varchar', length: 280 })
   reasonDetails: string | null;
 
-  // Optional link to a formal support ticket this session addresses
+  // Optional link to a formal support ticket this session addresses.
+  // Indexed — filtered directly on GET /access/logs (?ticketId=), and it's
+  // the join target for the STAFF ticket-scope subquery. See
+  // sql/010_access_logs_browser_indexes.sql.
+  @Index()
   @ManyToOne(() => Ticket, { nullable: true })
   @JoinColumn()
   ticket: Ticket | null;
@@ -82,6 +90,11 @@ export class AccessLog {
   @Column({ nullable: true, type: 'text' })
   notes: string;
 
+  // Indexed — date-range filter on GET /access/logs (?dateFrom=/?dateTo=
+  // filters audit_events.createdAt, but the session's own createdAt is
+  // useful for the same kind of range query on access_logs directly).
+  // See sql/010_access_logs_browser_indexes.sql.
+  @Index()
   @CreateDateColumn()
   createdAt: Date;
 }

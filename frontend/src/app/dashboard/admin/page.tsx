@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
-import { Users, Server, Ticket, Activity, LogOut, RefreshCw, Wifi, Headphones } from 'lucide-react';
+import { Users, Server, Ticket, Activity, LogOut, RefreshCw, Wifi, Headphones, History } from 'lucide-react';
 import api from '@/lib/api';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
@@ -135,6 +135,7 @@ export default function AdminDashboard() {
             { title: t('admin_nav_users'),   desc: t('admin_nav_users_desc'),   icon: Users,  href: '/dashboard/admin/users',   color: 'text-blue-400' },
             { title: t('admin_nav_tickets'), desc: t('admin_nav_tickets_desc'), icon: Ticket, href: '/dashboard/admin/tickets', color: 'text-amber-400' },
             { title: t('admin_nav_staff'),   desc: t('admin_nav_staff_desc'),   icon: Headphones, href: '/dashboard/admin/staff',   color: 'text-blue-400' },
+            { title: t('access_logs_title'), desc: t('access_logs_nav_desc'),   icon: History, href: '/dashboard/admin/access-logs', color: 'text-purple-400' },
           ].map((card) => (
             <button
               key={card.title}

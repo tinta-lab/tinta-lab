@@ -5,10 +5,11 @@ import {
   forwardRef,
   ForbiddenException,
   ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { randomBytes } from 'crypto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, LessThan, Repository } from 'typeorm';
 import { AccessLog } from './entities/access-log.entity';
 import { AuditEventType } from './entities/audit-event.entity';
 import { AuditLogService } from './audit-log.service';
@@ -17,9 +18,43 @@ import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
 import { AccessReason } from './enums/access-reason.enum';
+import { ClientAccessLogView } from './dto/client-access-log-view.dto';
+import { AccessLogsQueryDto } from './dto/access-logs-query.dto';
+import {
+  AccessEventPage,
+  AccessEventView,
+  AccessLogDetail,
+} from './dto/access-event-view.dto';
 
 const DEFAULT_DURATION_MINUTES = 60;
 const DEFAULT_RETENTION_DAYS = 365;
+
+// Raw pg row shapes for the hand-joined queries in queryAuditEvents() —
+// dataSource.query() has no way to know the column set of an arbitrary SQL
+// string, so these exist purely to stop the result from decaying to `any`
+// and cascading unsafe-* lint errors through every field access below.
+interface AuditEventRow {
+  id: string;
+  seq: string;
+  eventType: AuditEventType;
+  createdAt: Date;
+  accessLogId: string;
+  metadata: Record<string, unknown> | null;
+  actorId: string | null;
+  actorFirstName: string | null;
+  actorLastName: string | null;
+  serverId: string | null;
+  serverName: string | null;
+  clientUserId: string | null;
+  clientFirstName: string | null;
+  clientLastName: string | null;
+  ticketId: string | null;
+  ticketSubject: string | null;
+}
+
+interface CountRow {
+  count: number;
+}
 
 export interface GrantAccessOptions {
   // Closed reason set — see enums/access-reason.enum.ts. reasonDetails is
@@ -38,6 +73,8 @@ export class AccessService {
   constructor(
     @InjectRepository(AccessLog)
     private accessLogRepository: Repository<AccessLog>,
+    @InjectDataSource()
+    private dataSource: DataSource,
     private serversService: ServersService,
     private configService: ConfigService,
     private auditLog: AuditLogService,
@@ -85,14 +122,19 @@ export class AccessService {
     });
     const saved = await this.accessLogRepository.save(log);
 
-    await this.auditLog.append(saved.id, AuditEventType.GRANTED, grantedByUserId, {
-      serverId,
-      durationMinutes: timeoutMinutes,
-      reasonCode: options.reasonCode ?? null,
-      reasonDetails: options.reasonDetails ?? null,
-      ticketId: options.ticketId ?? null,
-      ...(options.source ? { source: options.source } : {}),
-    });
+    await this.auditLog.append(
+      saved.id,
+      AuditEventType.GRANTED,
+      grantedByUserId,
+      {
+        serverId,
+        durationMinutes: timeoutMinutes,
+        reasonCode: options.reasonCode ?? null,
+        reasonDetails: options.reasonDetails ?? null,
+        ticketId: options.ticketId ?? null,
+        ...(options.source ? { source: options.source } : {}),
+      },
+    );
 
     // Enable tinta-support user with fresh password on the client's HA
     this.agentGateway?.setSupportAccess(
@@ -135,7 +177,11 @@ export class AccessService {
     await this.serversService.setAccessEnabled(serverId, false);
     await this.accessLogRepository.update(
       { server: { id: serverId }, isRevoked: false },
-      { isRevoked: true, revokedAt: new Date(), supportPassword: null as unknown as string },
+      {
+        isRevoked: true,
+        revokedAt: new Date(),
+        supportPassword: null as unknown as string,
+      },
     );
 
     if (activeLog) {
@@ -274,7 +320,9 @@ export class AccessService {
     });
   }
 
-  async getLogsForServer(serverId: string): Promise<Omit<AccessLog, 'supportPassword'>[]> {
+  async getLogsForServer(
+    serverId: string,
+  ): Promise<Omit<AccessLog, 'supportPassword'>[]> {
     const logs = await this.accessLogRepository.find({
       where: { server: { id: serverId } },
       relations: ['grantedBy', 'accessedBy', 'ticket'],
@@ -283,14 +331,65 @@ export class AccessService {
     return logs.map(({ supportPassword: _pw, ...log }) => log as AccessLog);
   }
 
-  async getLogsForClient(clientId: string): Promise<Omit<AccessLog, 'supportPassword'>[]> {
+  // Returns a shaped, safe view — never the raw entities. See
+  // ClientAccessLogView for exactly why (Ticket.internalNotes and
+  // Server.tunnelToken/cfAccessAppId/cfDnsRecordId must never reach a
+  // client response, and this codebase has no serializer layer that would
+  // strip them automatically).
+  // ticketId, when given, scopes to one ticket's access history instead of
+  // the client's last 20 overall — used by the ticket detail page. Ownership
+  // is enforced by the join itself (server.client.id = clientId AND
+  // ticket.id = ticketId): a ticketId that's nonexistent or belongs to
+  // another client simply matches no rows, same shape as "no history yet"
+  // — no separate existence check, so there's nothing to distinguish "not
+  // yours" from "doesn't exist" from "empty". Uncapped in this mode (a
+  // single ticket's history won't run away the way "all of a client's
+  // access ever" could), unlike the unscoped `take: 20`.
+  async getLogsForClient(
+    clientId: string,
+    ticketId?: string,
+  ): Promise<ClientAccessLogView[]> {
     const logs = await this.accessLogRepository.find({
-      where: { server: { client: { id: clientId } } },
+      where: {
+        server: { client: { id: clientId } },
+        ...(ticketId ? { ticket: { id: ticketId } } : {}),
+      },
       relations: ['grantedBy', 'accessedBy', 'server', 'ticket'],
       order: { createdAt: 'DESC' },
-      take: 20,
+      ...(ticketId ? {} : { take: 20 }),
     });
-    return logs.map(({ supportPassword: _pw, ...log }) => log as AccessLog);
+    return logs.map((log) => ({
+      id: log.id,
+      grantedAt: log.grantedAt,
+      expiresAt: log.expiresAt,
+      connectedAt: log.connectedAt,
+      revokedAt: log.revokedAt,
+      isRevoked: log.isRevoked,
+      reason: log.reason,
+      reasonCode: log.reasonCode,
+      reasonDetails: log.reasonDetails,
+      activityLog: log.activityLog,
+      grantedBy: log.grantedBy
+        ? {
+            firstName: log.grantedBy.firstName,
+            lastName: log.grantedBy.lastName,
+          }
+        : null,
+      accessedBy: log.accessedBy
+        ? {
+            firstName: log.accessedBy.firstName,
+            lastName: log.accessedBy.lastName,
+          }
+        : null,
+      server: log.server ? { id: log.server.id, name: log.server.name } : null,
+      ticket: log.ticket
+        ? {
+            id: log.ticket.id,
+            subject: log.ticket.subject,
+            status: log.ticket.status,
+          }
+        : null,
+    }));
   }
 
   async getAuditTrail(accessLogId: string) {
@@ -299,5 +398,197 @@ export class AccessService {
 
   async verifyAuditChain() {
     return this.auditLog.verifyChain();
+  }
+
+  // Event-level browsing for GET /access/logs — audit_events is the primary
+  // dataset (one row per GRANTED/CONNECTED/REVOKED/EXPIRED/... event), not
+  // access_logs, so eventType filters map onto a real column instead of a
+  // derived session status. access_logs/servers/clients/tickets are joined
+  // in only for display context.
+  //
+  // `staffTicketScopeUserId`, when set, restricts results to events whose
+  // access_log is linked to a ticket that user posted a message on (public
+  // reply or internal note) — this is how STAFF (SUPPORT/SALES) callers are
+  // scoped. It is NEVER derived from `filter.staffId`: the controller only
+  // forwards that query field through for ADMIN callers, who may use it to
+  // filter *by* a staff member's actorUserId — a different thing entirely.
+  async queryAuditEvents(
+    filter: AccessLogsQueryDto,
+    staffTicketScopeUserId?: string,
+  ): Promise<AccessEventPage> {
+    const conditions: string[] = [];
+    const params: unknown[] = [];
+    const push = (sql: string, value: unknown) => {
+      params.push(value);
+      conditions.push(sql.replace('?', `$${params.length}`));
+    };
+
+    if (filter.serverId) push('al."serverId" = ?', filter.serverId);
+    if (filter.clientId) push('c.id = ?', filter.clientId);
+    if (filter.staffId) push('ae."actorUserId" = ?', filter.staffId);
+    if (filter.ticketId) push('al."ticketId" = ?', filter.ticketId);
+    if (filter.eventType) push('ae."eventType" = ?', filter.eventType);
+    if (filter.dateFrom) push('ae."createdAt" >= ?', new Date(filter.dateFrom));
+    if (filter.dateTo) push('ae."createdAt" <= ?', new Date(filter.dateTo));
+    if (staffTicketScopeUserId) {
+      push(
+        'al."ticketId" IN (SELECT DISTINCT "ticketId" FROM ticket_messages WHERE "authorId" = ?)',
+        staffTicketScopeUserId,
+      );
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+    const take = Math.min(filter.take ?? 50, 100);
+    const skip = filter.skip ?? 0;
+
+    const dataSql = `
+      SELECT
+        ae.id, ae.seq, ae."eventType", ae."createdAt", ae."accessLogId", ae.metadata,
+        actor.id AS "actorId", actor."firstName" AS "actorFirstName", actor."lastName" AS "actorLastName",
+        s.id AS "serverId", s.name AS "serverName",
+        cu.id AS "clientUserId", cu."firstName" AS "clientFirstName", cu."lastName" AS "clientLastName",
+        t.id AS "ticketId", t.subject AS "ticketSubject"
+      FROM audit_events ae
+      LEFT JOIN access_logs al ON al.id = ae."accessLogId"
+      LEFT JOIN users actor ON actor.id = ae."actorUserId"
+      LEFT JOIN servers s ON s.id = al."serverId"
+      LEFT JOIN clients c ON c.id = s."clientId"
+      LEFT JOIN users cu ON cu.id = c."userId"
+      LEFT JOIN tickets t ON t.id = al."ticketId"
+      ${where}
+      ORDER BY ae.seq DESC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+    const countSql = `
+      SELECT count(*)::int AS count
+      FROM audit_events ae
+      LEFT JOIN access_logs al ON al.id = ae."accessLogId"
+      LEFT JOIN servers s ON s.id = al."serverId"
+      LEFT JOIN clients c ON c.id = s."clientId"
+      ${where}
+    `;
+
+    const [rows, countRows] = await Promise.all([
+      this.dataSource.query<AuditEventRow[]>(dataSql, [...params, take, skip]),
+      this.dataSource.query<CountRow[]>(countSql, params),
+    ]);
+
+    const data: AccessEventView[] = rows.map((r) => ({
+      id: r.id,
+      seq: r.seq,
+      eventType: r.eventType,
+      createdAt: r.createdAt,
+      accessLogId: r.accessLogId,
+      metadata: r.metadata,
+      // firstName/lastName/name are NOT NULL columns — when the join key
+      // (actorId/clientUserId/serverId) is present the joined row was found,
+      // so these are never really null; `?? ''` just keeps that guarantee
+      // honest to the type checker without asserting past a LEFT JOIN.
+      actor: r.actorId
+        ? {
+            id: r.actorId,
+            firstName: r.actorFirstName ?? '',
+            lastName: r.actorLastName ?? '',
+          }
+        : null,
+      server: r.serverId ? { id: r.serverId, name: r.serverName ?? '' } : null,
+      client: r.clientUserId
+        ? {
+            id: r.clientUserId,
+            firstName: r.clientFirstName ?? '',
+            lastName: r.clientLastName ?? '',
+          }
+        : null,
+      ticket: r.ticketId
+        ? { id: r.ticketId, subject: r.ticketSubject ?? '' }
+        : null,
+    }));
+
+    return { data, total: countRows[0]?.count ?? 0 };
+  }
+
+  // Session-level drill-down for GET /access/logs/:accessLogId. Existence is
+  // checked before scope (404 for a genuinely unknown id, 403 for a real
+  // session outside the caller's staff scope) — unlike the CLIENT-facing
+  // ticket endpoints, there's no existence-hiding concern for staff callers.
+  async getAccessLogDetail(
+    accessLogId: string,
+    staffTicketScopeUserId?: string,
+  ): Promise<AccessLogDetail> {
+    const log = await this.accessLogRepository.findOne({
+      where: { id: accessLogId },
+      relations: [
+        'grantedBy',
+        'accessedBy',
+        'server',
+        'server.client',
+        'server.client.user',
+        'ticket',
+      ],
+    });
+    if (!log) throw new NotFoundException('Access log not found');
+
+    if (staffTicketScopeUserId) {
+      const ticketId = log.ticket?.id;
+      const allowed = ticketId
+        ? await this.dataSource.query<unknown[]>(
+            'SELECT 1 FROM ticket_messages WHERE "ticketId" = $1 AND "authorId" = $2 LIMIT 1',
+            [ticketId, staffTicketScopeUserId],
+          )
+        : [];
+      if (!allowed.length) {
+        throw new ForbiddenException(
+          'This access log is outside your ticket scope',
+        );
+      }
+    }
+
+    const events = await this.auditLog.getEventsForAccessLog(accessLogId);
+    const clientUser = log.server?.client?.user;
+
+    return {
+      id: log.id,
+      grantedAt: log.grantedAt,
+      expiresAt: log.expiresAt,
+      connectedAt: log.connectedAt,
+      revokedAt: log.revokedAt,
+      isRevoked: log.isRevoked,
+      reasonCode: log.reasonCode,
+      reasonDetails: log.reasonDetails,
+      reason: log.reason,
+      grantedBy: log.grantedBy
+        ? {
+            id: log.grantedBy.id,
+            firstName: log.grantedBy.firstName,
+            lastName: log.grantedBy.lastName,
+          }
+        : null,
+      accessedBy: log.accessedBy
+        ? {
+            id: log.accessedBy.id,
+            firstName: log.accessedBy.firstName,
+            lastName: log.accessedBy.lastName,
+          }
+        : null,
+      server: log.server ? { id: log.server.id, name: log.server.name } : null,
+      client: clientUser
+        ? {
+            id: log.server.client.id,
+            firstName: clientUser.firstName,
+            lastName: clientUser.lastName,
+          }
+        : null,
+      ticket: log.ticket
+        ? { id: log.ticket.id, subject: log.ticket.subject }
+        : null,
+      events: events.map((e) => ({
+        id: e.id,
+        seq: e.seq,
+        eventType: e.eventType,
+        actorUserId: e.actorUserId,
+        metadata: e.metadata,
+        createdAt: e.createdAt,
+      })),
+    };
   }
 }
