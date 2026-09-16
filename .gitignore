@@ -28,3 +28,10 @@ landing/node_modules/
 data/
 *.log
 .DS_Store
+
+# ── Local staging secrets & build cache ────────────────
+# staging/*.sh and staging/https-proxy.js ARE tracked — see repo history —
+# only the self-signed TLS material and DB backup dump are excluded here.
+staging/certs/
+backend/sql/.backups/
+*.tsbuildinfo
