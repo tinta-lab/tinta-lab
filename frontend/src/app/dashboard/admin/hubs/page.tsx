@@ -12,7 +12,7 @@ import {
   BookTemplate, Cpu, MemoryStick, HardDrive, Router, Eye, EyeOff, Dices,
 } from 'lucide-react';
 import { PhoneInput } from '@/components/PhoneInput';
-import { AgentMetrics, Client, GoldenTemplate } from '@/types';
+import { AdminHub, Client, GoldenTemplate } from '@/types';
 import type { TranslationKey } from '@/i18n/translations';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
@@ -32,42 +32,6 @@ interface DiagnosticsReport {
 interface DiagnosticsResult {
   agentOnline: boolean;
   report: DiagnosticsReport | null;
-}
-
-interface HubAgent {
-  status: string;
-  agentVersion: string | null;
-  metrics: AgentMetrics | null;
-  lastConnectedAt: string | null;
-  lastHeartbeatAt: string | null;
-  lastTokenMismatchAt: string | null;
-  installToken: string | null;
-  installTokenExpiresAt: string | null;
-  isOnline: boolean;
-  appliedTemplates: string[];
-}
-
-interface Hub {
-  id: string;
-  name: string;
-  subdomain: string;
-  hubId: string | null;
-  publicUrl: string | null;
-  localUrl: string | null;
-  status: 'online' | 'offline' | 'unknown';
-  haVersion: string | null;
-  accessEnabled: boolean;
-  accessExpiresAt: string | null;
-  lastSeenAt: string | null;
-  tunnelId: string | null;
-  cfAccessAppId: string | null;
-  client: {
-    id: string;
-    phone: string | null;
-    city: string | null;
-    user: { id: string; firstName: string; lastName: string; email: string };
-  };
-  agent: HubAgent | null;
 }
 
 type AccessReason = 'general_question' | 'device_not_working' | 'automation_help' | 'connectivity_issue' | 'other' | 'ha_dashboard_toggle';
@@ -217,7 +181,7 @@ function TimeAgo({ iso }: { iso: string | null }) {
 
 // ─── Hub Card ────────────────────────────────────────────────────────────────
 
-function HubCard({ hub, onSelect, onUpdate }: { hub: Hub; onSelect: () => void; onUpdate: (clientId: string) => void }) {
+function HubCard({ hub, onSelect, onUpdate }: { hub: AdminHub; onSelect: () => void; onUpdate: (clientId: string) => void }) {
   const { t } = useLocale();
   const [urlCopied, setUrlCopied] = useState(false);
   const isOnline = hub.agent?.isOnline ?? false;
@@ -340,7 +304,7 @@ function HubCard({ hub, onSelect, onUpdate }: { hub: Hub; onSelect: () => void; 
 
 // ─── Hub Detail Drawer ────────────────────────────────────────────────────────
 
-function HubDrawer({ hub, onClose, onRefresh }: { hub: Hub; onClose: () => void; onRefresh: () => void }) {
+function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => void; onRefresh: () => void }) {
   const { t } = useLocale();
   const [tab, setTab] = useState<'overview' | 'access' | 'activity' | 'templates'>('overview');
   const [logs, setLogs] = useState<AccessLog[]>([]);
@@ -1102,9 +1066,9 @@ export default function HubsPage() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
   const { t } = useLocale();
-  const [hubs, setHubs] = useState<Hub[]>([]);
+  const [hubs, setHubs] = useState<AdminHub[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedHub, setSelectedHub] = useState<Hub | null>(null);
+  const [selectedHub, setSelectedHub] = useState<AdminHub | null>(null);
   const [showWizard, setShowWizard] = useState(false);
 
   useEffect(() => { init(); }, [init]);
@@ -1119,7 +1083,7 @@ export default function HubsPage() {
       const { data } = await api.get('/hubs');
       setHubs(data);
       if (selectedHub) {
-        const updated = data.find((h: Hub) => h.id === selectedHub.id);
+        const updated = data.find((h: AdminHub) => h.id === selectedHub.id);
         if (updated) setSelectedHub(updated);
       }
     } catch { toast.error(t('hub_error_load')); }
