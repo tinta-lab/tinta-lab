@@ -1,4 +1,8 @@
-export type UserRole = 'admin' | 'support' | 'sales' | 'client';
+import type { components } from '../generated/api';
+
+// Sourced from the backend OpenAPI contract (components.schemas.UserRole) —
+// not a hand-duplicated literal union. See P1.3-B.
+export type UserRole = components['schemas']['UserRole'];
 
 export interface User {
   id: string;
@@ -8,26 +12,33 @@ export interface User {
   role: UserRole;
 }
 
-export interface AuthResponse {
-  access_token: string;
-  user: User;
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type AuthResponse = components['schemas']['AuthResponseDto'];
 
-export interface Server {
-  id: string;
-  name: string;
-  subdomain: string;
-  publicUrl?: string | null;
-  status: 'online' | 'offline' | 'unknown';
-  publicStatus?: 'reachable' | 'unreachable' | 'unknown';
-  publicCheckedAt?: string | null;
-  accessEnabled: boolean;
-  accessExpiresAt: string | null;
-  lastSeenAt: string | null;
-  haVersion: string | null;
-  localUrl: string | null;
-  client?: Client;
-}
+// Sourced from the backend OpenAPI contract — see P1.4-C. Three distinct
+// role-scoped read views, deliberately never merged into one `Server`
+// union type: the P1.4-A audit found the old hand-written `Server` claimed
+// fields (`localUrl`, a full `Client`) that no real response ever actually
+// carried, and a merged type would let code accidentally read a field only
+// one role's view really returns. Pick the one matching the actual endpoint
+// you're consuming, never a shared "Server".
+export type ClientServer = components['schemas']['ClientServerViewDto'];
+export type SupportServer = components['schemas']['SupportServerViewDto'];
+export type AdminServerRead = components['schemas']['AdminServerReadViewDto'];
+
+// POST /servers / PATCH /servers/:id acknowledgement — a mutation response,
+// not a read view, kept separate from AdminServerRead for that reason.
+export type AdminServerMutation = components['schemas']['AdminServerViewDto'];
+
+// Sourced from the backend OpenAPI contract — see the Hub contract-
+// completeness cleanup (P1.4 backlog item). GET /hubs / GET /hubs/:id are
+// ADMIN-only with no sibling role view, so unlike ClientServer/StaffTicket
+// etc. there's only one alias here, not a family. Replaces the hand-written
+// `Hub`/`HubAgent` interfaces that used to live in admin/hubs/page.tsx —
+// those had drifted from the real response (dead fields like `status`,
+// `subdomain`, `cfAccessAppId`, `client.user.id`, `agent.lastHeartbeatAt`,
+// `agent.metrics.uptimeSeconds` — see hub-view.dto.ts for the audit).
+export type AdminHub = components['schemas']['HubViewDto'];
 
 export interface Client {
   id: string;
@@ -39,30 +50,6 @@ export interface Client {
   user: User;
 }
 
-export interface AgentMetrics {
-  cpuPercent: number;
-  memPercent: number;
-  diskPercent: number;
-  deviceCount: number;
-  automationCount: number;
-  uptimeSeconds: number;
-}
-
-export interface AgentSession {
-  id: string;
-  clientId: string;
-  status: 'connected' | 'disconnected';
-  agentVersion: string | null;
-  haVersion: string | null;
-  appliedTemplates: string[];
-  metrics: AgentMetrics | null;
-  lastConnectedAt: string | null;
-  lastHeartbeatAt: string | null;
-  lastTokenMismatchAt: string | null;
-  createdAt: string;
-  client?: Client;
-}
-
 export interface GoldenTemplate {
   id: string;
   slug: string;
@@ -72,76 +59,35 @@ export interface GoldenTemplate {
   isActive: boolean;
 }
 
-export type TicketType = 'installation' | 'support' | 'sales' | 'other';
-export type TicketStatus = 'new' | 'in_progress' | 'waiting_client' | 'resolved' | 'closed';
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type TicketType = components['schemas']['TicketType'];
+export type TicketStatus = components['schemas']['TicketStatus'];
 
-export interface Ticket {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  subject: string;
-  message: string;
-  type: TicketType;
-  status: TicketStatus;
-  assignedTo?: User;
-  internalNotes?: string;
-  // Set only for tickets created through the authenticated client portal
-  // (POST /tickets) — null/absent for public contact-form leads.
-  client?: Client | null;
-  server?: Server | null;
-  createdAt: string;
-  updatedAt: string;
-}
+// Sourced from the backend OpenAPI contract — see P1.4-D3. Role-scoped
+// ticket views, same principle as ClientServer/SupportServer/AdminServerRead:
+// never merged into one `Ticket` union — GET /tickets and GET /tickets/:id
+// are a real, OpenAPI-documented `oneOf` on the backend (P1.4-D1), so a
+// frontend union would just hide that boundary again.
+export type ClientTicket = components['schemas']['ClientTicketViewDto'];
+export type ClientTicketDetail = components['schemas']['ClientTicketDetailViewDto'];
+export type StaffTicket = components['schemas']['StaffTicketViewDto'];
+export type AdminTicket = components['schemas']['AdminTicketReadViewDto'];
 
-// `internal` is optional and unused by client-facing code: GET
-// /tickets/mine/:id and POST /tickets/:id/messages (client role) only ever
-// produce/accept non-internal messages (the backend DTO for that role has
-// no such field), so the value is always false there and client components
-// never read it. Staff-facing code (GET /tickets/:id/messages) does need it
-// to distinguish public replies from internal notes.
-export interface TicketMessage {
-  id: string;
-  message: string;
-  authorRole: UserRole;
-  internal?: boolean;
-  author?: { id: string; firstName: string; lastName: string };
-  createdAt: string;
-}
+// Sourced from the backend OpenAPI contract — see P1.4-D3. Distinct per
+// role for the same reason as the ticket views above: StaffTicketMessage
+// carries `internal`, ClientTicketMessage never does (the client-facing DTO
+// has no such field — see P1.4-D2).
+export type ClientTicketMessage = components['schemas']['ClientTicketMessageViewDto'];
+export type StaffTicketMessage = components['schemas']['StaffTicketMessageViewDto'];
 
-export interface TicketWithMessages extends Ticket {
-  messages: TicketMessage[];
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type AuditEventType = components['schemas']['AuditEventType'];
 
-// Mirrors backend/src/access/entities/audit-event.entity.ts's AuditEventType.
-export type AuditEventType =
-  | 'granted'
-  | 'connected'
-  | 'activity_log'
-  | 'security_anomaly'
-  | 'revoked'
-  | 'expired';
+// Sourced from the backend OpenAPI contract — see P1.3-B7.
+export type AccessEventView = components['schemas']['AccessEventViewDto'];
 
-// Mirrors backend/src/access/dto/access-event-view.dto.ts's AccessEventView —
-// one row per audit_events row, joined with just enough access_logs/servers/
-// clients/tickets context for display. Never the raw entities.
-export interface AccessEventView {
-  id: string;
-  seq: string;
-  eventType: AuditEventType;
-  createdAt: string;
-  accessLogId: string;
-  metadata: Record<string, unknown> | null;
-  actor: { id: string; firstName: string; lastName: string } | null;
-  server: { id: string; name: string } | null;
-  client: { id: string; firstName: string; lastName: string } | null;
-  ticket: { id: string; subject: string } | null;
-}
-
-export interface AccessEventPage {
-  data: AccessEventView[];
-  total: number;
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B7.
+export type AccessEventPage = components['schemas']['AccessEventPageDto'];
 
 export interface AccessLogsFilters {
   serverId?: string;
@@ -155,68 +101,14 @@ export interface AccessLogsFilters {
   take?: number;
 }
 
-// Mirrors AccessLogDetail — the GET /access/sessions/:accessLogId response:
-// full session lifecycle plus its ordered audit_events chain.
-export interface AccessLogDetail {
-  id: string;
-  grantedAt: string;
-  expiresAt: string;
-  connectedAt: string | null;
-  revokedAt: string | null;
-  isRevoked: boolean;
-  reasonCode: string | null;
-  reasonDetails: string | null;
-  reason: string | null;
-  grantedBy: { id: string; firstName: string; lastName: string } | null;
-  accessedBy: { id: string; firstName: string; lastName: string } | null;
-  server: { id: string; name: string } | null;
-  client: { id: string; firstName: string; lastName: string } | null;
-  ticket: { id: string; subject: string } | null;
-  events: {
-    id: string;
-    seq: string;
-    eventType: AuditEventType;
-    actorUserId: string | null;
-    metadata: Record<string, unknown> | null;
-    createdAt: string;
-  }[];
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type AccessLogDetail = components['schemas']['AccessLogDetailDto'];
 
-// Mirrors ClientAccessLogView — the CLIENT-facing GET /access/my-logs shape
-// (deliberately never the raw AccessLog entity — see the 2026-09-03 hotfix).
-export interface ClientAccessLogView {
-  id: string;
-  grantedAt: string;
-  expiresAt: string;
-  connectedAt: string | null;
-  revokedAt: string | null;
-  isRevoked: boolean;
-  reason: string | null;
-  reasonCode: string | null;
-  reasonDetails: string | null;
-  activityLog: string[] | null;
-  grantedBy: { firstName: string; lastName: string } | null;
-  accessedBy: { firstName: string; lastName: string } | null;
-  server: { id: string; name: string } | null;
-  ticket: { id: string; subject: string; status: TicketStatus } | null;
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type ClientAccessLogView = components['schemas']['ClientAccessLogViewDto'];
 
-// Mirrors backend/src/access/dto/audit-trail-view.dto.ts — ADMIN-only
-// cryptographic view of one audit_events row (GET /access/audit/:accessLogId).
-export interface AuditTrailEventView {
-  id: string;
-  seq: string;
-  accessLogId: string;
-  eventType: AuditEventType;
-  actorUserId: string | null;
-  metadata: Record<string, unknown> | null;
-  createdAt: string;
-  prevHash: string | null;
-  hash: string;
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type AuditTrailEventView = components['schemas']['AuditTrailEventViewDto'];
 
-// Mirrors AuditLogService.verifyChain()'s return shape (GET /access/audit-verify).
-export interface AuditChainVerification {
-  valid: boolean;
-  brokenAtEventId?: string;
-}
+// Sourced from the backend OpenAPI contract — see P1.3-B.
+export type AuditChainVerification = components['schemas']['AuditChainVerificationDto'];
