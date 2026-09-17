@@ -20,6 +20,7 @@ import { Server } from './servers/entities/server.entity';
 import { AccessLog } from './access/entities/access-log.entity';
 import { AuditEvent } from './access/entities/audit-event.entity';
 import { Ticket } from './tickets/entities/ticket.entity';
+import { TicketMessage } from './tickets/entities/ticket-message.entity';
 import { GoldenTemplate } from './tinta-core/entities/golden-template.entity';
 import { AgentSession } from './tinta-core/entities/agent-session.entity';
 
@@ -46,6 +47,7 @@ import { AgentSession } from './tinta-core/entities/agent-session.entity';
           AccessLog,
           AuditEvent,
           Ticket,
+          TicketMessage,
           GoldenTemplate,
           AgentSession,
         ],
