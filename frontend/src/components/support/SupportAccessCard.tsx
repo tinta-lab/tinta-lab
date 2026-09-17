@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useLocale } from '@/i18n/context';
 import type { TranslationKey } from '@/i18n/translations';
-import { Server } from '@/types';
+import { ClientServer } from '@/types';
 
 export type AccessReason =
   | 'general_question'
@@ -86,7 +86,10 @@ function AccessCountdown({
 }
 
 interface SupportAccessCardProps {
-  server: Server;
+  // Despite the component's name (kept for git-blame continuity — it
+  // predates the client/staff naming split), this is CLIENT-only: it's
+  // never rendered from a staff/admin screen (see P1.4-C audit).
+  server: ClientServer;
   // Called after a successful grant/revoke and on countdown expiry — the
   // caller owns how to refresh (re-fetch servers/logs), same as the
   // existing client dashboard already does.
