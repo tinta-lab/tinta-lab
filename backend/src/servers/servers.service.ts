@@ -16,10 +16,13 @@ import { ServersGateway } from './servers.gateway';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
 import { ConfigService } from '@nestjs/config';
 import { generateHubId } from '../cloudflare/cloudflare.service';
-import { toSupportServerView } from './dto/support-server-view.dto';
+import {
+  toSupportServerView,
+  SupportServerViewDto,
+} from './dto/support-server-view.dto';
 import {
   toClientServerView,
-  ClientServerView,
+  ClientServerViewDto,
 } from './dto/client-server-view.dto';
 
 @Injectable()
@@ -116,7 +119,7 @@ export class ServersService {
   }
 
   // Support role: only accessible servers, no sensitive infra fields, no client PII beyond name
-  async findAccessibleForSupport() {
+  async findAccessibleForSupport(): Promise<SupportServerViewDto[]> {
     const servers = await this.serversRepository.find({
       where: { accessEnabled: true },
       relations: ['client', 'client.user'],
@@ -145,7 +148,7 @@ export class ServersService {
     })) as Server[];
   }
 
-  async findMyServers(clientId: string): Promise<ClientServerView[]> {
+  async findMyServers(clientId: string): Promise<ClientServerViewDto[]> {
     const servers = await this.findByClientId(clientId);
     return servers.map(toClientServerView);
   }

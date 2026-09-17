@@ -12,7 +12,7 @@ import {
 // ClassSerializerInterceptor to strip them before res.json(). Same principle
 // already applied to servers.controller.ts's SUPPORT-facing findOne() —
 // enforced here for CLIENT views, which must never see these fields at all.
-export interface ClientServerView {
+export class ClientServerViewDto {
   id: string;
   name: string;
   subdomain: string;
@@ -29,7 +29,7 @@ export interface ClientServerView {
 
 export function toClientServerView(
   server: Server & { publicUrl?: string | null },
-): ClientServerView {
+): ClientServerViewDto {
   return {
     id: server.id,
     name: server.name,
