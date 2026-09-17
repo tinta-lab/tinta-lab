@@ -18,6 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
 import { AccessReason } from './enums/access-reason.enum';
+import { AuditTrailEventView } from './dto/audit-trail-view.dto';
 import { ClientAccessLogView } from './dto/client-access-log-view.dto';
 import { AccessLogsQueryDto } from './dto/access-logs-query.dto';
 import {
@@ -392,8 +393,19 @@ export class AccessService {
     }));
   }
 
-  async getAuditTrail(accessLogId: string) {
-    return this.auditLog.getEventsForAccessLog(accessLogId);
+  async getAuditTrail(accessLogId: string): Promise<AuditTrailEventView[]> {
+    const events = await this.auditLog.getEventsForAccessLog(accessLogId);
+    return events.map((e) => ({
+      id: e.id,
+      seq: e.seq,
+      accessLogId: e.accessLogId,
+      eventType: e.eventType,
+      actorUserId: e.actorUserId,
+      metadata: e.metadata,
+      createdAt: e.createdAt,
+      prevHash: e.prevHash,
+      hash: e.hash,
+    }));
   }
 
   async verifyAuditChain() {
