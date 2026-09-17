@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
-import { Server, Ticket, TicketStatus } from '@/types';
+import { AdminTicket, StaffTicket, SupportServer, TicketStatus } from '@/types';
 import { LogOut, RefreshCw, Shield, KeyRound, Clock, LifeBuoy, ChevronRight, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ import { staffTicketsApi } from '@/services/staffTicketsApi';
 const OPEN_TICKET_STATUSES: TicketStatus[] = ['new', 'in_progress', 'waiting_client'];
 const MAX_OPEN_TICKETS_SHOWN = 10;
 
-function StatusDot({ status }: { status: Server['status'] }) {
+function StatusDot({ status }: { status: SupportServer['status'] }) {
   const map = {
     online:  'bg-green-400 shadow-[0_0_6px_2px] shadow-green-400/50',
     offline: 'bg-red-400',
@@ -57,11 +57,11 @@ export default function SupportDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
   const { t } = useLocale();
-  const [servers, setServers] = useState<Server[]>([]);
+  const [servers, setServers] = useState<SupportServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [credentials, setCredentials] = useState<AccessCredentials | null>(null);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<(StaffTicket | AdminTicket)[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
 
   useEffect(() => { init(); }, [init]);
@@ -76,7 +76,7 @@ export default function SupportDashboard() {
   const loadServers = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Server[]>('/servers');
+      const { data } = await api.get<SupportServer[]>('/servers');
       setServers(data);
     } finally {
       setLoading(false);
@@ -102,7 +102,7 @@ export default function SupportDashboard() {
     }, []),
   });
 
-  const handleConnect = async (server: Server) => {
+  const handleConnect = async (server: SupportServer) => {
     setConnecting(server.id);
     try {
       const { data } = await api.post(`/access/connect/${server.id}`);
@@ -145,7 +145,7 @@ export default function SupportDashboard() {
     </div>
   );
 
-  const ServerCard = ({ server }: { server: Server }) => (
+  const ServerCard = ({ server }: { server: SupportServer }) => (
     <div className="rounded-xl border p-5 transition-all border-green-500/30 bg-green-500/5">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
