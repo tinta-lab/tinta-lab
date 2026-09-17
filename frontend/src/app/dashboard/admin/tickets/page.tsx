@@ -4,12 +4,16 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
+import { staffTicketsApi } from '@/services/staffTicketsApi';
 import { toast } from 'sonner';
 import { ArrowLeft, RefreshCw, LogOut, ChevronDown, X } from 'lucide-react';
-import { Ticket } from '@/types';
+import { AdminTicket, StaffTicketMessage } from '@/types';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
+import StaffMessageList from '@/components/staff/StaffMessageList';
+import StaffMessageComposer from '@/components/staff/StaffMessageComposer';
+import AccessStatusPanel from '@/components/staff/AccessStatusPanel';
 
-const STATUS_COLORS: Record<Ticket['status'], string> = {
+const STATUS_COLORS: Record<AdminTicket['status'], string> = {
   new:            'bg-blue-500/15 text-blue-400 border-blue-500/30',
   in_progress:    'bg-amber-500/15 text-amber-400 border-amber-500/30',
   waiting_client: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
@@ -35,15 +39,16 @@ export default function AdminTicketsPage() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
   const { t } = useLocale();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Ticket['status'] | 'all'>('all');
-  const [selected, setSelected] = useState<Ticket | null>(null);
-  const [editStatus, setEditStatus] = useState<Ticket['status']>('new');
-  const [editNotes, setEditNotes] = useState('');
+  const [filter, setFilter] = useState<AdminTicket['status'] | 'all'>('all');
+  const [selected, setSelected] = useState<AdminTicket | null>(null);
+  const [editStatus, setEditStatus] = useState<AdminTicket['status']>('new');
+  const [messages, setMessages] = useState<StaffTicketMessage[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const STATUS_LABELS: Record<Ticket['status'], string> = {
+  const STATUS_LABELS: Record<AdminTicket['status'], string> = {
     new:            t('status_new_single'),
     in_progress:    t('status_in_progress_single'),
     waiting_client: t('status_waiting_client_single'),
@@ -51,7 +56,7 @@ export default function AdminTicketsPage() {
     closed:         t('status_closed_single'),
   };
 
-  const TYPE_LABELS: Record<Ticket['type'], string> = {
+  const TYPE_LABELS: Record<AdminTicket['type'], string> = {
     installation: t('type_installation'),
     support:      t('type_support'),
     sales:        t('type_sales'),
@@ -67,25 +72,35 @@ export default function AdminTicketsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Ticket[]>('/tickets');
+      const { data } = await api.get<AdminTicket[]>('/tickets');
       setTickets(data);
     } finally { setLoading(false); }
   };
 
-  const openTicket = (ticket: Ticket) => {
+  const openTicket = async (ticket: AdminTicket) => {
     setSelected(ticket);
     setEditStatus(ticket.status);
-    setEditNotes(ticket.internalNotes || '');
+    setMessages([]);
+    setMessagesLoading(true);
+    try {
+      setMessages(await staffTicketsApi.getMessages(ticket.id));
+    } catch { /* conversation just stays empty on failure */ }
+    finally { setMessagesLoading(false); }
+  };
+
+  const sendMessage = async (message: string, internal: boolean) => {
+    if (!selected) return;
+    try {
+      await staffTicketsApi.addMessage(selected.id, message, internal);
+      setMessages(await staffTicketsApi.getMessages(selected.id));
+    } catch { toast.error(t('client_support_reply_error')); }
   };
 
   const handleSave = async () => {
     if (!selected) return;
     setSaving(true);
     try {
-      await api.patch(`/tickets/${selected.id}/status`, {
-        status: editStatus,
-        internalNotes: editNotes,
-      });
+      await api.patch(`/tickets/${selected.id}/status`, { status: editStatus });
       toast.success(t('sales_ticket_updated'));
       setSelected(null);
       await load();
@@ -102,7 +117,7 @@ export default function AdminTicketsPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  const StatusBadge = ({ status }: { status: Ticket['status'] }) => (
+  const StatusBadge = ({ status }: { status: AdminTicket['status'] }) => (
     <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_COLORS[status]}`}>
       {STATUS_LABELS[status]}
     </span>
@@ -162,6 +177,7 @@ export default function AdminTicketsPage() {
                 <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_subject')}</th>
                 <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_contact')}</th>
                 <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_type_h')}</th>
+                <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('staff_ticket_home_label')}</th>
                 <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_status')}</th>
                 <th className="text-left px-4 py-3 text-xs text-slate-400 font-medium">{t('col_date_h')}</th>
                 <th className="px-4 py-3" />
@@ -169,9 +185,9 @@ export default function AdminTicketsPage() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">{t('loading')}</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">{t('loading')}</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-slate-500">{t('no_tickets')}</td></tr>
+                <tr><td colSpan={7} className="px-4 py-10 text-center text-slate-500">{t('no_tickets')}</td></tr>
               ) : filtered.map((ticket, i) => (
                 <tr
                   key={ticket.id}
@@ -184,6 +200,7 @@ export default function AdminTicketsPage() {
                     <div className="text-xs text-slate-600">{ticket.email}</div>
                   </td>
                   <td className="px-4 py-3 text-slate-400 text-xs">{TYPE_LABELS[ticket.type]}</td>
+                  <td className="px-4 py-3 text-slate-400 text-xs">{ticket.server?.name ?? '—'}</td>
                   <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
                     {new Date(ticket.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
@@ -220,6 +237,12 @@ export default function AdminTicketsPage() {
                 <span className="text-slate-500">{t('col_type_h')}</span>
                 <span className="text-slate-300">{TYPE_LABELS[selected.type]}</span>
               </div>
+              {selected.server?.name && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">{t('staff_ticket_home_label')}</span>
+                  <span className="text-slate-300">{selected.server.name}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('col_created_at')}</span>
                 <span className="text-slate-300">
@@ -228,7 +251,7 @@ export default function AdminTicketsPage() {
               </div>
             </div>
 
-            {/* Message */}
+            {/* Original message */}
             <div>
               <div className="text-xs text-slate-400 mb-2">{t('sales_message')}</div>
               <p className="text-sm text-slate-300 bg-slate-900/50 rounded-xl p-4 whitespace-pre-wrap">{selected.message}</p>
@@ -240,24 +263,27 @@ export default function AdminTicketsPage() {
               <select
                 className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500"
                 value={editStatus}
-                onChange={e => setEditStatus(e.target.value as Ticket['status'])}
+                onChange={e => setEditStatus(e.target.value as AdminTicket['status'])}
               >
-                {(Object.entries(STATUS_LABELS) as [Ticket['status'], string][]).map(([v, l]) => (
+                {(Object.entries(STATUS_LABELS) as [AdminTicket['status'], string][]).map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </div>
 
-            {/* Internal notes */}
+            {selected.server && <AccessStatusPanel server={selected.server} />}
+
+            {/* Conversation — replaces the old single internalNotes textarea */}
             <div>
-              <label className="block text-xs text-slate-400 mb-1.5">{t('sales_internal_notes')}</label>
-              <textarea
-                className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-teal-500 resize-none"
-                rows={3}
-                value={editNotes}
-                onChange={e => setEditNotes(e.target.value)}
-                placeholder={t('sales_notes_ph')}
-              />
+              <div className="text-xs text-slate-400 mb-2">{t('client_support_conversation')}</div>
+              {messagesLoading ? (
+                <div className="h-16 rounded-xl bg-slate-900/40 animate-pulse" />
+              ) : (
+                <StaffMessageList messages={messages} />
+              )}
+              <div className="mt-2">
+                <StaffMessageComposer onSend={sendMessage} />
+              </div>
             </div>
 
             <div className="flex gap-3">

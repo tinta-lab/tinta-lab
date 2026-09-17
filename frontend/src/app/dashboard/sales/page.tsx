@@ -6,10 +6,10 @@ import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 import { LogOut, RefreshCw, X, Phone, Mail, Calendar, MessageSquare, TrendingUp, Users, CheckCircle2, Clock } from 'lucide-react';
-import { Ticket } from '@/types';
+import { AdminTicket, StaffTicket } from '@/types';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
-const STATUS_COLORS: Record<Ticket['status'], { col: string; badge: string; header: string }> = {
+const STATUS_COLORS: Record<(StaffTicket | AdminTicket)['status'], { col: string; badge: string; header: string }> = {
   new:            { col: 'border-blue-500/30',   badge: 'bg-blue-500/15 text-blue-400 border-blue-500/30',     header: 'text-blue-400' },
   in_progress:    { col: 'border-amber-500/30',  badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30', header: 'text-amber-400' },
   waiting_client: { col: 'border-purple-500/30', badge: 'bg-purple-500/15 text-purple-400 border-purple-500/30', header: 'text-purple-400' },
@@ -17,8 +17,8 @@ const STATUS_COLORS: Record<Ticket['status'], { col: string; badge: string; head
   closed:         { col: 'border-slate-700',     badge: 'bg-slate-700/50 text-slate-500 border-slate-600',     header: 'text-slate-500' },
 };
 
-const COLUMNS: Ticket['status'][] = ['new', 'in_progress', 'waiting_client', 'resolved', 'closed'];
-const NEXT_STATUS: Partial<Record<Ticket['status'], Ticket['status']>> = {
+const COLUMNS: (StaffTicket | AdminTicket)['status'][] = ['new', 'in_progress', 'waiting_client', 'resolved', 'closed'];
+const NEXT_STATUS: Partial<Record<(StaffTicket | AdminTicket)['status'], (StaffTicket | AdminTicket)['status']>> = {
   new: 'in_progress',
   in_progress: 'waiting_client',
   waiting_client: 'resolved',
@@ -45,15 +45,15 @@ export default function SalesDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
   const { t } = useLocale();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<(StaffTicket | AdminTicket)[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Ticket | null>(null);
-  const [editStatus, setEditStatus] = useState<Ticket['status']>('new');
+  const [selected, setSelected] = useState<StaffTicket | AdminTicket | null>(null);
+  const [editStatus, setEditStatus] = useState<(StaffTicket | AdminTicket)['status']>('new');
   const [editNotes, setEditNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('sales');
 
-  const STATUS_LABELS: Record<Ticket['status'], string> = {
+  const STATUS_LABELS: Record<(StaffTicket | AdminTicket)['status'], string> = {
     new: t('status_new'),
     in_progress: t('status_in_progress'),
     waiting_client: t('status_waiting_client'),
@@ -61,7 +61,7 @@ export default function SalesDashboard() {
     closed: t('status_closed'),
   };
 
-  const TYPE_LABELS: Record<Ticket['type'], string> = {
+  const TYPE_LABELS: Record<(StaffTicket | AdminTicket)['type'], string> = {
     installation: t('type_installation'),
     support: t('type_support'),
     sales: t('type_sales'),
@@ -84,12 +84,12 @@ export default function SalesDashboard() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get<Ticket[]>('/tickets');
+      const { data } = await api.get<(StaffTicket | AdminTicket)[]>('/tickets');
       setTickets(data);
     } finally { setLoading(false); }
   };
 
-  const openTicket = (ticket: Ticket) => {
+  const openTicket = (ticket: StaffTicket | AdminTicket) => {
     setSelected(ticket);
     setEditStatus(ticket.status);
     setEditNotes(ticket.internalNotes || '');
@@ -110,7 +110,7 @@ export default function SalesDashboard() {
     finally { setSaving(false); }
   };
 
-  const quickAdvance = async (ticket: Ticket, e: React.MouseEvent) => {
+  const quickAdvance = async (ticket: StaffTicket | AdminTicket, e: React.MouseEvent) => {
     e.stopPropagation();
     const next = NEXT_STATUS[ticket.status];
     if (!next) return;
@@ -124,7 +124,7 @@ export default function SalesDashboard() {
   if (!user) return null;
 
   const filtered = typeFilter === 'all' ? tickets : tickets.filter(ticket => ticket.type === typeFilter);
-  const byStatus = (status: Ticket['status']) => filtered.filter(ticket => ticket.status === status);
+  const byStatus = (status: (StaffTicket | AdminTicket)['status']) => filtered.filter(ticket => ticket.status === status);
 
   const stats = [
     { label: t('sales_new_leads'),    value: tickets.filter(ticket => ticket.type === 'sales' && ticket.status === 'new').length,        icon: TrendingUp,   color: 'text-blue-400',  bg: 'bg-blue-500/10 border-blue-500/20' },
@@ -303,9 +303,9 @@ export default function SalesDashboard() {
               <select
                 className="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500"
                 value={editStatus}
-                onChange={e => setEditStatus(e.target.value as Ticket['status'])}
+                onChange={e => setEditStatus(e.target.value as (StaffTicket | AdminTicket)['status'])}
               >
-                {(Object.entries(STATUS_LABELS) as [Ticket['status'], string][]).map(([v, l]) => (
+                {(Object.entries(STATUS_LABELS) as [(StaffTicket | AdminTicket)['status'], string][]).map(([v, l]) => (
                   <option key={v} value={v}>{l}</option>
                 ))}
               </select>

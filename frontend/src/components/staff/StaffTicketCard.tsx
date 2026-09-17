@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { useLocale } from '@/i18n/context';
-import { Ticket } from '@/types';
+import { AdminTicket, StaffTicket } from '@/types';
 import TicketStatus from '@/components/support/TicketStatus';
 
 const TYPE_LABEL_KEY = {
@@ -11,7 +11,7 @@ const TYPE_LABEL_KEY = {
   other: 'type_other',
 } as const;
 
-export default function StaffTicketCard({ ticket }: { ticket: Ticket }) {
+export default function StaffTicketCard({ ticket }: { ticket: StaffTicket | AdminTicket }) {
   const { t } = useLocale();
 
   return (
