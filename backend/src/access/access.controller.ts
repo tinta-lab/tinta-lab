@@ -13,7 +13,12 @@ import {
 import { AccessService } from './access.service';
 import { GrantAccessDto } from './dto/grant-access.dto';
 import { AccessLogsQueryDto } from './dto/access-logs-query.dto';
+import {
+  AuditTrailEventViewDto,
+  AuditChainVerificationDto,
+} from './dto/audit-trail-view.dto';
 import { MyLogsQueryDto } from './dto/my-logs-query.dto';
+import { AccessEventPageDto } from './dto/access-event-view.dto';
 import { toAccessGrantView } from './dto/access-grant-view.dto';
 import { ClientsService } from '../clients/clients.service';
 import { ServersService } from '../servers/servers.service';
@@ -104,7 +109,7 @@ export class AccessController {
   async getAuditEvents(
     @Query() query: AccessLogsQueryDto,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<AccessEventPageDto> {
     if (user.role === UserRole.ADMIN) {
       return this.accessService.queryAuditEvents(query);
     }
@@ -149,14 +154,16 @@ export class AccessController {
   // ADMIN: technical audit trail for one session (hash-chained events)
   @Get('audit/:accessLogId')
   @Roles(...AUDIT_LEDGER_ADMIN_ROLES)
-  getAuditTrail(@Param('accessLogId') accessLogId: string) {
+  getAuditTrail(
+    @Param('accessLogId') accessLogId: string,
+  ): Promise<AuditTrailEventViewDto[]> {
     return this.accessService.getAuditTrail(accessLogId);
   }
 
   // ADMIN: verify the whole audit ledger hasn't been tampered with
   @Get('audit-verify')
   @Roles(...AUDIT_LEDGER_ADMIN_ROLES)
-  verifyAuditChain() {
+  verifyAuditChain(): Promise<AuditChainVerificationDto> {
     return this.accessService.verifyAuditChain();
   }
 }

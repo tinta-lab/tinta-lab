@@ -18,14 +18,17 @@ import { ConfigService } from '@nestjs/config';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
 import { AccessReason } from './enums/access-reason.enum';
-import { AuditTrailEventView } from './dto/audit-trail-view.dto';
-import { ClientAccessLogView } from './dto/client-access-log-view.dto';
+import { ClientAccessLogViewDto } from './dto/client-access-log-view.dto';
 import { AccessLogsQueryDto } from './dto/access-logs-query.dto';
 import {
-  AccessEventPage,
-  AccessEventView,
-  AccessLogDetail,
+  AccessEventPageDto,
+  AccessEventViewDto,
+  AccessLogDetailDto,
 } from './dto/access-event-view.dto';
+import {
+  AuditTrailEventViewDto,
+  AuditChainVerificationDto,
+} from './dto/audit-trail-view.dto';
 
 const DEFAULT_DURATION_MINUTES = 60;
 const DEFAULT_RETENTION_DAYS = 365;
@@ -333,7 +336,7 @@ export class AccessService {
   }
 
   // Returns a shaped, safe view — never the raw entities. See
-  // ClientAccessLogView for exactly why (Ticket.internalNotes and
+  // ClientAccessLogViewDto for exactly why (Ticket.internalNotes and
   // Server.tunnelToken/cfAccessAppId/cfDnsRecordId must never reach a
   // client response, and this codebase has no serializer layer that would
   // strip them automatically).
@@ -349,7 +352,7 @@ export class AccessService {
   async getLogsForClient(
     clientId: string,
     ticketId?: string,
-  ): Promise<ClientAccessLogView[]> {
+  ): Promise<ClientAccessLogViewDto[]> {
     const logs = await this.accessLogRepository.find({
       where: {
         server: { client: { id: clientId } },
@@ -393,7 +396,9 @@ export class AccessService {
     }));
   }
 
-  async getAuditTrail(accessLogId: string): Promise<AuditTrailEventView[]> {
+  async getAuditTrail(
+    accessLogId: string,
+  ): Promise<AuditTrailEventViewDto[]> {
     const events = await this.auditLog.getEventsForAccessLog(accessLogId);
     return events.map((e) => ({
       id: e.id,
@@ -408,7 +413,7 @@ export class AccessService {
     }));
   }
 
-  async verifyAuditChain() {
+  async verifyAuditChain(): Promise<AuditChainVerificationDto> {
     return this.auditLog.verifyChain();
   }
 
@@ -427,7 +432,7 @@ export class AccessService {
   async queryAuditEvents(
     filter: AccessLogsQueryDto,
     staffTicketScopeUserId?: string,
-  ): Promise<AccessEventPage> {
+  ): Promise<AccessEventPageDto> {
     const conditions: string[] = [];
     const params: unknown[] = [];
     const push = (sql: string, value: unknown) => {
@@ -485,7 +490,7 @@ export class AccessService {
       this.dataSource.query<CountRow[]>(countSql, params),
     ]);
 
-    const data: AccessEventView[] = rows.map((r) => ({
+    const data: AccessEventViewDto[] = rows.map((r) => ({
       id: r.id,
       seq: r.seq,
       eventType: r.eventType,
@@ -526,7 +531,7 @@ export class AccessService {
   async getAccessLogDetail(
     accessLogId: string,
     staffTicketScopeUserId?: string,
-  ): Promise<AccessLogDetail> {
+  ): Promise<AccessLogDetailDto> {
     const log = await this.accessLogRepository.findOne({
       where: { id: accessLogId },
       relations: [

@@ -9,7 +9,7 @@ import { AccessLog } from '../entities/access-log.entity';
 // posting) — so the password has no reason to leave the server at grant
 // time. It reaches the caller correctly through the separate
 // SUPPORT/ADMIN-only connect route instead.
-export interface AccessGrantView {
+export class AccessGrantViewDto {
   id: string;
   grantedAt: Date;
   expiresAt: Date;
@@ -18,7 +18,7 @@ export interface AccessGrantView {
   reasonDetails: string | null;
 }
 
-export function toAccessGrantView(log: AccessLog): AccessGrantView {
+export function toAccessGrantView(log: AccessLog): AccessGrantViewDto {
   return {
     id: log.id,
     grantedAt: log.grantedAt,
