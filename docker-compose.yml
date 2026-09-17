@@ -36,10 +36,19 @@ services:
     container_name: tinta-adminer
     restart: always
     ports:
-      # Was "8080:8080" — a full DB console reachable LAN-wide with only the
-      # DB password as a gate. RUNBOOK.md already documented this as
-      # "только с сервера"; this makes the config actually match that.
-      - "127.0.0.1:8080:8080"
+      # Was "8080:8080" (0.0.0.0 — reachable on the public IPv6 address
+      # too, not just the LAN). Tried 127.0.0.1 first, which was wrong:
+      # db.tinta-lab.de is a real Cloudflare Access app ("Only Viktor"
+      # policy) proxied through the tinta-lab-server tunnel running on a
+      # SEPARATE host (ct200), which reaches this box over the LAN — a
+      # loopback-only bind can't accept that connection at all, so it broke
+      # the legitimate access path along with the unwanted one. Binding to
+      # the LAN IP specifically removes the public-IPv6 exposure (the part
+      # that actually mattered) while leaving the tunnel able to reach it.
+      # Direct-LAN access without going through Access is still technically
+      # possible from this specific address — closing that fully needs a
+      # host firewall rule scoped to ct200's IP, not a Docker port change.
+      - "192.168.2.63:8080:8080"
 
   grafana:
     image: grafana/grafana:latest
