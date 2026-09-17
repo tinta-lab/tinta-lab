@@ -7,6 +7,7 @@ import {
   IsEnum,
   Matches,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { TicketType } from '../entities/ticket.entity';
 
 export class CreateTicketDto {
@@ -38,5 +39,6 @@ export class CreateTicketDto {
 
   @IsOptional()
   @IsEnum(TicketType)
+  @ApiProperty({ enum: TicketType, enumName: 'TicketType', required: false })
   type?: TicketType;
 }

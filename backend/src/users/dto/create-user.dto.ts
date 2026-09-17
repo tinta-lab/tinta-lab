@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsEnum,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { UserRole } from '../entities/user.entity';
 
 export class CreateUserDto {
@@ -30,5 +31,6 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsEnum(UserRole)
+  @ApiProperty({ enum: UserRole, enumName: 'UserRole', required: false })
   role?: UserRole;
 }

@@ -5,10 +5,12 @@ import {
   IsUUID,
   MaxLength,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { TicketStatus } from '../entities/ticket.entity';
 
 export class UpdateTicketStatusDto {
   @IsEnum(TicketStatus)
+  @ApiProperty({ enum: TicketStatus, enumName: 'TicketStatus' })
   status: TicketStatus;
 
   @IsOptional()

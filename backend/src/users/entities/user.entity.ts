@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum UserRole {
   ADMIN = 'admin',
@@ -32,6 +33,7 @@ export class User {
   lastName: string;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.CLIENT })
+  @ApiProperty({ enum: UserRole, enumName: 'UserRole' })
   role: UserRole;
 
   @Column({ default: true })
