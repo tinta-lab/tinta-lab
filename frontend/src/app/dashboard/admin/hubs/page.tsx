@@ -1142,17 +1142,17 @@ export default function HubsPage() {
     <div className="min-h-screen bg-slate-900 text-white">
       {/* Header */}
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 flex-shrink-0">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors flex-shrink-0">
               <ArrowLeft size={18} />
             </button>
-            <a href="https://tinta-lab.de"><img src="/logo.png" alt="Tinta" className="w-7 h-7" /></a>
-            <img src="/wordmark.png" alt="Tinta Lab" className="h-6 w-auto" />
-            <span className="text-slate-500 text-sm">{t('hub_breadcrumb')}</span>
+            <a href="https://tinta-lab.de" className="flex-shrink-0"><img src="/logo.png" alt="Tinta" className="w-7 h-7" /></a>
+            <img src="/wordmark.png" alt="Tinta Lab" className="hidden sm:block h-6 w-auto" />
+            <span className="text-slate-500 text-sm whitespace-nowrap">{t('hub_breadcrumb')}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
               <span className="flex items-center gap-1 text-green-400"><Wifi size={13} /> {online}</span>
               <span className="text-slate-600">/</span>
               <span className="flex items-center gap-1 text-slate-500"><WifiOff size={13} /> {offline}</span>
@@ -1161,11 +1161,11 @@ export default function HubsPage() {
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             <AppLanguageSwitcher />
-            <button onClick={() => setShowWizard(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-900 font-semibold text-sm transition-colors">
-              <Plus size={15} /> {t('hub_create_btn')}
+            <button onClick={() => setShowWizard(true)} aria-label={t('hub_create_btn')}
+              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-900 font-semibold text-sm transition-colors">
+              <Plus size={15} /> <span className="hidden sm:inline">{t('hub_create_btn')}</span>
             </button>
-            <button onClick={logout} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
+            <button onClick={logout} aria-label={t('logout')} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
               <LogOut size={15} />
             </button>
           </div>

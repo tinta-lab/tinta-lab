@@ -112,20 +112,20 @@ export default function AdminTicketsPage() {
     <div className="min-h-screen bg-slate-900 text-white">
       <header className="border-b border-slate-700/50 bg-slate-800/50 backdrop-blur px-6 py-4 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors">
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => router.push('/dashboard/admin')} className="text-slate-400 hover:text-white transition-colors flex-shrink-0">
               <ArrowLeft size={18} />
             </button>
-            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-7 w-auto" />
-            <span className="text-slate-500 text-sm">{t('tickets_breadcrumb')}</span>
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="hidden sm:block h-7 w-auto" />
+            <span className="text-slate-500 text-sm whitespace-nowrap">{t('tickets_breadcrumb')}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <button onClick={load} className="text-slate-400 hover:text-white transition-colors">
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
             <AppLanguageSwitcher />
-            <button onClick={() => logout()} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm">
-              <LogOut size={15} /> {t('logout')}
+            <button onClick={() => logout()} aria-label={t('logout')} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm">
+              <LogOut size={15} /> <span className="hidden sm:inline">{t('logout')}</span>
             </button>
           </div>
         </div>
