@@ -4,7 +4,14 @@ import { Filter, RotateCcw } from 'lucide-react';
 import { useLocale } from '@/i18n/context';
 import type { TranslationKey } from '@/i18n/translations';
 import api from '@/lib/api';
-import { AccessLogsFilters, AuditEventType, User, Server } from '@/types';
+import { AccessLogsFilters, AuditEventType, User } from '@/types';
+
+// This filter dropdown only ever needs id/name — GET /servers returns a
+// role-dependent representation (AdminServerReadViewDto for ADMIN,
+// SupportServerViewDto for SUPPORT/SALES, see P1.4-A/B), and this shared
+// ADMIN+STAFF component has no business depending on either specific view.
+// A local UI type keeps it decoupled from both.
+type ServerOption = { id: string; name: string };
 
 const EVENT_TYPES: AuditEventType[] = [
   'granted',
@@ -47,7 +54,7 @@ export default function AccessLogFilters({ value, onChange, showStaffFilter }: A
   const { t } = useLocale();
   const [draft, setDraft] = useState<AccessLogsFilters>(value);
   const [staff, setStaff] = useState<User[]>([]);
-  const [servers, setServers] = useState<Server[]>([]);
+  const [servers, setServers] = useState<ServerOption[]>([]);
   const [ticketError, setTicketError] = useState(false);
 
   useEffect(() => {
@@ -56,7 +63,7 @@ export default function AccessLogFilters({ value, onChange, showStaffFilter }: A
         setStaff(data.filter((u) => u.role === 'support' || u.role === 'sales'));
       }).catch(() => {});
     }
-    api.get<Server[]>('/servers').then(({ data }) => setServers(data)).catch(() => {});
+    api.get<ServerOption[]>('/servers').then(({ data }) => setServers(data)).catch(() => {});
   }, [showStaffFilter]);
 
   const apply = () => {
