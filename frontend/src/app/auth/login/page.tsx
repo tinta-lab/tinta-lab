@@ -26,6 +26,7 @@ export default function LoginPage() {
   const { t } = useLocale();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const schema = useMemo(() => z.object({
     email: z.string().email(t('reg_val_email')),
@@ -35,6 +36,8 @@ export default function LoginPage() {
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => { init(); }, [init]);
 
@@ -126,7 +129,7 @@ export default function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !mounted}
               className="w-full py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
