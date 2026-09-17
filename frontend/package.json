@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "api:generate": "openapi-typescript \"${OPENAPI_SPEC_URL:?Set OPENAPI_SPEC_URL to a source of TRUTH for CURRENT backend/src (a local dev instance or a .json file) — never :3000, that is the shared production PM2 process}\" -o src/generated/api.ts",
+    "api:check": "npm run api:generate && git diff --exit-code src/generated/api.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -32,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "openapi-typescript": "^7.13.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
