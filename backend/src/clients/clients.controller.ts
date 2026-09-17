@@ -17,6 +17,7 @@ import { UserRole } from '../users/entities/user.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { ClientViewDto, toClientView } from './dto/client-view.dto';
 
 @Controller('clients')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,31 +26,32 @@ export class ClientsController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.SALES)
-  create(@Body() dto: CreateClientDto) {
-    return this.clientsService.create(dto);
+  async create(@Body() dto: CreateClientDto): Promise<ClientViewDto> {
+    return toClientView(await this.clientsService.create(dto));
   }
 
   @Get()
   @Roles(UserRole.ADMIN, UserRole.SUPPORT, UserRole.SALES)
-  findAll(@Query() pagination: PaginationDto) {
-    return this.clientsService.findAll(pagination.skip, pagination.take);
+  async findAll(@Query() pagination: PaginationDto): Promise<ClientViewDto[]> {
+    const clients = await this.clientsService.findAll(pagination.skip, pagination.take);
+    return clients.map(toClientView);
   }
 
   @Get('me')
   @Roles(UserRole.CLIENT)
-  getMyProfile(@Request() req: any) {
-    return this.clientsService.findByUserId(req.user.id);
+  async getMyProfile(@Request() req: any): Promise<ClientViewDto> {
+    return toClientView(await this.clientsService.findByUserId(req.user.id));
   }
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.SUPPORT, UserRole.SALES)
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findById(id);
+  async findOne(@Param('id') id: string): Promise<ClientViewDto> {
+    return toClientView(await this.clientsService.findById(id));
   }
 
   @Patch(':id')
   @Roles(UserRole.ADMIN)
-  update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
-    return this.clientsService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateClientDto): Promise<ClientViewDto> {
+    return toClientView(await this.clientsService.update(id, dto));
   }
 }

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { AuthResponseDto } from './dto/auth-response.dto';
 
 @Injectable()
 export class AuthService {
@@ -14,7 +15,7 @@ export class AuthService {
     private readonly blacklist: TokenBlacklistService,
   ) {}
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<AuthResponseDto> {
     const user = await this.usersService.findByEmailWithPassword(email);
     if (!user || !user.isActive)
       throw new UnauthorizedException('Invalid credentials');

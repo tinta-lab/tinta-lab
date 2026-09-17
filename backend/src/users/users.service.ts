@@ -11,6 +11,7 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserRole } from './entities/user.entity';
 import { Client } from '../clients/entities/client.entity';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
+import { UserSafeViewDto, toUserSafeView } from './dto/user-safe-view.dto';
 
 @Injectable()
 export class UsersService {
@@ -181,9 +182,9 @@ export class UsersService {
   async updateOwnProfile(
     id: string,
     data: { firstName?: string; lastName?: string },
-  ): Promise<User> {
+  ): Promise<UserSafeViewDto> {
     await this.usersRepository.update(id, data);
-    return this.findById(id);
+    return toUserSafeView(await this.findById(id));
   }
 
   // Lean lookup for JwtStrategy — runs on every authenticated request, so

@@ -23,6 +23,9 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UpdateClientDto } from '../clients/dto/update-client.dto';
 import { AUTH_COOKIE, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from './auth-cookie.constants';
+import { AuthResponseDto } from './dto/auth-response.dto';
+import { UserSafeViewDto } from '../users/dto/user-safe-view.dto';
+import { ClientViewDto, toClientView } from '../clients/dto/client-view.dto';
 
 // Same cookie name/domain the frontend previously set from JS for `tl_locale`
 // — shared across app./api. subdomains. Now httpOnly: JS can no longer read
@@ -45,7 +48,10 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @Throttle({ default: { ttl: 900_000, limit: 10 } })
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthResponseDto> {
     const result = await this.authService.login(dto.email, dto.password);
     res.cookie(AUTH_COOKIE, result.access_token, {
       ...AUTH_COOKIE_OPTS,
@@ -96,7 +102,7 @@ export class AuthController {
   // Self-service profile — own name only, any role.
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  updateMe(@Request() req: any, @Body() dto: UpdateMeDto) {
+  updateMe(@Request() req: any, @Body() dto: UpdateMeDto): Promise<UserSafeViewDto> {
     return this.usersService.updateOwnProfile(req.user.id, dto);
   }
 
@@ -104,8 +110,11 @@ export class AuthController {
   @Patch('me/client-profile')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CLIENT)
-  async updateMyClientProfile(@Request() req: any, @Body() dto: UpdateClientDto) {
+  async updateMyClientProfile(
+    @Request() req: any,
+    @Body() dto: UpdateClientDto,
+  ): Promise<ClientViewDto> {
     const client = await this.clientsService.findByUserId(req.user.id);
-    return this.clientsService.update(client.id, dto);
+    return toClientView(await this.clientsService.update(client.id, dto));
   }
 }
