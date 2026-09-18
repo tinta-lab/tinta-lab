@@ -4,8 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { Ticket, TicketType } from '../tickets/entities/ticket.entity';
-
-const OFFLINE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+import { OFFLINE_THRESHOLD_MS } from './agent-offline-threshold';
 
 @Injectable()
 export class AgentMonitorScheduler {
