@@ -31,7 +31,7 @@ export class ClientsService {
     );
 
     const client = this.clientsRepository.create({
-      user,
+      user: { id: user.id } as any,
       phone: data.phone,
       address: data.address,
       city: data.city,

@@ -30,7 +30,7 @@ export class UsersService {
     firstName: string,
     lastName: string,
     role: UserRole = UserRole.CLIENT,
-  ): Promise<User> {
+  ): Promise<UserSafeViewDto> {
     const exists = await this.usersRepository.findOne({ where: { email } });
     if (exists) throw new ConflictException('Email already exists');
 
@@ -44,9 +44,7 @@ export class UsersService {
     });
 
     const saved = await this.usersRepository.save(user);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...result } = saved;
-    return result as User;
+    return toUserSafeView(saved);
   }
 
   // Only used by AuthService for login — explicitly selects password for comparison
@@ -69,8 +67,8 @@ export class UsersService {
   }
 
   // skip/take are opt-in — see common/dto/pagination.dto.ts
-  async findAll(skip?: number, take?: number): Promise<User[]> {
-    return this.usersRepository.find({
+  async findAll(skip?: number, take?: number): Promise<UserSafeViewDto[]> {
+    const users = await this.usersRepository.find({
       select: [
         'id',
         'email',
@@ -78,12 +76,15 @@ export class UsersService {
         'lastName',
         'role',
         'isActive',
+        'passwordChangedAt',
         'createdAt',
+        'updatedAt',
       ],
       ...(skip !== undefined ? { skip } : {}),
       ...(take !== undefined ? { take } : {}),
       order: { createdAt: 'DESC' },
     });
+    return users.map(toUserSafeView);
   }
 
   async update(
@@ -95,7 +96,7 @@ export class UsersService {
       role?: UserRole;
       isActive?: boolean;
     },
-  ): Promise<User> {
+  ): Promise<UserSafeViewDto> {
     if (data.email) {
       const existing = await this.usersRepository.findOne({
         where: { email: data.email },
@@ -105,7 +106,7 @@ export class UsersService {
       }
     }
     await this.usersRepository.update(id, data);
-    return this.findById(id);
+    return toUserSafeView(await this.findById(id));
   }
 
   async delete(id: string): Promise<void> {

@@ -20,6 +20,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { PresenceService } from '../presence/presence.service';
 import { PaginationDto } from '../common/dto/pagination.dto';
+import { UserSafeViewDto } from './dto/user-safe-view.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -31,12 +32,12 @@ export class UsersController {
   ) {}
 
   @Get()
-  findAll(@Query() pagination: PaginationDto) {
+  findAll(@Query() pagination: PaginationDto): Promise<UserSafeViewDto[]> {
     return this.usersService.findAll(pagination.skip, pagination.take);
   }
 
   @Post()
-  create(@Body() dto: CreateUserDto) {
+  create(@Body() dto: CreateUserDto): Promise<UserSafeViewDto> {
     return this.usersService.create(
       dto.email,
       dto.password,
@@ -47,7 +48,10 @@ export class UsersController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+  ): Promise<UserSafeViewDto> {
     return this.usersService.update(id, dto);
   }
 
