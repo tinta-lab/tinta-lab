@@ -18,6 +18,7 @@ import {
   AuditChainVerificationDto,
 } from './dto/audit-trail-view.dto';
 import { MyLogsQueryDto } from './dto/my-logs-query.dto';
+import { AccessConnectResponseDto } from './dto/access-connect-response.dto';
 import { AccessEventPageDto } from './dto/access-event-view.dto';
 import { toAccessGrantView } from './dto/access-grant-view.dto';
 import { ClientsService } from '../clients/clients.service';
@@ -76,7 +77,7 @@ export class AccessController {
   async recordConnection(
     @Param('serverId') serverId: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<AccessConnectResponseDto> {
     return this.accessService.recordConnection(serverId, user.id);
   }
 

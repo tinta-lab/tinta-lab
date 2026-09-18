@@ -19,6 +19,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { TintaAgentGateway } from '../tinta-core/tinta-agent.gateway';
 import { AccessReason } from './enums/access-reason.enum';
 import { ClientAccessLogViewDto } from './dto/client-access-log-view.dto';
+import { AccessConnectResponseDto } from './dto/access-connect-response.dto';
 import { AccessLogsQueryDto } from './dto/access-logs-query.dto';
 import {
   AccessEventPageDto,
@@ -234,7 +235,7 @@ export class AccessService {
   async recordConnection(
     serverId: string,
     supportUserId: string,
-  ): Promise<AccessLog> {
+  ): Promise<AccessConnectResponseDto> {
     const activeLog = await this.accessLogRepository.findOne({
       where: { server: { id: serverId }, isRevoked: false },
       relations: ['accessedBy'],
@@ -278,7 +279,7 @@ export class AccessService {
       }
     }
 
-    return result;
+    return { supportPassword: result.supportPassword ?? null };
   }
 
   async setRetentionHold(id: string, hold: boolean): Promise<void> {
