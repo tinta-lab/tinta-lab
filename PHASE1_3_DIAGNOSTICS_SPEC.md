@@ -422,19 +422,40 @@ in `diagnostics.service.ts`, so the aggregation logic and the individual
 check logic can be unit-tested independently of any HTTP/DB wiring (see
 §10's test matrix — this is what makes that matrix realistic to execute).
 
+**Governing principle for every status decision in the table below** (added
+during step 3 implementation, after three genuine gaps in an earlier draft
+of this table were found and closed against it — see the now-resolved
+`ServerStatus.UNKNOWN`, `supportAccess`'s "open with time to spare", and
+`provisioning`'s "no connection, no token data" rows):
+
+```
+UNKNOWN = insufficient evidence to call the state anything else
+ERROR   = evidence of an actual failure
+WARNING = evidence of a degraded / attention-needed state
+OK      = evidence sufficient to call the state healthy
+```
+
+Concretely: an enum member, a missing row, or a data combination the table
+doesn't explicitly name is a defect in this table, not license to guess —
+every check's table row must be exhaustive over its actual input domain
+(including every real enum value, not just the ones a first draft happened
+to mention) before it's implemented. `UNKNOWN` is the correct default for
+"the table doesn't say" precisely because it means "insufficient evidence,"
+never "we didn't think about this."
+
 | key | Source (existing code) | OK | WARNING | ERROR | UNKNOWN |
 |---|---|---|---|---|---|
 | `client` | `Client`/`User` entities (already fetched to resolve `clientId` at all) | `user.isActive` | — | `!user.isActive` (`CLIENT_INACTIVE`) | never — if we got this far the client resolved |
 | `hub` | `Server.hubId` presence | hub linked | — | client has a server but `hubId` is null (`HUB_NOT_LINKED`) | client has zero servers (`NO_SERVER`) — this is UNKNOWN, not ERROR: a brand-new client mid-provisioning legitimately has no server yet, that's not a fault |
-| `server` | `Server.status`, `Server.accessEnabled` | `status === ONLINE` | `status === OFFLINE` but `lastSeenAt` within 24h (`SERVER_RECENTLY_OFFLINE`) | `status === OFFLINE` and `lastSeenAt` older than 24h or null (`SERVER_OFFLINE`) | no server (see `hub` row — same condition, don't double-report as two ERRORs) |
+| `server` | `Server.status`, `Server.accessEnabled` | `status === ONLINE` | `status === OFFLINE` but `lastSeenAt` within 24h (`SERVER_RECENTLY_OFFLINE`) | `status === OFFLINE` and `lastSeenAt` older than 24h or null (`SERVER_OFFLINE`) | no server (see `hub` row — same condition, don't double-report as two ERRORs); **or `status === ServerStatus.UNKNOWN`** (`SERVER_STATUS_UNKNOWN`) — `ServerStatus` has three members, not two; an unconfirmed status is unconfirmed, not evidence of a fault, so it must not be ERROR |
 | `agent` | `TintaCoreService.getDiagnostics()` (§0 item 7) + `AgentSession.lastHeartbeatAt`/`.status` | `agentOnline: true` | `agentOnline: true` but `report === null` (answered nothing within timeout — `AGENT_UNRESPONSIVE`) | `agentOnline: false` (`AGENT_OFFLINE`) | no `AgentSession` row exists at all for this client (not yet provisioned — `AGENT_NOT_PROVISIONED`) |
 | `homeAssistant` | `report.haConnected` (only when `agent` check has a live report) | `report.haConnected === true` | — | `report.haConnected === false` (`HA_API_UNAVAILABLE`) | agent offline or no report (§0 item 4 already covers why this can't be probed independently) |
 | `cloudflare` | `Server.publicStatus`/`publicCheckedAt` (§0 item 1 — **not** a Cloudflare API call) | `REACHABLE` | — | `UNREACHABLE` (`PUBLIC_URL_UNREACHABLE`) | `UNKNOWN` (never probed yet, or the `publicUrl`/`subdomain` isn't set) — passthrough of the entity's own 3-state enum, not reinterpreted |
-| `supportAccess` | `Server.accessEnabled`/`accessExpiresAt`, active `AccessLog` (via `AccessService.getActiveAccessForServer`) | `accessEnabled: false` (closed, as expected — this is the healthy default state) | `accessEnabled: true` and `accessExpiresAt` within 15 min (`ACCESS_EXPIRING_SOON`) | never — an open access grant isn't a fault | `accessEnabled: true`, no active `AccessLog` row found (data inconsistency — flag it as UNKNOWN, not silently OK, since the invariant "accessEnabled implies an active grant" should always hold) |
+| `supportAccess` | `Server.accessEnabled`/`accessExpiresAt`, active `AccessLog` (via `AccessService.getActiveAccessForServer`) | `accessEnabled: false` (closed, as expected — this is the healthy default state); **or `accessEnabled: true` + active `AccessLog` + `accessExpiresAt` more than 15 min out** — an open grant with time to spare is healthy, not merely "not yet a problem" | `accessEnabled: true` + active `AccessLog` + `accessExpiresAt` within 15 min (`ACCESS_EXPIRING_SOON`) | never — an open access grant isn't a fault | `accessEnabled: true`, no active `AccessLog` row found (data inconsistency — flag it as UNKNOWN, not silently OK, since the invariant "accessEnabled implies an active grant" should always hold); **or `accessEnabled: true` + active `AccessLog` + `accessExpiresAt === null`** — confirmed against `AccessService.grantAccess` (`access.service.ts:100-126`): every real grant computes a concrete `expiresAt`, there is no indefinite-grant code path, so a null `accessExpiresAt` on an "active" log is itself an invariant violation, same category as the missing-log case, not a distinct third meaning |
 | `resources` | `report.{cpu,mem,disk}Percent` (live only — §0 item 4, no fallback to stale `metrics` for these three) | all three < 80% | any one ≥ 80% (`RESOURCE_HIGH_USAGE`, name the specific resource in `message`) | any one ≥ 95% (`RESOURCE_CRITICAL`) | agent offline / no report |
 | `templates` | `AgentSession.appliedTemplates` vs `GoldenTemplateService.findAll()` | every slug `findAll()` currently returns is present in `appliedTemplates` | some missing (`TEMPLATES_PENDING` — normal right after provisioning, before the agent's next connect applies them) | never — a missing template is an expected transient state, not a fault | no `AgentSession` |
 | `audit` | This client's own `AccessLog` count (§0 item 3 — **not** `verifyChain()`) | `eventCount > 0` | — | never (v1 doesn't attempt anomaly detection here) | `eventCount === 0` (new client, nothing to audit yet) |
-| `provisioning` | `AgentSession.installTokenExpiresAt`/`lastConnectedAt` (§0 item 2 — derived, not a real state machine yet; `serviceStartConsentAt` is evidence only, see §0 item 2) | `lastConnectedAt` is set (agent has connected at least once, ever) | install token still valid but agent has never connected (`INSTALL_PENDING`) | install token expired and agent has never connected (`INSTALL_EXPIRED`) | no `AgentSession` (not provisioned) |
+| `provisioning` | `AgentSession.installTokenExpiresAt`/`lastConnectedAt` (§0 item 2 — derived, not a real state machine yet; `serviceStartConsentAt` is evidence only, see §0 item 2) | `lastConnectedAt` is set (agent has connected at least once, ever) | install token still valid but agent has never connected (`INSTALL_PENDING`) | install token expired and agent has never connected (`INSTALL_EXPIRED`) | no `AgentSession` (not provisioned); **or `AgentSession` exists, `lastConnectedAt === null`, AND `installTokenExpiresAt === null`** (`PROVISIONING_STATE_UNKNOWN`) — no connection and no token data means valid/expired genuinely cannot be determined; this must not be read as ERROR, since that would assert a failure the data doesn't actually show |
 
 **`templates`'s "active templates" defined precisely**: `GoldenTemplate` has
 no `isDefault` column (confirmed against `tinta-core/entities/golden-
