@@ -10,6 +10,7 @@ import { GoldenTemplateService } from '../tinta-core/golden-template.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ClientsService } from '../clients/clients.service';
 import { UsersService } from '../users/users.service';
+import { ProvisionResultDto } from './dto/provision-result.dto';
 
 export interface ProvisionClientInput {
   // Use an existing client instead of creating a new one
@@ -29,17 +30,6 @@ export interface ProvisionClientInput {
   applyDefaultTemplates?: boolean;
 }
 
-export interface ProvisionResult {
-  clientId: string;
-  serverId: string;
-  agentToken: string;
-  installToken: string;
-  installUrl: string;
-  tunnelToken: string | null;
-  subdomain: string;
-  dashboardUrl: string;
-  agentInstallCommand: string;
-}
 
 export interface InstallConfig {
   clientId: string;
@@ -78,7 +68,9 @@ export class ProvisioningService {
    * 4. Apply default golden templates
    * 5. Send onboarding notification
    */
-  async provisionClient(dto: ProvisionClientInput): Promise<ProvisionResult> {
+  async provisionClient(
+    dto: ProvisionClientInput,
+  ): Promise<ProvisionResultDto> {
     this.logger.log(`Provisioning client: ${dto.email}`);
 
     // 1. Resolve or create client account

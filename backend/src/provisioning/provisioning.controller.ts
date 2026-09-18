@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/entities/user.entity';
 import { ProvisioningService } from './provisioning.service';
 import { ProvisionClientDto } from './dto/provision-client.dto';
+import { ProvisionResultDto } from './dto/provision-result.dto';
 
 @Controller('provisioning')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -15,7 +16,9 @@ export class ProvisioningController {
 
   @Post('client')
   @Throttle({ default: { ttl: 3_600_000, limit: 20 } })
-  async provisionClient(@Body() dto: ProvisionClientDto) {
+  async provisionClient(
+    @Body() dto: ProvisionClientDto,
+  ): Promise<ProvisionResultDto> {
     return this.provisioningService.provisionClient(dto);
   }
 }
