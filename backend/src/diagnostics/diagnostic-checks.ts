@@ -115,11 +115,19 @@ export interface CheckServerInput {
   hasServer: boolean;
   status: ServerStatus | null;
   lastSeenAt: Date | null;
+  // PHASE1_3_DIAGNOSTICS_SPEC.md §7 — whether the caller's deterministic
+  // representative-server tie-break actually had more than one candidate.
+  // Purely a passthrough into evidence; never affects this check's status.
+  multiServerDetected: boolean;
   now: Date;
 }
 
 export function checkServer(input: CheckServerInput): DiagnosticCheckDto {
-  const evidence = { status: input.status, lastSeenAt: input.lastSeenAt };
+  const evidence = {
+    status: input.status,
+    lastSeenAt: input.lastSeenAt,
+    multiServerDetected: input.multiServerDetected,
+  };
   if (!input.hasServer) {
     return check(
       DiagnosticCheckKey.SERVER,

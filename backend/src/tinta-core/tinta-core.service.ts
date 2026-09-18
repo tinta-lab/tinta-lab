@@ -18,6 +18,24 @@ import {
   toAgentSessionView,
 } from './dto/agent-session-view.dto';
 
+// Session metadata for DiagnosticsService (PHASE1_3_DIAGNOSTICS_SPEC.md §5)
+// — historical/persisted fields, distinct from getDiagnostics()'s live
+// observation. Strips agentToken/installToken same as getAllSessions();
+// omits client/clientId since callers already have the clientId they
+// queried with.
+export interface AgentSessionSummary {
+  status: AgentStatus;
+  agentVersion: string | null;
+  haVersion: string | null;
+  appliedTemplates: string[];
+  metrics: AgentSession['metrics'];
+  lastConnectedAt: Date | null;
+  lastHeartbeatAt: Date | null;
+  lastTokenMismatchAt: Date | null;
+  installTokenExpiresAt: Date | null;
+  serviceStartConsentAt: Date | null;
+}
+
 @Injectable()
 export class TintaCoreService {
   private readonly logger = new Logger(TintaCoreService.name);
@@ -149,6 +167,25 @@ export class TintaCoreService {
       relations: ['client', 'client.user'],
     });
     return sessions.map(toAgentSessionView);
+  }
+
+  async getSessionSummary(
+    clientId: string,
+  ): Promise<AgentSessionSummary | null> {
+    const session = await this.sessionRepo.findOne({ where: { clientId } });
+    if (!session) return null;
+    return {
+      status: session.status,
+      agentVersion: session.agentVersion,
+      haVersion: session.haVersion,
+      appliedTemplates: session.appliedTemplates,
+      metrics: session.metrics,
+      lastConnectedAt: session.lastConnectedAt,
+      lastHeartbeatAt: session.lastHeartbeatAt,
+      lastTokenMismatchAt: session.lastTokenMismatchAt,
+      installTokenExpiresAt: session.installTokenExpiresAt,
+      serviceStartConsentAt: session.serviceStartConsentAt,
+    };
   }
 
   async executeAction(

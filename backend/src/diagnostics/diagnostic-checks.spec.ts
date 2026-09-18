@@ -51,33 +51,33 @@ describe('checkHub', () => {
 
 describe('checkServer', () => {
   it('no server -> UNKNOWN / NO_SERVER', () => {
-    const r = checkServer({ hasServer: false, status: null, lastSeenAt: null, now: NOW });
+    const r = checkServer({ hasServer: false, status: null, lastSeenAt: null, multiServerDetected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.UNKNOWN);
     expect(r.code).toBe('NO_SERVER');
   });
   it('ONLINE -> OK', () => {
-    const r = checkServer({ hasServer: true, status: ServerStatus.ONLINE, lastSeenAt: NOW, now: NOW });
+    const r = checkServer({ hasServer: true, status: ServerStatus.ONLINE, lastSeenAt: NOW, multiServerDetected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.OK);
   });
   it('OFFLINE, lastSeenAt within 24h -> WARNING / SERVER_RECENTLY_OFFLINE', () => {
     const lastSeenAt = new Date(NOW.getTime() - 23 * HOUR);
-    const r = checkServer({ hasServer: true, status: ServerStatus.OFFLINE, lastSeenAt, now: NOW });
+    const r = checkServer({ hasServer: true, status: ServerStatus.OFFLINE, lastSeenAt, multiServerDetected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.WARNING);
     expect(r.code).toBe('SERVER_RECENTLY_OFFLINE');
   });
   it('OFFLINE, lastSeenAt older than 24h -> ERROR / SERVER_OFFLINE', () => {
     const lastSeenAt = new Date(NOW.getTime() - 25 * HOUR);
-    const r = checkServer({ hasServer: true, status: ServerStatus.OFFLINE, lastSeenAt, now: NOW });
+    const r = checkServer({ hasServer: true, status: ServerStatus.OFFLINE, lastSeenAt, multiServerDetected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.ERROR);
     expect(r.code).toBe('SERVER_OFFLINE');
   });
   it('OFFLINE, lastSeenAt null -> ERROR / SERVER_OFFLINE', () => {
-    const r = checkServer({ hasServer: true, status: ServerStatus.OFFLINE, lastSeenAt: null, now: NOW });
+    const r = checkServer({ hasServer: true, status: ServerStatus.OFFLINE, lastSeenAt: null, multiServerDetected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.ERROR);
     expect(r.code).toBe('SERVER_OFFLINE');
   });
   it('UNKNOWN status -> UNKNOWN, not ERROR (spec exhaustiveness fix)', () => {
-    const r = checkServer({ hasServer: true, status: ServerStatus.UNKNOWN, lastSeenAt: null, now: NOW });
+    const r = checkServer({ hasServer: true, status: ServerStatus.UNKNOWN, lastSeenAt: null, multiServerDetected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.UNKNOWN);
     expect(r.code).toBe('SERVER_STATUS_UNKNOWN');
   });
@@ -367,8 +367,39 @@ describe('evidence allowlisting (spot check)', () => {
       hasServer: true,
       status: ServerStatus.ONLINE,
       lastSeenAt: NOW,
+      multiServerDetected: false,
       now: NOW,
     });
-    expect(Object.keys(r.evidence ?? {}).sort()).toEqual(['lastSeenAt', 'status']);
+    expect(Object.keys(r.evidence ?? {}).sort()).toEqual([
+      'lastSeenAt',
+      'multiServerDetected',
+      'status',
+    ]);
+  });
+});
+
+describe('checkServer multi-server evidence (§7)', () => {
+  it('multiServerDetected: false does not change status, only evidence', () => {
+    const single = checkServer({
+      hasServer: true,
+      status: ServerStatus.ONLINE,
+      lastSeenAt: NOW,
+      multiServerDetected: false,
+      now: NOW,
+    });
+    expect(single.status).toBe(DiagnosticStatus.OK);
+    expect(single.evidence).toMatchObject({ multiServerDetected: false });
+  });
+
+  it('multiServerDetected: true surfaces in evidence without affecting status', () => {
+    const multi = checkServer({
+      hasServer: true,
+      status: ServerStatus.ONLINE,
+      lastSeenAt: NOW,
+      multiServerDetected: true,
+      now: NOW,
+    });
+    expect(multi.status).toBe(DiagnosticStatus.OK);
+    expect(multi.evidence).toMatchObject({ multiServerDetected: true });
   });
 });
