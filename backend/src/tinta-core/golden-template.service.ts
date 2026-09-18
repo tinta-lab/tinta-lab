@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GoldenTemplate } from './entities/golden-template.entity';
 import { AgentSession } from './entities/agent-session.entity';
+import {
+  GoldenTemplateViewDto,
+  toGoldenTemplateView,
+} from './dto/golden-template-view.dto';
 
 @Injectable()
 export class GoldenTemplateService {
@@ -15,8 +19,11 @@ export class GoldenTemplateService {
     private readonly sessionRepo: Repository<AgentSession>,
   ) {}
 
-  async findAll(): Promise<GoldenTemplate[]> {
-    return this.templateRepo.find({ where: { isActive: true } });
+  async findAll(): Promise<GoldenTemplateViewDto[]> {
+    const templates = await this.templateRepo.find({
+      where: { isActive: true },
+    });
+    return templates.map(toGoldenTemplateView);
   }
 
   async findBySlug(slug: string): Promise<GoldenTemplate> {
@@ -31,9 +38,12 @@ export class GoldenTemplateService {
     description?: string;
     automation: Record<string, any>;
     requiredEntities?: string[];
-  }): Promise<GoldenTemplate> {
+  }): Promise<GoldenTemplateViewDto> {
     const template = this.templateRepo.create(data as any);
-    return this.templateRepo.save(template) as unknown as GoldenTemplate;
+    const saved = (await this.templateRepo.save(
+      template,
+    )) as unknown as GoldenTemplate;
+    return toGoldenTemplateView(saved);
   }
 
   // Идемпотентное применение шаблона — отправляет команду агенту

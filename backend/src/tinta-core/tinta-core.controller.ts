@@ -9,6 +9,8 @@ import { CreateTemplateDto } from './dto/create-template.dto';
 import { ExecuteCommandDto } from './dto/execute-command.dto';
 import { CloudflareService } from '../cloudflare/cloudflare.service';
 import { ServersGateway } from '../servers/servers.gateway';
+import { AgentSessionViewDto } from './dto/agent-session-view.dto';
+import { GoldenTemplateViewDto } from './dto/golden-template-view.dto';
 
 @Controller('tinta-core')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,7 +32,7 @@ export class TintaCoreController {
   // Admin: get all agent sessions
   @Get('sessions')
   @Roles(UserRole.ADMIN)
-  async getSessions() {
+  async getSessions(): Promise<AgentSessionViewDto[]> {
     return this.coreService.getAllSessions();
   }
 
@@ -100,13 +102,15 @@ export class TintaCoreController {
 
   @Get('templates')
   @Roles(UserRole.ADMIN)
-  async getTemplates() {
+  async getTemplates(): Promise<GoldenTemplateViewDto[]> {
     return this.templateService.findAll();
   }
 
   @Post('templates')
   @Roles(UserRole.ADMIN)
-  async createTemplate(@Body() dto: CreateTemplateDto) {
+  async createTemplate(
+    @Body() dto: CreateTemplateDto,
+  ): Promise<GoldenTemplateViewDto> {
     return this.templateService.create(dto);
   }
 }

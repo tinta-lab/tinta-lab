@@ -13,6 +13,10 @@ import { AgentSession, AgentStatus } from './entities/agent-session.entity';
 import { TintaAgentGateway, DiagnosticsReport } from './tinta-agent.gateway';
 import { TintaCommand } from './tinta-command.types';
 import { GoldenTemplateService } from './golden-template.service';
+import {
+  AgentSessionViewDto,
+  toAgentSessionView,
+} from './dto/agent-session-view.dto';
 
 @Injectable()
 export class TintaCoreService {
@@ -140,11 +144,11 @@ export class TintaCoreService {
     );
   }
 
-  async getAllSessions(): Promise<Partial<AgentSession>[]> {
+  async getAllSessions(): Promise<AgentSessionViewDto[]> {
     const sessions = await this.sessionRepo.find({
       relations: ['client', 'client.user'],
     });
-    return sessions.map(({ agentToken, installToken, ...safe }) => safe);
+    return sessions.map(toAgentSessionView);
   }
 
   async executeAction(
