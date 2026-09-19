@@ -197,6 +197,47 @@ describe('Diagnostics (e2e)', () => {
       assertNoForbiddenKeys(body, STAFF_FORBIDDEN_KEYS);
     });
 
+    it('every one of the 11 checks has exactly the 7 documented fields (§1 contract shape)', async () => {
+      const fixture = await createClientFixture('shape', [
+        { status: ServerStatus.ONLINE, hubId: 'hubshape' },
+      ]);
+
+      const res = await request(app.getHttpServer())
+        .get(`/clients/${fixture.clientId}/diagnostics`)
+        .set('Authorization', `Bearer ${staffAdmin.token}`)
+        .expect(200);
+
+      const body = res.body as {
+        checks: Record<string, unknown>[];
+      };
+      expect(body.checks).toHaveLength(11);
+      for (const c of body.checks) {
+        expect(typeof c.key).toBe('string');
+        expect(typeof c.status).toBe('string');
+        expect(['ok', 'warning', 'error', 'unknown']).toContain(c.status);
+        expect(typeof c.code).toBe('string');
+        expect(typeof c.title).toBe('string');
+        expect(typeof c.message).toBe('string');
+        expect(typeof c.checkedAt).toBe('string'); // ISO date-time over JSON
+        expect(c.evidence === null || typeof c.evidence === 'object').toBe(
+          true,
+        );
+        // Exactly these 7 keys — nothing extra riding along (e.g. no
+        // accidental entity field leaking through evidence spreading).
+        expect(Object.keys(c).sort()).toEqual(
+          [
+            'checkedAt',
+            'code',
+            'evidence',
+            'key',
+            'message',
+            'status',
+            'title',
+          ].sort(),
+        );
+      }
+    });
+
     it('client with zero servers -> 200, overallStatus UNKNOWN, no-server semantics', async () => {
       const fixture = await createClientFixture('noserver', []);
 
