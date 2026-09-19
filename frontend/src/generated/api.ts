@@ -804,6 +804,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clients/{clientId}/diagnostics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DiagnosticsController_getClientDiagnostics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -873,21 +889,6 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             user: components["schemas"]["ClientUserSummaryDto"];
-        };
-        User: {
-            role: components["schemas"]["UserRole"];
-            id: string;
-            email: string;
-            password: string;
-            firstName: string;
-            lastName: string;
-            isActive: boolean;
-            /** Format: date-time */
-            passwordChangedAt: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
         };
         CreateUserDto: {
             role?: components["schemas"]["UserRole"];
@@ -1056,106 +1057,8 @@ export interface components {
             reasonCode: string | null;
             reasonDetails: string | null;
         };
-        Client: {
-            id: string;
-            user: components["schemas"]["User"];
-            phone: string;
-            address: string;
-            city: string;
-            country: string;
-            isInstalled: boolean;
-            notes: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        Server: {
-            id: string;
-            client: components["schemas"]["Client"];
-            name: string;
-            subdomain: string;
-            hubId: string | null;
-            tunnelId: string;
-            cfAccessAppId: string | null;
-            tunnelToken: string | null;
-            cfDnsRecordId: string | null;
-            /** @enum {string} */
-            status: "online" | "offline" | "unknown";
-            accessEnabled: boolean;
-            /** Format: date-time */
-            accessExpiresAt: string | null;
-            /** Format: date-time */
-            lastSeenAt: string | null;
-            /** @enum {string} */
-            publicStatus: "reachable" | "unreachable" | "unknown";
-            /** Format: date-time */
-            publicCheckedAt: string | null;
-            haVersion: string | null;
-            localUrl: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        /** @enum {string} */
-        TicketType: "installation" | "support" | "sales" | "other";
-        /** @enum {string} */
-        TicketStatus: "new" | "in_progress" | "waiting_client" | "resolved" | "closed";
-        TicketMessage: {
-            authorRole: components["schemas"]["UserRole"];
-            id: string;
-            ticket: components["schemas"]["Ticket"];
-            author: components["schemas"]["User"];
-            message: string;
-            internal: boolean;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        Ticket: {
-            type: components["schemas"]["TicketType"];
-            status: components["schemas"]["TicketStatus"];
-            id: string;
-            name: string;
-            email: string;
-            phone: string;
-            subject: string;
-            message: string;
-            assignedTo: components["schemas"]["User"];
-            client: components["schemas"]["Client"] | null;
-            server: components["schemas"]["Server"] | null;
-            internalNotes: string;
-            messages: components["schemas"]["TicketMessage"][];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        AccessLog: {
-            id: string;
-            server: components["schemas"]["Server"];
-            grantedBy: components["schemas"]["User"];
-            accessedBy: components["schemas"]["User"];
-            reason: string | null;
-            /** @enum {string|null} */
-            reasonCode: "general_question" | "device_not_working" | "automation_help" | "connectivity_issue" | "other" | "ha_dashboard_toggle" | null;
-            reasonDetails: string | null;
-            ticket: components["schemas"]["Ticket"] | null;
-            retentionHold: boolean;
-            /** Format: date-time */
-            grantedAt: string;
-            /** Format: date-time */
-            expiresAt: string;
-            /** Format: date-time */
-            connectedAt: string;
-            /** Format: date-time */
-            revokedAt: string;
-            isRevoked: boolean;
-            supportPassword: string;
-            activityLog: string[] | null;
-            notes: string;
-            /** Format: date-time */
-            createdAt: string;
+        AccessConnectResponseDto: {
+            supportPassword: string | null;
         };
         /** @enum {string} */
         AuditEventType: "granted" | "connected" | "activity_log" | "security_anomaly" | "revoked" | "expired";
@@ -1227,6 +1130,8 @@ export interface components {
             id: string;
             name: string;
         };
+        /** @enum {string} */
+        TicketStatus: "new" | "in_progress" | "waiting_client" | "resolved" | "closed";
         ClientAccessLogTicketRefDto: {
             status: components["schemas"]["TicketStatus"];
             id: string;
@@ -1269,6 +1174,51 @@ export interface components {
             valid: boolean;
             brokenAtEventId?: string;
         };
+        /** @enum {string} */
+        AgentStatus: "connected" | "disconnected";
+        AgentSessionMetricsDto: {
+            cpuPercent: number;
+            memPercent: number;
+            diskPercent: number;
+            deviceCount: number;
+            automationCount: number;
+            uptimeSeconds: number;
+        };
+        AgentSessionClientUserRefDto: {
+            firstName: string;
+            lastName: string;
+            email: string;
+        };
+        AgentSessionClientRefDto: {
+            user: components["schemas"]["AgentSessionClientUserRefDto"];
+            id: string;
+            phone: string | null;
+            city: string | null;
+        };
+        AgentSessionViewDto: {
+            status: components["schemas"]["AgentStatus"];
+            metrics: components["schemas"]["AgentSessionMetricsDto"] | null;
+            client: components["schemas"]["AgentSessionClientRefDto"];
+            id: string;
+            clientId: string;
+            agentVersion: string | null;
+            haVersion: string | null;
+            appliedTemplates: string[];
+            /** Format: date-time */
+            lastConnectedAt: string | null;
+            /** Format: date-time */
+            lastHeartbeatAt: string | null;
+            /** Format: date-time */
+            lastTokenMismatchAt: string | null;
+            /** Format: date-time */
+            installTokenExpiresAt: string | null;
+            /** Format: date-time */
+            serviceStartConsentAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         ExecuteCommandDto: {
             /** @enum {string} */
             entityType: "light" | "climate" | "security" | "switch" | "cover";
@@ -1276,7 +1226,7 @@ export interface components {
             haEntityId: string;
             data?: Record<string, never>;
         };
-        GoldenTemplate: {
+        GoldenTemplateViewDto: {
             id: string;
             slug: string;
             name: string;
@@ -1296,6 +1246,8 @@ export interface components {
             automation: Record<string, never>;
             requiredEntities?: string[];
         };
+        /** @enum {string} */
+        TicketType: "installation" | "support" | "sales" | "other";
         StaffTicketViewDto: {
             type: components["schemas"]["TicketType"];
             status: components["schemas"]["TicketStatus"];
@@ -1423,6 +1375,17 @@ export interface components {
             localUrl?: string;
             applyDefaultTemplates?: boolean;
         };
+        ProvisionResultDto: {
+            clientId: string;
+            serverId: string;
+            agentToken: string;
+            installToken: string;
+            installUrl: string;
+            tunnelToken: string | null;
+            subdomain: string;
+            dashboardUrl: string;
+            agentInstallCommand: string;
+        };
         HubClientUserRefDto: {
             firstName: string;
             lastName: string;
@@ -1469,6 +1432,56 @@ export interface components {
             /** Format: date-time */
             lastSeenAt: string | null;
             tunnelId: string | null;
+        };
+        /** @enum {string} */
+        DiagnosticStatus: "ok" | "warning" | "error" | "unknown";
+        /** @enum {string} */
+        DiagnosticCheckKey: "client" | "hub" | "server" | "agent" | "homeAssistant" | "cloudflare" | "supportAccess" | "resources" | "templates" | "audit" | "provisioning";
+        DiagnosticCheckDto: {
+            key: components["schemas"]["DiagnosticCheckKey"];
+            status: components["schemas"]["DiagnosticStatus"];
+            evidence: {
+                [key: string]: unknown;
+            } | null;
+            code: string;
+            title: string;
+            message: string;
+            /** Format: date-time */
+            checkedAt: string;
+        };
+        DiagnosticClientRefDto: {
+            id: string;
+            firstName: string;
+            lastName: string;
+            email: string;
+            isInstalled: boolean;
+        };
+        /** @enum {string} */
+        ServerStatus: "online" | "offline" | "unknown";
+        /** @enum {string} */
+        ServerPublicStatus: "reachable" | "unreachable" | "unknown";
+        DiagnosticServerRefDto: {
+            status: components["schemas"]["ServerStatus"];
+            publicStatus: components["schemas"]["ServerPublicStatus"];
+            id: string;
+            name: string;
+            subdomain: string;
+        };
+        DiagnosticHubRefDto: {
+            id: string;
+            agentOnline: boolean;
+            agentVersion: string | null;
+            haVersion: string | null;
+        };
+        ClientDiagnosticsDto: {
+            overallStatus: components["schemas"]["DiagnosticStatus"];
+            checks: components["schemas"]["DiagnosticCheckDto"][];
+            client: components["schemas"]["DiagnosticClientRefDto"];
+            server: components["schemas"]["DiagnosticServerRefDto"] | null;
+            hub: components["schemas"]["DiagnosticHubRefDto"] | null;
+            clientId: string;
+            /** Format: date-time */
+            checkedAt: string;
         };
     };
     responses: never;
@@ -1637,7 +1650,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"][];
+                    "application/json": components["schemas"]["UserSafeViewDto"][];
                 };
             };
         };
@@ -1660,7 +1673,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["UserSafeViewDto"];
                 };
             };
         };
@@ -1704,7 +1717,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"];
+                    "application/json": components["schemas"]["UserSafeViewDto"];
                 };
             };
         };
@@ -2071,7 +2084,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AccessLog"];
+                    "application/json": components["schemas"]["AccessConnectResponseDto"];
                 };
             };
         };
@@ -2260,7 +2273,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>[];
+                    "application/json": components["schemas"]["AgentSessionViewDto"][];
                 };
             };
         };
@@ -2415,7 +2428,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GoldenTemplate"][];
+                    "application/json": components["schemas"]["GoldenTemplateViewDto"][];
                 };
             };
         };
@@ -2438,7 +2451,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["GoldenTemplate"];
+                    "application/json": components["schemas"]["GoldenTemplateViewDto"];
                 };
             };
         };
@@ -2659,7 +2672,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": Record<string, never>;
+                    "application/json": components["schemas"]["ProvisionResultDto"];
                 };
             };
         };
@@ -2743,6 +2756,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HubViewDto"];
+                };
+            };
+        };
+    };
+    DiagnosticsController_getClientDiagnostics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClientDiagnosticsDto"];
                 };
             };
         };
