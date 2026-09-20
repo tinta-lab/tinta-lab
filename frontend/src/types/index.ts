@@ -112,3 +112,17 @@ export type AuditTrailEventView = components['schemas']['AuditTrailEventViewDto'
 
 // Sourced from the backend OpenAPI contract — see P1.3-B.
 export type AuditChainVerification = components['schemas']['AuditChainVerificationDto'];
+
+// Sourced from the backend OpenAPI contract — Phase 1.3 Diagnostics Center
+// (PHASE1_3_DIAGNOSTICS_SPEC.md). DiagnosticCheck.title/message/evidence are
+// backend-authored text/data — the frontend renders them verbatim and must
+// never reinterpret or recompute a status from raw fields (e.g. no
+// `if cpu > 80` logic client-side); that judgment lives entirely in the
+// backend check layer.
+export type DiagnosticStatus = components['schemas']['DiagnosticStatus'];
+export type DiagnosticCheckKey = components['schemas']['DiagnosticCheckKey'];
+export type DiagnosticCheck = components['schemas']['DiagnosticCheckDto'];
+export type DiagnosticClientRef = components['schemas']['DiagnosticClientRefDto'];
+export type DiagnosticServerRef = components['schemas']['DiagnosticServerRefDto'];
+export type DiagnosticHubRef = components['schemas']['DiagnosticHubRefDto'];
+export type ClientDiagnostics = components['schemas']['ClientDiagnosticsDto'];
