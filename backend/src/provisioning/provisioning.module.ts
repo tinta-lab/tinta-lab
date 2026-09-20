@@ -10,18 +10,20 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { ProvisioningService } from './provisioning.service';
 import { ProvisioningController } from './provisioning.controller';
 import { InstallController } from './install.controller';
+import { ProvisioningOperation } from './entities/provisioning-operation.entity';
+import { ProvisioningOperationsService } from './provisioning-operations.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Client, Server]),
+    TypeOrmModule.forFeature([Client, Server, ProvisioningOperation]),
     ClientsModule,
     UsersModule,
     ServersModule,
     TintaCoreModule,
     NotificationsModule,
   ],
-  providers: [ProvisioningService],
+  providers: [ProvisioningService, ProvisioningOperationsService],
   controllers: [ProvisioningController, InstallController],
-  exports: [ProvisioningService],
+  exports: [ProvisioningService, ProvisioningOperationsService],
 })
 export class ProvisioningModule {}
