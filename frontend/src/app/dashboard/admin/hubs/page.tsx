@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
@@ -17,22 +18,6 @@ import type { TranslationKey } from '@/i18n/translations';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-interface DiagnosticsReport {
-  haConnected: boolean;
-  haVersion: string;
-  agentVersion: string;
-  uptimeSeconds: number;
-  cpuPercent: number;
-  memPercent: number;
-  diskPercent: number;
-  timestamp: string;
-}
-
-interface DiagnosticsResult {
-  agentOnline: boolean;
-  report: DiagnosticsReport | null;
-}
 
 type AccessReason = 'general_question' | 'device_not_working' | 'automation_help' | 'connectivity_issue' | 'other' | 'ha_dashboard_toggle';
 
@@ -74,19 +59,6 @@ interface ProvisionResult {
 const LATEST_VERSION = '2026.8.3';
 
 // ─── Utility components ───────────────────────────────────────────────────────
-
-function MetricBar({ value, label, color }: { value: number; label: string; color: string }) {
-  return (
-    <div>
-      <div className="flex justify-between text-xs text-slate-400 mb-1">
-        <span>{label}</span><span>{value.toFixed(0)}%</span>
-      </div>
-      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${Math.min(value, 100)}%` }} />
-      </div>
-    </div>
-  );
-}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -323,8 +295,6 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
   const [saving, setSaving] = useState(false);
   const [templates, setTemplates] = useState<GoldenTemplate[]>([]);
   const [applyingSlug, setApplyingSlug] = useState<string | null>(null);
-  const [diag, setDiag] = useState<DiagnosticsResult | null>(null);
-  const [checkingDiag, setCheckingDiag] = useState(false);
 
   const isOnline = hub.agent?.isOnline ?? false;
   const needsUpdate = hub.agent?.agentVersion && hub.agent.agentVersion !== LATEST_VERSION;
@@ -349,16 +319,6 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
     if (tab === 'activity') loadLogs();
     if (tab === 'templates' && templates.length === 0) loadTemplates();
   }, [tab, loadLogs, loadTemplates, templates.length]);
-
-  const checkDiagnostics = async () => {
-    setCheckingDiag(true);
-    setDiag(null);
-    try {
-      const { data } = await api.get<DiagnosticsResult>(`/tinta-core/diagnostics/${hub.client.id}`);
-      setDiag(data);
-    } catch { toast.error(t('error')); }
-    finally { setCheckingDiag(false); }
-  };
 
   const applyTemplate = async (slug: string) => {
     setApplyingSlug(slug);
@@ -558,28 +518,6 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
                 <Row label={t('col_status')} value={isOnline ? `🟢 ${t('client_status_online')}` : `⚫ ${t('client_status_offline')}`} />
                 <Row label="Agent" value={hub.agent?.agentVersion ?? '—'} />
                 <Row label="HA" value={hub.haVersion ?? '—'} />
-                <div className="flex items-center justify-between py-1.5">
-                  <span className="text-sm text-slate-400">{t('hub_ha_live_label')}</span>
-                  <div className="flex items-center gap-2">
-                    {diag && (
-                      diag.report ? (
-                        <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${diag.report.haConnected ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                          {diag.report.haConnected ? <Wifi size={11} /> : <WifiOff size={11} />}
-                          {diag.report.haConnected ? t('hub_ha_connected') : t('hub_ha_disconnected')}
-                        </span>
-                      ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">
-                          {diag.agentOnline ? t('hub_diag_timeout') : t('hub_agent_offline')}
-                        </span>
-                      )
-                    )}
-                    <button onClick={checkDiagnostics} disabled={checkingDiag || !isOnline}
-                      className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 disabled:opacity-40 transition-colors">
-                      {checkingDiag ? <Loader2 size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                      {t('hub_check_connection')}
-                    </button>
-                  </div>
-                </div>
                 {hub.agent?.lastConnectedAt && (
                   <Row label={t('hub_field_last_connected')} value={new Date(hub.agent.lastConnectedAt).toLocaleString()} />
                 )}
@@ -589,17 +527,20 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
                     <span>{t('hub_token_mismatch_label')}: {new Date(hub.agent.lastTokenMismatchAt).toLocaleString()}</span>
                   </div>
                 )}
-                {hub.agent?.metrics && (
-                  <div className="mt-3 space-y-2">
-                    <MetricBar value={hub.agent.metrics.cpuPercent ?? 0} label="CPU" color="bg-teal-500" />
-                    <MetricBar value={hub.agent.metrics.memPercent ?? 0} label="RAM" color="bg-blue-500" />
-                    <MetricBar value={hub.agent.metrics.diskPercent ?? 0} label="Disk" color="bg-purple-500" />
-                    <div className="flex gap-4 text-xs text-slate-400 pt-1">
-                      <span>{hub.agent.metrics.deviceCount} {t('devices_unit')}</span>
-                      <span>{hub.agent.metrics.automationCount} {t('automations_unit')}</span>
-                    </div>
-                  </div>
-                )}
+                {/* Live connectivity/HA/resource state moved to the
+                    Diagnostics Center (PHASE1_3_DIAGNOSTICS_SPEC.md §11 step
+                    7) — this used to be an ad hoc round-trip
+                    (checkDiagnostics/diag) plus a stale metrics snapshot
+                    duplicating what that Center now computes properly. */}
+                <Link
+                  href={`/dashboard/diagnostics/${hub.client.id}`}
+                  className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Activity size={14} /> {t('hub_open_diagnostics')}
+                  </span>
+                  <ChevronRight size={14} />
+                </Link>
               </Section>
 
               {/* Activation code if not yet connected */}
