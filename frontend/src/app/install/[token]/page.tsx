@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import { Check, Copy, AlertTriangle, Loader2, Shield, Wifi, ExternalLink } from 'lucide-react';
+import { Check, Copy, AlertTriangle, Loader2, Shield, Wifi, ExternalLink, Clock, RefreshCw } from 'lucide-react';
 
 interface InstallConfig {
   clientId: string;
@@ -55,10 +55,66 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
+// Distinguishes WHY the request failed, not just THAT it failed — a 429
+// (temporary, will resolve itself) must never look like a 404/410 (the
+// token itself is genuinely dead) to the person reading the page. An
+// Agent crash-looping on the expected "consent not given yet" 403 can
+// burn through install.controller.ts's 10-req/15min throttle, so the
+// very next legitimate request — the browser's own GET right after the
+// client completes consent — gets a 429 too. Before this fix, every
+// non-410/404 status (429 included) fell into a generic branch and was
+// shown under the headline "Ссылка недействительна" (link invalid), even
+// though the token was valid and consent had just succeeded. That
+// headline is not just imprecise, it's actively wrong for a 429 and
+// tells the client to do the one thing that won't help (find the admin
+// for a new link) instead of the one thing that will (wait a few minutes
+// and reload).
+type InstallErrorKind = 'expired' | 'notfound' | 'ratelimited' | 'server' | 'unknown';
+
+interface InstallError {
+  kind: InstallErrorKind;
+  message: string;
+  retryAfterSec?: number;
+}
+
+function classifyInstallError(err: unknown): InstallError {
+  const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+  if (status === 410) {
+    return { kind: 'expired', message: 'Ссылка истекла. Попросите администратора выдать новую.' };
+  }
+  if (status === 404) {
+    return { kind: 'notfound', message: 'Ссылка не найдена или уже была использована ранее.' };
+  }
+  if (status === 429) {
+    const retryAfterHeader = axios.isAxiosError(err) ? err.response?.headers?.['retry-after'] : undefined;
+    const retryAfterSec = retryAfterHeader ? parseInt(String(retryAfterHeader), 10) : undefined;
+    const waitText = retryAfterSec && Number.isFinite(retryAfterSec)
+      ? `примерно ${Math.ceil(retryAfterSec / 60)} мин.`
+      : 'несколько минут';
+    return {
+      kind: 'ratelimited',
+      message: `Слишком много попыток за короткое время. Ссылка по-прежнему действительна — подождите ${waitText} и обновите страницу.`,
+      retryAfterSec,
+    };
+  }
+  if (status && status >= 500) {
+    return { kind: 'server', message: 'Временная проблема на сервере. Ссылка по-прежнему действительна — попробуйте обновить страницу через минуту.' };
+  }
+  return { kind: 'unknown', message: 'Не удалось загрузить конфигурацию. Попробуйте обновить страницу через минуту.' };
+}
+
+const INSTALL_ERROR_TITLES: Record<InstallErrorKind, string> = {
+  expired: 'Ссылка истекла',
+  notfound: 'Ссылка недействительна',
+  ratelimited: 'Слишком много попыток',
+  server: 'Временная проблема',
+  unknown: 'Не удалось загрузить',
+};
+
 export default function InstallPage() {
   const { token } = useParams<{ token: string }>();
   const [config, setConfig] = useState<InstallConfig | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<InstallError | null>(null);
   const [loading, setLoading] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
   const [consenting, setConsenting] = useState(false);
@@ -68,16 +124,25 @@ export default function InstallPage() {
   const confirmConsentAndLoad = () => {
     setLoading(true);
     setConsenting(true);
+    setError(null);
     axios.post(`${apiUrl}/install/${token}/consent`)
       .then(() => axios.get<InstallConfig>(`${apiUrl}/install/${token}`))
       .then(r => setConfig(r.data))
-      .catch(err => {
-        const status = err.response?.status;
-        if (status === 410) setError('Ссылка истекла. Попросите администратора выдать новую.');
-        else if (status === 404) setError('Ссылка не найдена или уже использована.');
-        else setError('Не удалось загрузить конфигурацию. Попробуйте позже.');
-      })
+      .catch(err => setError(classifyInstallError(err)))
       .finally(() => { setLoading(false); setConsenting(false); });
+  };
+
+  // Retryable errors (rate limit, transient server issue) get a real retry
+  // button instead of forcing a full page reload — same request, same
+  // classification, so a resolved rate limit or a recovered backend
+  // succeeds without the person needing to re-tick the consent checkbox.
+  const retryLoad = () => {
+    setLoading(true);
+    setError(null);
+    axios.get<InstallConfig>(`${apiUrl}/install/${token}`)
+      .then(r => setConfig(r.data))
+      .catch(err => setError(classifyInstallError(err)))
+      .finally(() => setLoading(false));
   };
 
   if (loading) {
@@ -136,14 +201,32 @@ export default function InstallPage() {
   }
 
   if (error || !config) {
+    // 404/410: the token itself is genuinely dead — nothing to retry, only
+    // a new link from an admin helps. 429/5xx/unknown: the token is fine,
+    // this is transient — offer a real retry instead of a dead end.
+    const kind = error?.kind ?? 'unknown';
+    const isTerminal = kind === 'expired' || kind === 'notfound';
+    const Icon = isTerminal ? AlertTriangle : Clock;
+    const iconColor = isTerminal ? 'text-red-400' : 'text-amber-400';
+    const iconBg = isTerminal ? 'bg-red-900/30' : 'bg-amber-900/30';
+
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
-          <div className="w-14 h-14 rounded-full bg-red-900/30 flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle className="w-7 h-7 text-red-400" />
+          <div className={`w-14 h-14 rounded-full ${iconBg} flex items-center justify-center mx-auto mb-4`}>
+            <Icon className={`w-7 h-7 ${iconColor}`} />
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">Ссылка недействительна</h1>
-          <p className="text-slate-400 text-sm">{error}</p>
+          <h1 className="text-xl font-bold text-white mb-2">{INSTALL_ERROR_TITLES[kind]}</h1>
+          <p className="text-slate-400 text-sm mb-5">{error?.message}</p>
+          {!isTerminal && (
+            <button
+              onClick={retryLoad}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
+            >
+              <RefreshCw size={14} />
+              Попробовать снова
+            </button>
+          )}
         </div>
       </div>
     );
