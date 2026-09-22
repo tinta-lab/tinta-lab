@@ -510,11 +510,23 @@ stable-релизе):
 1. Build and verify Agent.
 2. Publish stable image (GHCR).
 3. Verify manifest/digest across all architectures.
-4. Set `AGENT_LATEST_STABLE_VERSION=<новая версия>` в `backend/.env` на
-   production (см. `backend/.env.example` — это не секрет, значение просто
-   не коммитится вместе с остальным `.env`).
-5. Restart backend с обновлённым `.env`:
+4. Set `AGENT_LATEST_STABLE_VERSION=<новая версия>` in the production
+   shared environment file:
+   ```
+   /home/tinta/shared/backend.env
+   ```
+   **Do not edit `backend/.env` in the Git working tree for production.**
+   That file is for local/development configuration only — production
+   reads `backend/.env` as a symlink to `/home/tinta/shared/backend.env`
+   (see `readlink -f /home/tinta/current/tinta-lab/backend/.env`). Editing
+   the working-tree copy has zero effect on the running process and will
+   silently look like it worked (2026-09-22: this exact mistake was made
+   once during the BUG-2 rollout, caught only by re-checking `pm2_env`
+   before declaring it done).
+5. Restart backend с обновлённым `.env` (запускать из `/home/tinta`, где
+   лежит `ecosystem.config.js`):
    ```bash
+   cd /home/tinta
    pm2 reload ecosystem.config.js --update-env --only tinta-backend
    ```
    (не `pm2 restart tinta-backend` — без `--update-env` PM2 может
