@@ -42,6 +42,15 @@ export interface InstallConfig {
   expiresAt: string;
 }
 
+// Display-only fields for the browser's own page render. Deliberately
+// excludes agentToken/tunnelToken/clientId — see getInstallPreview() for why.
+export interface InstallPreview {
+  serverName: string;
+  clientName: string;
+  externalUrl: string;
+  expiresAt: string;
+}
+
 @Injectable()
 export class ProvisioningService {
   private readonly logger = new Logger(ProvisioningService.name);
@@ -212,6 +221,38 @@ export class ProvisioningService {
     await this.tintaCore.recordServiceStartConsent(token);
   }
 
+  // Shared by getInstallConfig() and getInstallPreview() — both need
+  // server/clientName/externalUrl, neither should duplicate how externalUrl
+  // is derived (hub-based hostname preferred over subdomain) or issue a
+  // second findByClientId query for the same data.
+  private async resolveDisplayFields(clientId: string): Promise<{
+    server: Server | undefined;
+    serverName: string;
+    clientName: string;
+    externalUrl: string;
+  }> {
+    const [servers, client] = await Promise.all([
+      this.serversService.findByClientId(clientId),
+      this.clientsService.findById(clientId),
+    ]);
+    const server = servers[0];
+    const serverPublicHostname = server
+      ? (this.serversService.getPublicHostname(server) ?? server.subdomain)
+      : '';
+    return {
+      server,
+      serverName: server?.name ?? '',
+      clientName:
+        `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
+      externalUrl: serverPublicHostname ? `https://${serverPublicHostname}` : '',
+    };
+  }
+
+  // Agent-only. Validates + gates on consent same as preview, but this is
+  // the sole caller of consumeInstallToken() — it hands back the real
+  // enrollment secrets (agentToken/tunnelToken), so the link may only be
+  // read this way once. See getInstallPreview() for the non-consuming
+  // counterpart the browser itself must use instead.
   async getInstallConfig(token: string): Promise<InstallConfig> {
     const session = await this.tintaCore.getSessionByInstallToken(token);
     if (!session.serviceStartConsentAt) {
@@ -219,30 +260,21 @@ export class ProvisioningService {
         'Service start consent required before install config can be revealed',
       );
     }
-    const [servers, client] = await Promise.all([
-      this.serversService.findByClientId(session.clientId),
-      this.clientsService.findById(session.clientId),
-    ]);
-    const server = servers[0];
+    const { server, serverName, clientName, externalUrl } =
+      await this.resolveDisplayFields(session.clientId);
     const coreWs = this.config.get(
       'TINTA_CORE_WS',
       'wss://api.tinta-lab.de/tinta/ws',
     );
 
-    // Prefer hub-based URL (privacy-safe) over name-based subdomain
-    const serverPublicHostname = server
-      ? (this.serversService.getPublicHostname(server) ?? server.subdomain)
-      : '';
-
     const config: InstallConfig = {
       clientId: session.clientId,
       agentToken: session.agentToken,
       coreWs,
-      externalUrl: serverPublicHostname ? `https://${serverPublicHostname}` : '',
+      externalUrl,
       tunnelToken: server?.tunnelToken ?? null,
-      serverName: server?.name ?? '',
-      clientName:
-        `${client.user?.firstName ?? ''} ${client.user?.lastName ?? ''}`.trim(),
+      serverName,
+      clientName,
       expiresAt: session.installTokenExpiresAt.toISOString(),
     };
 
@@ -251,5 +283,31 @@ export class ProvisioningService {
     await this.tintaCore.consumeInstallToken(token);
 
     return config;
+  }
+
+  // Browser-only. Root-cause fix: this used to be served by
+  // getInstallConfig() itself, which the frontend called right after
+  // consent purely to display serverName/externalUrl — but that call also
+  // consumed the one-time install token, so by the time the human had
+  // actually installed and started the HA add-on, the Agent's own
+  // enrollment call always got a 404. This endpoint validates the same
+  // existence/expiry/consent conditions but MUST NOT call
+  // consumeInstallToken() and MUST NOT return agentToken/tunnelToken/
+  // clientId — those are enrollment secrets for the Agent alone.
+  async getInstallPreview(token: string): Promise<InstallPreview> {
+    const session = await this.tintaCore.getSessionByInstallToken(token);
+    if (!session.serviceStartConsentAt) {
+      throw new ForbiddenException(
+        'Service start consent required before install config can be revealed',
+      );
+    }
+    const { serverName, clientName, externalUrl } =
+      await this.resolveDisplayFields(session.clientId);
+    return {
+      serverName,
+      clientName,
+      externalUrl,
+      expiresAt: session.installTokenExpiresAt.toISOString(),
+    };
   }
 }

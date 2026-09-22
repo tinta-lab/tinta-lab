@@ -4,14 +4,16 @@ import { useParams } from 'next/navigation';
 import axios from 'axios';
 import { Check, Copy, AlertTriangle, Loader2, Shield, Wifi, ExternalLink, Clock, RefreshCw } from 'lucide-react';
 
-interface InstallConfig {
-  clientId: string;
-  agentToken: string;
-  coreWs: string;
-  externalUrl: string;
-  tunnelToken: string | null;
+// Display-only fields from the non-consuming preview endpoint. Deliberately
+// excludes agentToken/tunnelToken/clientId — those are enrollment secrets
+// the Agent fetches itself via GET /install/:token (see backend
+// provisioning.service.ts getInstallPreview() doc comment for why this page
+// must never call that endpoint directly: doing so used to consume the
+// one-time install token before the Agent ever got a chance to).
+interface InstallPreview {
   serverName: string;
   clientName: string;
+  externalUrl: string;
   expiresAt: string;
 }
 
@@ -113,7 +115,7 @@ const INSTALL_ERROR_TITLES: Record<InstallErrorKind, string> = {
 
 export default function InstallPage() {
   const { token } = useParams<{ token: string }>();
-  const [config, setConfig] = useState<InstallConfig | null>(null);
+  const [config, setConfig] = useState<InstallPreview | null>(null);
   const [error, setError] = useState<InstallError | null>(null);
   const [loading, setLoading] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
@@ -126,7 +128,7 @@ export default function InstallPage() {
     setConsenting(true);
     setError(null);
     axios.post(`${apiUrl}/install/${token}/consent`)
-      .then(() => axios.get<InstallConfig>(`${apiUrl}/install/${token}`))
+      .then(() => axios.get<InstallPreview>(`${apiUrl}/install/${token}/preview`))
       .then(r => setConfig(r.data))
       .catch(err => setError(classifyInstallError(err)))
       .finally(() => { setLoading(false); setConsenting(false); });
@@ -139,7 +141,7 @@ export default function InstallPage() {
   const retryLoad = () => {
     setLoading(true);
     setError(null);
-    axios.get<InstallConfig>(`${apiUrl}/install/${token}`)
+    axios.get<InstallPreview>(`${apiUrl}/install/${token}/preview`)
       .then(r => setConfig(r.data))
       .catch(err => setError(classifyInstallError(err)))
       .finally(() => setLoading(false));

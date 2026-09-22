@@ -6,9 +6,18 @@ import { ProvisioningService } from './provisioning.service';
 export class InstallController {
   constructor(private readonly provisioningService: ProvisioningService) {}
 
-  // Public + unauthenticated by design (the installer has no token of its own
-  // yet), but it hands back a live long-lived agent JWT — tighten beyond the
-  // global default so the single-use install token can't be brute-forced.
+  // Browser-only, non-consuming. Must be registered before ':token' so Nest
+  // doesn't route "preview" itself into the :token param.
+  @Get(':token/preview')
+  @Throttle({ default: { ttl: 900_000, limit: 10 } })
+  getInstallPreview(@Param('token') token: string) {
+    return this.provisioningService.getInstallPreview(token);
+  }
+
+  // Agent-only by design: single-use, hands back a live long-lived agent
+  // JWT — tighten beyond the global default so the install token can't be
+  // brute-forced. The browser must never call this directly (see
+  // getInstallPreview): doing so consumes the token before the Agent can.
   @Get(':token')
   @Throttle({ default: { ttl: 900_000, limit: 10 } })
   getInstallConfig(@Param('token') token: string) {
