@@ -1,5 +1,6 @@
 import { useLocale } from '@/i18n/context';
 import { AccessEventView } from '@/types';
+import { formatDateTime } from '@/lib/format';
 import AccessLogEventBadge from './AccessLogEventBadge';
 
 interface AccessLogTableProps {
@@ -8,7 +9,7 @@ interface AccessLogTableProps {
 }
 
 export default function AccessLogTable({ events, onSelect }: AccessLogTableProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   return (
     <div className="rounded-xl border border-slate-700/50 overflow-hidden overflow-x-auto">
@@ -30,7 +31,7 @@ export default function AccessLogTable({ events, onSelect }: AccessLogTableProps
               className={`${i < events.length - 1 ? 'border-b border-slate-700/30' : ''} hover:bg-slate-800/30 transition-colors cursor-pointer`}
             >
               <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
-                {new Date(ev.createdAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                {formatDateTime(ev.createdAt, locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </td>
               <td className="px-4 py-3"><AccessLogEventBadge eventType={ev.eventType} /></td>
               <td className="px-4 py-3 text-slate-300">

@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
+import { formatDate, formatTime } from '@/lib/format';
 import { ClientServer } from '@/types';
 import type { TranslationKey } from '@/i18n/translations';
 import { LogOut, RefreshCw, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff, Globe, Shield, LifeBuoy, ChevronRight } from 'lucide-react';
@@ -264,7 +265,7 @@ function ProfileModal({ user, onClose, t }: { user: any; onClose: () => void; t:
 export default function ClientDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [servers, setServers] = useState<ClientServer[]>([]);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -441,12 +442,12 @@ export default function ClientDashboard() {
                           <XCircle size={14} className="text-slate-600 flex-shrink-0" />
                         )}
                         <span className="text-slate-300 font-medium">
-                          {new Date(log.grantedAt).toLocaleDateString('de-DE', {
+                          {formatDate(log.grantedAt, locale, {
                             day: '2-digit', month: '2-digit', year: 'numeric',
                           })}
                         </span>
                         <span className="text-slate-500">
-                          {new Date(log.grantedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime(log.grantedAt, locale, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full border ${
@@ -492,7 +493,7 @@ export default function ClientDashboard() {
                         <>
                           <div className="text-slate-500">{t('client_log_connected')}</div>
                           <div className="text-slate-300">
-                            {new Date(log.connectedAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                            {formatTime(log.connectedAt, locale, { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </>
                       )}
@@ -501,7 +502,7 @@ export default function ClientDashboard() {
                         <>
                           <div className="text-slate-500">{log.isRevoked ? t('client_log_closed') : t('client_log_expired')}</div>
                           <div className="text-slate-300">
-                            {new Date(ended).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                            {formatTime(ended, locale, { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </>
                       )}

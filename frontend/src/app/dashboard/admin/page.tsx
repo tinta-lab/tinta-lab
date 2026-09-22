@@ -72,7 +72,7 @@ export default function AdminDashboard() {
               <img src="/logo.png" alt="Tinta Lab" className="w-8 h-8" />
             </a>
             <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-7 w-auto" />
-            <span className="text-slate-500 text-sm">/ Admin</span>
+            <span className="text-slate-500 text-sm">{t('admin_breadcrumb')}</span>
           </div>
           <div className="flex items-center gap-4">
             <button onClick={loadStats} className="text-slate-400 hover:text-white transition-colors" title={t('refresh')}>

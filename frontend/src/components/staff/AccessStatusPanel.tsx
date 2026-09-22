@@ -5,6 +5,7 @@ import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useLocale } from '@/i18n/context';
+import { formatTime } from '@/lib/format';
 import CredentialsModal, { AccessCredentials } from './CredentialsModal';
 
 // This panel is rendered from both ADMIN (admin/tickets) and STAFF
@@ -27,7 +28,7 @@ type AccessStatusServer = {
 // Staff never grants access here — POST /access/grant/:serverId is
 // CLIENT/ADMIN only — this only surfaces what the client already opened.
 export default function AccessStatusPanel({ server }: { server: AccessStatusServer | null | undefined }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [connecting, setConnecting] = useState(false);
   const [credentials, setCredentials] = useState<AccessCredentials | null>(null);
 
@@ -47,7 +48,7 @@ export default function AccessStatusPanel({ server }: { server: AccessStatusServ
       setCredentials({ serverId: server.id, url, password: data?.supportPassword ?? '' });
     } catch (e) {
       if (isAxiosError(e) && e.response?.status === 409) {
-        toast.error(e.response.data?.message ?? t('support_session_claimed'));
+        toast.error(t('support_session_claimed'));
       } else {
         toast.error(t('support_connect_error'));
       }
@@ -71,7 +72,7 @@ export default function AccessStatusPanel({ server }: { server: AccessStatusServ
             {server.accessExpiresAt && (
               <span className="flex items-center gap-1 text-slate-500">
                 <Clock size={11} />
-                {new Date(server.accessExpiresAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                {formatTime(server.accessExpiresAt, locale, { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
           </div>

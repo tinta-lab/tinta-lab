@@ -1,8 +1,9 @@
 import { useLocale } from '@/i18n/context';
 import { ClientTicketMessage } from '@/types';
+import { formatDateTime } from '@/lib/format';
 
 export default function TicketMessageList({ messages }: { messages: ClientTicketMessage[] }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   if (messages.length === 0) {
     return <p className="text-sm text-slate-500 italic py-4">{t('client_support_no_messages')}</p>;
@@ -24,7 +25,7 @@ export default function TicketMessageList({ messages }: { messages: ClientTicket
                   {isStaff ? t('client_support_staff_label') : t('client_support_you')}
                 </span>
                 <span className="text-xs text-slate-500">
-                  {new Date(m.createdAt).toLocaleString('de-DE', {
+                  {formatDateTime(m.createdAt, locale, {
                     day: '2-digit',
                     month: '2-digit',
                     hour: '2-digit',

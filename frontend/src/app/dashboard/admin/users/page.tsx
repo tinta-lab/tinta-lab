@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/format';
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, RefreshCw, LogOut, Pencil, KeyRound, Check, X, Trash2 } from 'lucide-react';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
@@ -59,7 +60,7 @@ const selectCls = 'w-full bg-slate-900 border border-slate-600 rounded-lg px-3 p
 export default function AdminUsersPage() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -122,7 +123,7 @@ export default function AdminUsersPage() {
     } catch (e: any) {
       const msg = e.response?.data?.message;
       if (msg === 'Email already exists') toast.error(t('err_email_taken'));
-      else toast.error(msg || t('error'));
+      else toast.error(t('error'));
     } finally { setSaving(false); }
   };
 
@@ -181,9 +182,8 @@ export default function AdminUsersPage() {
       toast.success(t('user_deleted_toast'));
       setDeleteUser(null);
       await load();
-    } catch (e: any) {
-      const msg = e.response?.data?.message;
-      toast.error(msg || t('error'));
+    } catch {
+      toast.error(t('error'));
     } finally { setDeleting(false); }
   };
 
@@ -258,7 +258,7 @@ export default function AdminUsersPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
-                    {new Date(u.createdAt).toLocaleDateString('de-DE')}
+                    {formatDate(u.createdAt, locale)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">

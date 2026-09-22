@@ -120,7 +120,7 @@ export default function AccessLogFilters({ value, onChange, showStaffFilter }: A
           <label className="block text-[11px] text-slate-500 mb-1">{t('access_logs_filter_ticket')}</label>
           <input
             className={selectCls}
-            placeholder="Ticket ID"
+            placeholder={t('access_logs_filter_ticket_placeholder')}
             value={draft.ticketId ?? ''}
             onChange={(e) => {
               setTicketError(false);

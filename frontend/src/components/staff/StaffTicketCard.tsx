@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { useLocale } from '@/i18n/context';
 import { AdminTicket, StaffTicket } from '@/types';
+import { formatDate } from '@/lib/format';
 import TicketStatus from '@/components/support/TicketStatus';
 
 const TYPE_LABEL_KEY = {
@@ -12,7 +13,7 @@ const TYPE_LABEL_KEY = {
 } as const;
 
 export default function StaffTicketCard({ ticket }: { ticket: StaffTicket | AdminTicket }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   return (
     <Link
@@ -33,7 +34,7 @@ export default function StaffTicketCard({ ticket }: { ticket: StaffTicket | Admi
           )}
           <span className="text-slate-700">·</span>
           <span>
-            {new Date(ticket.createdAt).toLocaleDateString('de-DE', {
+            {formatDate(ticket.createdAt, locale, {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric',

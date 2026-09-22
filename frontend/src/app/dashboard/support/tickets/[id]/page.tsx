@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import type { TranslationKey } from '@/i18n/translations';
+import { formatDateTime } from '@/lib/format';
 import { staffTicketsApi } from '@/services/staffTicketsApi';
 import { AdminTicket, StaffTicket, StaffTicketMessage, TicketStatus } from '@/types';
 import TicketStatusBadge from '@/components/support/TicketStatus';
@@ -36,7 +37,7 @@ const STATUS_LABEL_KEY: Record<TicketStatus, TranslationKey> = {
 export default function StaffTicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const [ticket, setTicket] = useState<StaffTicket | AdminTicket | null>(null);
   const [messages, setMessages] = useState<StaffTicketMessage[]>([]);
@@ -145,7 +146,7 @@ export default function StaffTicketDetailPage() {
           )}
           <span>
             {t('client_support_created_label')}:{' '}
-            {new Date(ticket.createdAt).toLocaleString('de-DE', {
+            {formatDateTime(ticket.createdAt, locale, {
               day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
             })}
           </span>

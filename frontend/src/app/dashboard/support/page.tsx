@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useServersSocket } from '@/hooks/useServersSocket';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
+import { formatTime } from '@/lib/format';
 import { AdminTicket, StaffTicket, SupportServer, TicketStatus } from '@/types';
 import { LogOut, RefreshCw, Shield, KeyRound, Clock, LifeBuoy, ChevronRight, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
@@ -56,7 +57,7 @@ function AccessTimer({ expiresAt, label }: { expiresAt: string | null; label: st
 export default function SupportDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [servers, setServers] = useState<SupportServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -114,7 +115,7 @@ export default function SupportDashboard() {
       });
     } catch (e: any) {
       if (e?.response?.status === 409) {
-        toast.error(e.response.data?.message ?? t('support_session_claimed'));
+        toast.error(t('support_session_claimed'));
       } else {
         toast.error(t('support_connect_error'));
       }
@@ -170,7 +171,7 @@ export default function SupportDashboard() {
         {server.haVersion && <span className="bg-slate-700/50 rounded px-1.5 py-0.5">HA {server.haVersion}</span>}
         {server.lastSeenAt && (
           <span>
-            {new Date(server.lastSeenAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+            {formatTime(server.lastSeenAt, locale, { hour: '2-digit', minute: '2-digit' })}
           </span>
         )}
         <AccessTimer expiresAt={server.accessExpiresAt} label={t('support_expires')} />

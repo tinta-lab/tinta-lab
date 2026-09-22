@@ -17,6 +17,7 @@ import { AdminHub, Client, GoldenTemplate } from '@/types';
 import type { TranslationKey } from '@/i18n/translations';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 import { isAgentUpdateAvailable } from '@/lib/agent-version';
+import { formatDate, formatTime, formatDateTime } from '@/lib/format';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -282,7 +283,7 @@ function HubCard({ hub, latestStable, onSelect, onUpdate }: { hub: AdminHub; lat
 // ─── Hub Detail Drawer ────────────────────────────────────────────────────────
 
 function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; latestStable: string | null; onClose: () => void; onRefresh: () => void }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [tab, setTab] = useState<'overview' | 'access' | 'activity' | 'templates'>('overview');
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -476,7 +477,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                 <div className="bg-teal-500/10 border border-teal-500/30 rounded-xl p-4 space-y-3">
                   <p className="text-xs font-semibold text-teal-400 uppercase tracking-wider">{t('edit')}</p>
                   <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Name</label>
+                    <label className="text-xs text-slate-400 mb-1 block">{t('hub_field_name')}</label>
                     <input value={editName} onChange={e => setEditName(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500" />
                   </div>
@@ -497,18 +498,18 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
               {/* User */}
               <Section title={t('hub_customer_section')}>
                 <Row label={t('col_user')} value={`${hub.client.user.firstName} ${hub.client.user.lastName}`} />
-                <Row label="E-Mail" value={hub.client.user.email} />
+                <Row label={t('contact_email')} value={hub.client.user.email} />
                 {hub.client.phone && <Row label={t('contact_phone')} value={hub.client.phone} />}
                 {hub.client.city && <Row label={t('hub_wizard_city_optional')} value={hub.client.city} />}
               </Section>
 
               {/* Hub */}
               <Section title={t('hub_hub_section')}>
-                <Row label="Name" value={hub.name} />
-                {hub.hubId && <Row label="Hub ID" value={`hub-${hub.hubId}`} mono />}
+                <Row label={t('hub_field_name')} value={hub.name} />
+                {hub.hubId && <Row label={t('hub_field_hub_id')} value={`hub-${hub.hubId}`} mono />}
                 {hub.publicUrl && (
                   <div className="flex items-center justify-between py-1.5">
-                    <span className="text-sm text-slate-400">Public URL</span>
+                    <span className="text-sm text-slate-400">{t('hub_field_public_url')}</span>
                     <div className="flex items-center gap-1">
                       <a href={hub.publicUrl} target="_blank" rel="noopener noreferrer"
                         className="text-sm text-teal-400 hover:underline font-mono">{hub.publicUrl.replace('https://', '')}</a>
@@ -517,21 +518,21 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                   </div>
                 )}
                 {hub.localUrl && <Row label={t('hub_field_local_url')} value={hub.localUrl} mono />}
-                {hub.tunnelId && <Row label="Tunnel ID" value={hub.tunnelId.slice(0, 18) + '…'} mono />}
+                {hub.tunnelId && <Row label={t('hub_field_tunnel_id')} value={hub.tunnelId.slice(0, 18) + '…'} mono />}
               </Section>
 
               {/* Agent */}
               <Section title={t('hub_agent_section')}>
                 <Row label={t('col_status')} value={isOnline ? `🟢 ${t('client_status_online')}` : `⚫ ${t('client_status_offline')}`} />
-                <Row label="Agent" value={hub.agent?.agentVersion ?? '—'} />
-                <Row label="HA" value={hub.haVersion ?? '—'} />
+                <Row label={t('hub_field_agent')} value={hub.agent?.agentVersion ?? '—'} />
+                <Row label={t('hub_field_ha')} value={hub.haVersion ?? '—'} />
                 {hub.agent?.lastConnectedAt && (
-                  <Row label={t('hub_field_last_connected')} value={new Date(hub.agent.lastConnectedAt).toLocaleString()} />
+                  <Row label={t('hub_field_last_connected')} value={formatDateTime(hub.agent.lastConnectedAt, locale)} />
                 )}
                 {hub.agent?.lastTokenMismatchAt && (
                   <div className="flex items-center gap-2 py-1.5 text-amber-400 text-sm">
                     <AlertTriangle size={14} />
-                    <span>{t('hub_token_mismatch_label')}: {new Date(hub.agent.lastTokenMismatchAt).toLocaleString()}</span>
+                    <span>{t('hub_token_mismatch_label')}: {formatDateTime(hub.agent.lastTokenMismatchAt, locale)}</span>
                   </div>
                 )}
                 {/* Live connectivity/HA/resource state moved to the
@@ -562,7 +563,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                   </div>
                   {hub.agent.installTokenExpiresAt && (
                     <p className="text-xs text-slate-500 mt-2">
-                      {t('hub_valid_until')}: {new Date(hub.agent.installTokenExpiresAt).toLocaleString()}
+                      {t('hub_valid_until')}: {formatDateTime(hub.agent.installTokenExpiresAt, locale)}
                     </p>
                   )}
                 </Section>
@@ -580,7 +581,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                   </div>
                   {hub.accessExpiresAt && (
                     <p className="text-sm text-slate-400">
-                      {t('hub_access_expires')}: {new Date(hub.accessExpiresAt).toLocaleString()}
+                      {t('hub_access_expires')}: {formatDateTime(hub.accessExpiresAt, locale)}
                     </p>
                   )}
                   <button onClick={revokeAccess} disabled={revoking}
@@ -679,7 +680,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                         <span className={log.isRevoked ? 'text-slate-400' : 'text-green-400'}>
                           {log.isRevoked ? t('hub_log_completed') : t('client_log_active')}
                         </span>
-                        <span className="text-xs text-slate-500">{new Date(log.grantedAt).toLocaleDateString()}</span>
+                        <span className="text-xs text-slate-500">{formatDate(log.grantedAt, locale)}</span>
                       </div>
                       {(log.reasonCode || log.reason) && (
                         <p className="text-slate-300 mb-1">
@@ -689,7 +690,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                         </p>
                       )}
                       <p className="text-xs text-slate-500">
-                        {t('hub_log_from')} {log.grantedBy.firstName} {log.grantedBy.lastName} · {t('hub_log_until')} {new Date(log.expiresAt).toLocaleTimeString()}
+                        {t('hub_log_from')} {log.grantedBy.firstName} {log.grantedBy.lastName} · {t('hub_log_until')} {formatTime(log.expiresAt, locale)}
                       </p>
                     </div>
                   ))}
@@ -769,7 +770,7 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
       setStep(3);
       onSuccess();
     } catch (e: any) {
-      toast.error(e?.response?.data?.message ?? t('hub_error_create'));
+      toast.error(t('hub_error_create'));
     } finally {
       setSubmitting(false);
     }
@@ -831,7 +832,7 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
                     <Field label={t('reg_firstname')} value={firstName} onChange={setFirstName} autoComplete="off" placeholder="Max" />
                     <Field label={t('reg_lastname')} value={lastName} onChange={setLastName} autoComplete="off" placeholder="Mustermann" />
                   </div>
-                  <Field label="E-Mail" value={email} onChange={setEmail} type="email" autoComplete="off" placeholder="max@mustermann.de" />
+                  <Field label={t('contact_email')} value={email} onChange={setEmail} type="email" autoComplete="off" placeholder="max@mustermann.de" />
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">{t('contact_phone')}</label>
                     <PhoneInput value={phone} onChange={setPhone} />

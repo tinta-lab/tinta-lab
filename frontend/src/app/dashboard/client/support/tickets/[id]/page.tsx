@@ -6,6 +6,7 @@ import { ArrowLeft, Send, RefreshCw } from 'lucide-react';
 import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { useLocale } from '@/i18n/context';
+import { formatDateTime } from '@/lib/format';
 import { supportApi } from '@/services/supportApi';
 import { ClientTicketDetail } from '@/types';
 import TicketStatus from '@/components/support/TicketStatus';
@@ -21,7 +22,7 @@ const TYPE_LABEL_KEY = {
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const [ticket, setTicket] = useState<ClientTicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,7 +115,7 @@ export default function TicketDetailPage() {
           )}
           <span>
             {t('client_support_created_label')}:{' '}
-            {new Date(ticket.createdAt).toLocaleString('de-DE', {
+            {formatDateTime(ticket.createdAt, locale, {
               day: '2-digit',
               month: '2-digit',
               year: 'numeric',

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { toast } from 'sonner';
 import { LogOut, RefreshCw, X, Phone, Mail, Calendar, MessageSquare, TrendingUp, Users, CheckCircle2, Clock } from 'lucide-react';
 import { AdminTicket, StaffTicket } from '@/types';
@@ -44,7 +45,7 @@ type TypeFilter = 'all' | 'sales' | 'installation' | 'support';
 export default function SalesDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [tickets, setTickets] = useState<(StaffTicket | AdminTicket)[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<StaffTicket | AdminTicket | null>(null);
@@ -232,7 +233,7 @@ export default function SalesDashboard() {
                         <span className="bg-slate-700/60 rounded px-1.5 py-0.5">{TYPE_LABELS[ticket.type]}</span>
                         <span className="flex items-center gap-1">
                           <Calendar size={9} />
-                          {new Date(ticket.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                          {formatDate(ticket.createdAt, locale, { day: '2-digit', month: '2-digit' })}
                         </span>
                       </div>
 
@@ -285,7 +286,7 @@ export default function SalesDashboard() {
               )}
               <div className="flex items-center gap-2 text-slate-500 text-xs">
                 <Calendar size={11} />
-                {new Date(selected.createdAt).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {formatDateTime(selected.createdAt, locale, { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 <span className="text-slate-600">·</span>
                 {TYPE_LABELS[selected.type]}
               </div>

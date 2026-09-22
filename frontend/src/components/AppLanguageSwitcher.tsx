@@ -11,10 +11,10 @@ const LANG_LABELS: Record<Locale, string> = {
 };
 
 export default function AppLanguageSwitcher() {
-  const { locale, setLocale } = useLocale();
+  const { locale, setLocale, t } = useLocale();
 
   return (
-    <div className="flex items-center gap-0.5" role="group" aria-label="Language">
+    <div className="flex items-center gap-0.5" role="group" aria-label={t('lang_switcher_label')}>
       {LOCALES.map((code, i) => (
         <span key={code} className="flex items-center">
           <button

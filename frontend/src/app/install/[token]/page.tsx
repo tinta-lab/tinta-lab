@@ -1,8 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 import { Check, Copy, AlertTriangle, Loader2, Shield, Wifi, ExternalLink, Clock, RefreshCw } from 'lucide-react';
+import { useLocale } from '@/i18n/context';
+import type { TranslationKey } from '@/i18n/translations';
+import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 
 // Display-only fields from the non-consuming preview endpoint. Deliberately
 // excludes agentToken/tunnelToken/clientId — those are enrollment secrets
@@ -65,56 +68,57 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 // very next legitimate request — the browser's own GET right after the
 // client completes consent — gets a 429 too. Before this fix, every
 // non-410/404 status (429 included) fell into a generic branch and was
-// shown under the headline "Ссылка недействительна" (link invalid), even
-// though the token was valid and consent had just succeeded. That
-// headline is not just imprecise, it's actively wrong for a 429 and
-// tells the client to do the one thing that won't help (find the admin
-// for a new link) instead of the one thing that will (wait a few minutes
-// and reload).
+// shown under one invalid-link headline, even though the token was valid
+// and consent had just succeeded. That headline is not just imprecise,
+// it's actively wrong for a 429 and tells the client to do the one thing
+// that won't help (find the admin for a new link) instead of the one
+// thing that will (wait a few minutes and reload).
 type InstallErrorKind = 'expired' | 'notfound' | 'ratelimited' | 'server' | 'unknown';
 
 interface InstallError {
   kind: InstallErrorKind;
-  message: string;
   retryAfterSec?: number;
 }
 
+const INSTALL_ERROR_KEYS: Record<InstallErrorKind, { titleKey: TranslationKey; messageKey: TranslationKey }> = {
+  expired: { titleKey: 'install_error_expired_title', messageKey: 'install_error_expired_message' },
+  notfound: { titleKey: 'install_error_notfound_title', messageKey: 'install_error_notfound_message' },
+  ratelimited: { titleKey: 'install_error_ratelimited_title', messageKey: 'install_error_ratelimited_message' },
+  server: { titleKey: 'install_error_server_title', messageKey: 'install_error_server_message' },
+  unknown: { titleKey: 'install_error_unknown_title', messageKey: 'install_error_unknown_message' },
+};
+
 function classifyInstallError(err: unknown): InstallError {
   const status = axios.isAxiosError(err) ? err.response?.status : undefined;
-  if (status === 410) {
-    return { kind: 'expired', message: 'Ссылка истекла. Попросите администратора выдать новую.' };
-  }
-  if (status === 404) {
-    return { kind: 'notfound', message: 'Ссылка не найдена или уже была использована ранее.' };
-  }
+  if (status === 410) return { kind: 'expired' };
+  if (status === 404) return { kind: 'notfound' };
   if (status === 429) {
     const retryAfterHeader = axios.isAxiosError(err) ? err.response?.headers?.['retry-after'] : undefined;
     const retryAfterSec = retryAfterHeader ? parseInt(String(retryAfterHeader), 10) : undefined;
-    const waitText = retryAfterSec && Number.isFinite(retryAfterSec)
-      ? `примерно ${Math.ceil(retryAfterSec / 60)} мин.`
-      : 'несколько минут';
-    return {
-      kind: 'ratelimited',
-      message: `Слишком много попыток за короткое время. Ссылка по-прежнему действительна — подождите ${waitText} и обновите страницу.`,
-      retryAfterSec,
-    };
+    return { kind: 'ratelimited', retryAfterSec };
   }
-  if (status && status >= 500) {
-    return { kind: 'server', message: 'Временная проблема на сервере. Ссылка по-прежнему действительна — попробуйте обновить страницу через минуту.' };
-  }
-  return { kind: 'unknown', message: 'Не удалось загрузить конфигурацию. Попробуйте обновить страницу через минуту.' };
+  if (status && status >= 500) return { kind: 'server' };
+  return { kind: 'unknown' };
 }
 
-const INSTALL_ERROR_TITLES: Record<InstallErrorKind, string> = {
-  expired: 'Ссылка истекла',
-  notfound: 'Ссылка недействительна',
-  ratelimited: 'Слишком много попыток',
-  server: 'Временная проблема',
-  unknown: 'Не удалось загрузить',
-};
+// Builds the localized title/message for an InstallError, substituting the
+// {wait}/{n} placeholders for the one dynamic message (rate limit).
+function describeInstallError(error: InstallError, t: (k: TranslationKey) => string): { title: string; message: string } {
+  const { titleKey, messageKey } = INSTALL_ERROR_KEYS[error.kind];
+  const title = t(titleKey);
+  let message = t(messageKey);
+  if (error.kind === 'ratelimited') {
+    const wait = error.retryAfterSec && Number.isFinite(error.retryAfterSec)
+      ? t('install_error_wait_approx').replace('{n}', String(Math.ceil(error.retryAfterSec / 60)))
+      : t('install_error_wait_default');
+    message = message.replace('{wait}', wait);
+  }
+  return { title, message };
+}
 
 export default function InstallPage() {
   const { token } = useParams<{ token: string }>();
+  const { t } = useLocale();
   const [config, setConfig] = useState<InstallPreview | null>(null);
   const [error, setError] = useState<InstallError | null>(null);
   const [loading, setLoading] = useState(false);
@@ -162,15 +166,12 @@ export default function InstallPage() {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
         <div className="max-w-md w-full">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center justify-between gap-3 mb-6">
             <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-8 w-auto" />
+            <AppLanguageSwitcher />
           </div>
-          <h1 className="text-xl font-bold mb-3">Bevor wir beginnen</h1>
-          <p className="text-sm text-slate-400 mb-4">
-            Sobald Sie fortfahren, beginnt Tinta Lab mit der Ausführung der
-            gebuchten Dienstleistung (Einrichtung des Fernzugriffs auf Ihr
-            Home-Assistant-System).
-          </p>
+          <h1 className="text-xl font-bold mb-3">{t('install_consent_title')}</h1>
+          <p className="text-sm text-slate-400 mb-4">{t('install_consent_body')}</p>
           <label className="flex items-start gap-3 mb-5 cursor-pointer select-none">
             <input
               type="checkbox"
@@ -178,24 +179,14 @@ export default function InstallPage() {
               onChange={e => setConsentChecked(e.target.checked)}
               className="mt-1 w-4 h-4 accent-blue-600 shrink-0"
             />
-            <span className="text-sm text-slate-300">
-              Ich stimme ausdrücklich zu, dass Tinta Lab mit der Ausführung der
-              Dienstleistung vor Ablauf der 14-tägigen Widerrufsfrist beginnt.
-              Mir ist bekannt, dass ich bei vollständiger Vertragserfüllung mein
-              Widerrufsrecht verliere (§ 356 Abs. 4 BGB).
-              <span className="block text-slate-500 mt-1">
-                Я согласен(на), что Tinta Lab начнёт оказание услуги до истечения
-                14-дневного срока отказа от договора, и понимаю, что при полном
-                исполнении услуги теряю право на отказ.
-              </span>
-            </span>
+            <span className="text-sm text-slate-300">{t('install_consent_checkbox')}</span>
           </label>
           <button
             onClick={confirmConsentAndLoad}
             disabled={!consentChecked}
             className="w-full py-2.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            Bestätigen und fortfahren
+            {t('install_consent_button')}
           </button>
         </div>
       </div>
@@ -211,22 +202,26 @@ export default function InstallPage() {
     const Icon = isTerminal ? AlertTriangle : Clock;
     const iconColor = isTerminal ? 'text-red-400' : 'text-amber-400';
     const iconBg = isTerminal ? 'bg-red-900/30' : 'bg-amber-900/30';
+    const { title, message } = describeInstallError(error ?? { kind: 'unknown' }, t);
 
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
+          <div className="flex justify-end mb-4">
+            <AppLanguageSwitcher />
+          </div>
           <div className={`w-14 h-14 rounded-full ${iconBg} flex items-center justify-center mx-auto mb-4`}>
             <Icon className={`w-7 h-7 ${iconColor}`} />
           </div>
-          <h1 className="text-xl font-bold text-white mb-2">{INSTALL_ERROR_TITLES[kind]}</h1>
-          <p className="text-slate-400 text-sm mb-5">{error?.message}</p>
+          <h1 className="text-xl font-bold text-white mb-2">{title}</h1>
+          <p className="text-slate-400 text-sm mb-5">{message}</p>
           {!isTerminal && (
             <button
               onClick={retryLoad}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors"
             >
               <RefreshCw size={14} />
-              Попробовать снова
+              {t('install_retry_button')}
             </button>
           )}
         </div>
@@ -240,43 +235,39 @@ export default function InstallPage() {
     <div className="min-h-screen bg-slate-950 text-white">
       {/* Header */}
       <header className="border-b border-slate-800 px-4 py-4">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-            <Shield size={16} />
+        <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <Shield size={16} />
+            </div>
+            <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-8 w-auto" />
           </div>
-          <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-8 w-auto" />
+          <AppLanguageSwitcher />
         </div>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {/* Welcome */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-1">Установка Tinta Agent</h1>
+          <h1 className="text-2xl font-bold mb-1">{t('install_page_title')}</h1>
           <p className="text-slate-400">
             {config.clientName ? `${config.clientName} · ` : ''}{config.serverName}
           </p>
           {expiresIn > 0 && (
             <p className="text-xs text-amber-400 mt-2">
-              Ссылка действительна ещё {expiresIn} ч.
+              {t('install_expires_in').replace('{n}', String(expiresIn))}
             </p>
           )}
         </div>
 
         {/* Steps */}
         <div>
-          <Step n={1} title="Установите Tinta Agent (HA Add-on)">
-            <p className="text-sm text-slate-400 mb-3">
-              В Home Assistant перейдите в <strong className="text-slate-200">Настройки → Дополнения → Магазин</strong>,
-              добавьте репозиторий Tinta Agent и установите дополнение.
-            </p>
+          <Step n={1} title={t('install_step1_title')}>
+            <p className="text-sm text-slate-400 mb-3">{t('install_step1_body')}</p>
           </Step>
 
-          <Step n={2} title="Введите код активации">
-            <p className="text-sm text-slate-400 mb-4">
-              В настройках дополнения нужно заполнить только одно поле — всё остальное
-              (адрес сервера, доступ к Home Assistant, публичный туннель) дополнение настроит
-              само после сохранения.
-            </p>
+          <Step n={2} title={t('install_step2_title')}>
+            <p className="text-sm text-slate-400 mb-4">{t('install_step2_body')}</p>
             <div className="space-y-3">
               <CopyField label="tinta_install_token" value={token} />
             </div>
@@ -288,12 +279,8 @@ export default function InstallPage() {
               <Check size={16} />
             </div>
             <div className="flex-1 pt-1">
-              <h3 className="font-semibold text-white">Готово</h3>
-              <p className="text-sm text-slate-400 mt-1">
-                После сохранения и запуска дополнение подключится к Tinta Lab и само поднимет
-                защищённый доступ к вашей Home Assistant — без дополнительных дополнений и
-                ручных токенов. Ваш Home Assistant будет доступен по адресу:
-              </p>
+              <h3 className="font-semibold text-white">{t('install_done_title')}</h3>
+              <p className="text-sm text-slate-400 mt-1">{t('install_done_body')}</p>
               <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 mt-3 mb-3">
                 <Wifi size={14} className="text-slate-400 shrink-0" />
                 <a
@@ -307,9 +294,9 @@ export default function InstallPage() {
                 </a>
               </div>
               <p className="text-sm text-slate-400">
-                Статус подключения появится на вашем{' '}
+                {t('install_done_dashboard_prefix')}{' '}
                 <a href="https://app.tinta-lab.de" className="text-blue-400 hover:underline">
-                  дашборде
+                  {t('install_done_dashboard_link')}
                 </a>.
               </p>
             </div>

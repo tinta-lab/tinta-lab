@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
+import { formatDate } from '@/lib/format';
 import { staffTicketsApi } from '@/services/staffTicketsApi';
 import { toast } from 'sonner';
 import { ArrowLeft, RefreshCw, LogOut, ChevronDown, X } from 'lucide-react';
@@ -38,7 +39,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 export default function AdminTicketsPage() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<AdminTicket['status'] | 'all'>('all');
@@ -203,7 +204,7 @@ export default function AdminTicketsPage() {
                   <td className="px-4 py-3 text-slate-400 text-xs">{ticket.server?.name ?? '—'}</td>
                   <td className="px-4 py-3"><StatusBadge status={ticket.status} /></td>
                   <td className="px-4 py-3 text-slate-500 text-xs">
-                    {new Date(ticket.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    {formatDate(ticket.createdAt, locale, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </td>
                   <td className="px-4 py-3 text-slate-600"><ChevronDown size={14} className="-rotate-90" /></td>
                 </tr>
@@ -224,7 +225,7 @@ export default function AdminTicketsPage() {
                 <span className="text-slate-300">{selected.name}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-500">Email</span>
+                <span className="text-slate-500">{t('contact_email')}</span>
                 <span className="text-slate-300">{selected.email}</span>
               </div>
               {selected.phone && (
@@ -246,7 +247,7 @@ export default function AdminTicketsPage() {
               <div className="flex justify-between">
                 <span className="text-slate-500">{t('col_created_at')}</span>
                 <span className="text-slate-300">
-                  {new Date(selected.createdAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  {formatDate(selected.createdAt, locale, { day: '2-digit', month: '2-digit', year: 'numeric' })}
                 </span>
               </div>
             </div>

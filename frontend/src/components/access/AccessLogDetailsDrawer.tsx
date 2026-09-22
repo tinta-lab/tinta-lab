@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { X, RefreshCw, ChevronDown, ChevronUp, ShieldOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLocale } from '@/i18n/context';
+import { formatTime } from '@/lib/format';
 import { accessApi } from '@/services/access.api';
 import { AccessLogDetail, AuditTrailEventView } from '@/types';
 import { ACCESS_REASON_LABEL_KEY, AccessReason } from '@/components/support/SupportAccessCard';
@@ -24,7 +25,7 @@ function durationMinutes(grantedAt: string, expiresAt: string): number {
 }
 
 export default function AccessLogDetailsDrawer({ accessLogId, onClose, showRawMetadata }: AccessLogDetailsDrawerProps) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const [detail, setDetail] = useState<AccessLogDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -174,7 +175,7 @@ export default function AccessLogDetailsDrawer({ accessLogId, onClose, showRawMe
                     <div className="flex items-center justify-between px-3 py-2.5">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 font-mono">
-                          {new Date(ev.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
+                          {formatTime(ev.createdAt, locale, { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         <AccessLogEventBadge eventType={ev.eventType} />
                       </div>

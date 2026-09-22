@@ -1,11 +1,23 @@
 import { useLocale } from '@/i18n/context';
+import type { TranslationKey } from '@/i18n/translations';
 import { StaffTicketMessage } from '@/types';
+import { formatDateTime } from '@/lib/format';
+
+// Falls back to this whenever a message's `author` relation is null (e.g. a
+// deactivated user) — never render the raw `authorRole` enum ('support' /
+// 'sales' / 'client') directly, that's a backend value, not UI text.
+const ROLE_LABEL_KEY: Record<StaffTicketMessage['authorRole'], TranslationKey> = {
+  admin: 'role_admin',
+  support: 'role_support',
+  sales: 'role_sales',
+  client: 'role_client',
+};
 
 // Staff-facing conversation — unlike the client's TicketMessageList, this
 // shows internal notes too (visually flagged), since GET /tickets/:id/messages
 // (staff role) returns the full thread rather than the client-visible subset.
 export default function StaffMessageList({ messages }: { messages: StaffTicketMessage[] }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   if (messages.length === 0) {
     return <p className="text-sm text-slate-500 italic py-4">{t('client_support_no_messages')}</p>;
@@ -32,7 +44,7 @@ export default function StaffMessageList({ messages }: { messages: StaffTicketMe
                     ? t('staff_ticket_client_label')
                     : m.author
                       ? `${m.author.firstName} ${m.author.lastName}`
-                      : m.authorRole}
+                      : t(ROLE_LABEL_KEY[m.authorRole])}
                 </span>
                 {m.internal && (
                   <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
@@ -40,7 +52,7 @@ export default function StaffMessageList({ messages }: { messages: StaffTicketMe
                   </span>
                 )}
                 <span className="text-xs text-slate-500">
-                  {new Date(m.createdAt).toLocaleString('de-DE', {
+                  {formatDateTime(m.createdAt, locale, {
                     day: '2-digit',
                     month: '2-digit',
                     hour: '2-digit',
