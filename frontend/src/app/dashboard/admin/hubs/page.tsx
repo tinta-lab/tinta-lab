@@ -16,6 +16,7 @@ import { PhoneInput } from '@/components/PhoneInput';
 import { AdminHub, Client, GoldenTemplate } from '@/types';
 import type { TranslationKey } from '@/i18n/translations';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
+import { isAgentUpdateAvailable } from '@/lib/agent-version';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,8 +57,6 @@ interface ProvisionResult {
   dashboardUrl: string;
 }
 
-const LATEST_VERSION = '2026.8.3';
-
 // ─── Utility components ───────────────────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
@@ -70,11 +69,17 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function AgentBadge({ version, latest }: { version: string | null; latest: string }) {
+function AgentBadge({ version, latest }: { version: string | null; latest: string | null }) {
+  const { t } = useLocale();
   if (!version) return <span className="text-xs px-2 py-0.5 rounded-full bg-slate-700 text-slate-400">Agent —</span>;
-  const isLatest = version === latest;
+  // While latest is unknown (still loading / release-info fetch failed),
+  // fail safe: treat as up to date rather than flagging every hub amber.
+  const isBehind = isAgentUpdateAvailable(version, latest);
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full ${isLatest ? 'bg-teal-500/20 text-teal-300' : 'bg-amber-500/20 text-amber-300'}`}>
+    <span
+      title={isBehind ? undefined : (t('hub_up_to_date') as string)}
+      className={`text-xs px-2 py-0.5 rounded-full ${isBehind ? 'bg-amber-500/20 text-amber-300' : 'bg-teal-500/20 text-teal-300'}`}
+    >
       Agent {version}
     </span>
   );
@@ -153,11 +158,11 @@ function TimeAgo({ iso }: { iso: string | null }) {
 
 // ─── Hub Card ────────────────────────────────────────────────────────────────
 
-function HubCard({ hub, onSelect, onUpdate }: { hub: AdminHub; onSelect: () => void; onUpdate: (clientId: string) => void }) {
+function HubCard({ hub, latestStable, onSelect, onUpdate }: { hub: AdminHub; latestStable: string | null; onSelect: () => void; onUpdate: (clientId: string) => void }) {
   const { t } = useLocale();
   const [urlCopied, setUrlCopied] = useState(false);
   const isOnline = hub.agent?.isOnline ?? false;
-  const needsUpdate = hub.agent?.agentVersion && hub.agent.agentVersion !== LATEST_VERSION;
+  const needsUpdate = isAgentUpdateAvailable(hub.agent?.agentVersion ?? null, latestStable);
   const hasTokenMismatch = !!hub.agent?.lastTokenMismatchAt;
 
   const copyUrl = (e: React.MouseEvent) => {
@@ -187,13 +192,13 @@ function HubCard({ hub, onSelect, onUpdate }: { hub: AdminHub; onSelect: () => v
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
-          {needsUpdate && (
+          {needsUpdate && latestStable && (
             <button
               onClick={() => onUpdate(hub.client.id)}
-              title={`${t('hub_update_to')} ${LATEST_VERSION}`}
+              title={`${t('hub_update_to')} ${latestStable}`}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
             >
-              <ArrowUpCircle size={12} />→ {LATEST_VERSION}
+              <ArrowUpCircle size={12} />→ {latestStable}
             </button>
           )}
           {hasTokenMismatch && (
@@ -219,7 +224,7 @@ function HubCard({ hub, onSelect, onUpdate }: { hub: AdminHub; onSelect: () => v
 
       {/* Badges row */}
       <div className="flex gap-1.5 mb-4 flex-wrap">
-        <AgentBadge version={hub.agent?.agentVersion ?? null} latest={LATEST_VERSION} />
+        <AgentBadge version={hub.agent?.agentVersion ?? null} latest={latestStable} />
         <HABadge version={hub.haVersion ?? hub.agent?.metrics ? hub.haVersion : null} />
         {hub.accessEnabled && (
           <span className="text-xs pl-1.5 pr-2 py-0.5 rounded-full bg-green-500/15 text-green-300 flex items-center gap-1 ring-1 ring-green-500/20">
@@ -276,7 +281,7 @@ function HubCard({ hub, onSelect, onUpdate }: { hub: AdminHub; onSelect: () => v
 
 // ─── Hub Detail Drawer ────────────────────────────────────────────────────────
 
-function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => void; onRefresh: () => void }) {
+function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; latestStable: string | null; onClose: () => void; onRefresh: () => void }) {
   const { t } = useLocale();
   const [tab, setTab] = useState<'overview' | 'access' | 'activity' | 'templates'>('overview');
   const [logs, setLogs] = useState<AccessLog[]>([]);
@@ -297,7 +302,7 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
   const [applyingSlug, setApplyingSlug] = useState<string | null>(null);
 
   const isOnline = hub.agent?.isOnline ?? false;
-  const needsUpdate = hub.agent?.agentVersion && hub.agent.agentVersion !== LATEST_VERSION;
+  const needsUpdate = isAgentUpdateAvailable(hub.agent?.agentVersion ?? null, latestStable);
 
   const loadLogs = useCallback(async () => {
     setLogsLoading(true);
@@ -358,8 +363,10 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
   const triggerUpdate = async () => {
     setUpdating(true);
     try {
-      await api.post(`/tinta-core/update/${hub.client.id}?version=${LATEST_VERSION}`);
-      toast.success(`${t('hub_update_sent_toast')} → ${LATEST_VERSION}`);
+      // No ?version= — backend resolves and validates the target itself
+      // (configured latest stable release); the frontend never dictates it.
+      await api.post(`/tinta-core/update/${hub.client.id}`);
+      toast.success(latestStable ? `${t('hub_update_sent_toast')} → ${latestStable}` : t('hub_update_sent_toast'));
     } catch { toast.error(t('hub_agent_offline')); }
     finally { setUpdating(false); }
   };
@@ -413,11 +420,11 @@ function HubDrawer({ hub, onClose, onRefresh }: { hub: AdminHub; onClose: () => 
                 <ExternalLink size={12} /> HA
               </a>
             )}
-            {needsUpdate && (
+            {needsUpdate && latestStable && (
               <button onClick={triggerUpdate} disabled={updating || !isOnline}
                 className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 disabled:opacity-50 transition-colors">
                 {updating ? <Loader2 size={12} className="animate-spin" /> : <ArrowUpCircle size={12} />}
-                → {LATEST_VERSION}
+                → {latestStable}
               </button>
             )}
             <button onClick={() => { setTab('overview'); setEditMode(!editMode); }} title={t('edit')}
@@ -1011,11 +1018,15 @@ export default function HubsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedHub, setSelectedHub] = useState<AdminHub | null>(null);
   const [showWizard, setShowWizard] = useState(false);
+  // null = still loading or the release-info fetch failed. Every consumer
+  // (AgentBadge, update badges) treats null as "unknown" and fails safe by
+  // not showing an update prompt — never falls back to a hardcoded version.
+  const [latestStable, setLatestStable] = useState<string | null>(null);
 
   useEffect(() => { init(); }, [init]);
   useEffect(() => {
     if (user && user.role !== 'admin') router.push('/auth/login');
-    if (user) loadHubs();
+    if (user) { loadHubs(); loadReleaseInfo(); }
   }, [user, router]);
 
   const loadHubs = async () => {
@@ -1031,9 +1042,20 @@ export default function HubsPage() {
     finally { setLoading(false); }
   };
 
+  const loadReleaseInfo = async () => {
+    try {
+      const { data } = await api.get<{ latestStable: string }>('/tinta-core/release-info');
+      setLatestStable(data.latestStable);
+    } catch {
+      setLatestStable(null);
+      toast.error(t('hub_release_info_error'));
+    }
+  };
+
   const triggerUpdate = async (clientId: string) => {
     try {
-      await api.post(`/tinta-core/update/${clientId}?version=${LATEST_VERSION}`);
+      // No ?version= — backend resolves and validates the target itself.
+      await api.post(`/tinta-core/update/${clientId}`);
       toast.success(t('hub_update_sent_toast'));
     } catch { toast.error(t('hub_agent_offline')); }
   };
@@ -1105,6 +1127,7 @@ export default function HubsPage() {
               <HubCard
                 key={hub.id}
                 hub={hub}
+                latestStable={latestStable}
                 onSelect={() => setSelectedHub(hub)}
                 onUpdate={triggerUpdate}
               />
@@ -1118,6 +1141,7 @@ export default function HubsPage() {
         <HubDrawer
           key={selectedHub.id}
           hub={selectedHub}
+          latestStable={latestStable}
           onClose={() => setSelectedHub(null)}
           onRefresh={loadHubs}
         />

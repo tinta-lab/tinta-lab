@@ -53,14 +53,24 @@ export class TintaCoreController {
     return this.coreService.getDiagnostics(clientId);
   }
 
-  // Admin: trigger agent self-update via HA Supervisor
+  // Admin: what's the current stable Agent release — dashboard's only
+  // source for the update badge, never a hardcoded frontend constant.
+  @Get('release-info')
+  @Roles(UserRole.ADMIN)
+  getReleaseInfo() {
+    return this.coreService.getReleaseInfo();
+  }
+
+  // Admin: trigger agent self-update via HA Supervisor. version is
+  // optional — omit it to target the configured latest stable release.
+  // Downgrade protection is enforced in coreService.updateAgent(), not here.
   @Post('update/:clientId')
   @Roles(UserRole.ADMIN)
   async updateAgent(
     @Param('clientId') clientId: string,
-    @Query('version') version: string,
+    @Query('version') version?: string,
   ) {
-    return this.coreService.updateAgent(clientId, version ?? '');
+    return this.coreService.updateAgent(clientId, version);
   }
 
   @Post('execute/:clientId')

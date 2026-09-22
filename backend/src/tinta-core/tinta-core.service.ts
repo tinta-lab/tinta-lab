@@ -3,7 +3,15 @@ import {
   Logger,
   NotFoundException,
   GoneException,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
 } from '@nestjs/common';
+import {
+  isValidAgentVersion,
+  compareAgentVersions,
+  isAgentDowngrade,
+} from '../common/agent-version';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -198,10 +206,59 @@ export class TintaCoreService {
     return { sent };
   }
 
-  async updateAgent(clientId: string, targetVersion: string): Promise<{ sent: boolean; online: boolean }> {
+  // Single source of truth for "what's the current stable Agent release" —
+  // set by ops as part of the Agent release checklist (see RUNBOOK.md), not
+  // hardcoded in the frontend. Dashboard reads this to decide whether to
+  // show an update badge at all; updateAgent() reads it as the default
+  // target when the caller doesn't pin a specific version.
+  getReleaseInfo(): { latestStable: string } {
+    const latestStable = this.config.get<string>('AGENT_LATEST_STABLE_VERSION');
+    if (!isValidAgentVersion(latestStable)) {
+      throw new InternalServerErrorException(
+        'AGENT_LATEST_STABLE_VERSION is not configured or invalid — see RUNBOOK.md release checklist',
+      );
+    }
+    return { latestStable };
+  }
+
+  // Admin: trigger agent self-update. targetVersion is optional — when
+  // omitted, defaults to the configured latest stable release, so the
+  // frontend never has to know or supply a version number itself.
+  //
+  // Downgrade protection lives here, not in the frontend: this is the only
+  // layer every caller (dashboard, future CLI/API callers) is forced
+  // through. See tinta-agent-pub/.../agent.ts triggerSelfUpdate() for the
+  // second, independent guard on the Agent side (defense-in-depth — this
+  // endpoint should never be the only thing standing between an admin
+  // click and a real downgrade via HA Supervisor).
+  async updateAgent(
+    clientId: string,
+    targetVersion?: string,
+  ): Promise<{ sent: boolean; online: boolean; alreadyUpToDate?: boolean }> {
+    const session = await this.sessionRepo.findOne({ where: { clientId } });
+    if (!session) throw new NotFoundException(`No agent session for client ${clientId}`);
+
+    const resolved = targetVersion?.trim() || this.getReleaseInfo().latestStable;
+    if (!isValidAgentVersion(resolved)) {
+      throw new BadRequestException(`Invalid target version: ${resolved}`);
+    }
+
+    const installed = session.agentVersion;
+    if (isValidAgentVersion(installed)) {
+      if (isAgentDowngrade(installed, resolved)) {
+        throw new ConflictException(
+          `Refusing to downgrade agent ${clientId} from ${installed} to ${resolved}. ` +
+            'Intentional rollback requires a separate, explicitly-audited operation.',
+        );
+      }
+      if (compareAgentVersions(installed, resolved) === 0) {
+        return { sent: false, online: this.gateway.isConnected(clientId), alreadyUpToDate: true };
+      }
+    }
+
     const online = this.gateway.isConnected(clientId);
     if (!online) return { sent: false, online: false };
-    const sent = this.gateway.sendSelfUpdate(clientId, targetVersion);
+    const sent = this.gateway.sendSelfUpdate(clientId, resolved);
     return { sent, online };
   }
 

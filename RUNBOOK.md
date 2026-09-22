@@ -500,6 +500,38 @@ npm run build
 pm2 restart all --grep tinta-agent
 ```
 
+### Agent release checklist (stable)
+
+Обязательные шаги при каждом stable-релизе Tinta Agent — пропуск шага 4
+воспроизводит баг 2026-09-22 (dashboard показывал downgrade-badge
+`2026.9.2 → 2026.8.3`, потому что backend/frontend не знали об актуальном
+stable-релизе):
+
+1. Build and verify Agent.
+2. Publish stable image (GHCR).
+3. Verify manifest/digest across all architectures.
+4. Set `AGENT_LATEST_STABLE_VERSION=<новая версия>` в `backend/.env` на
+   production (см. `backend/.env.example` — это не секрет, значение просто
+   не коммитится вместе с остальным `.env`).
+5. Restart backend с обновлённым `.env`:
+   ```bash
+   pm2 reload ecosystem.config.js --update-env --only tinta-backend
+   ```
+   (не `pm2 restart tinta-backend` — без `--update-env` PM2 может
+   переиспользовать ранее закэшированные переменные окружения).
+6. Verify `GET /tinta-core/release-info` возвращает новую версию:
+   ```bash
+   curl -s https://api.tinta-lab.de/tinta-core/release-info \
+     -H "Authorization: Bearer $ADMIN_TOKEN"
+   ```
+7. Verify Dashboard (Admin → Hubs) показывает новую stable-версию.
+8. Verify: hub с `installed == latest` — update-бейдж не показывается.
+9. Verify: hub с `installed < latest` — update-бейдж показывается и ведёт
+   на правильную версию.
+10. Verify: downgrade отклоняется backend'ом (`POST
+    /tinta-core/update/:clientId?version=<старая версия>` → `409
+    Conflict`, Agent не уходит в self-update).
+
 ### Добавление нового агента на сервер (быстрая шпаргалка)
 
 ```bash
