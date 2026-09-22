@@ -245,6 +245,28 @@ describe('checkResources', () => {
     const r = checkResources({ hasLiveReport: true, cpuPercent: 10, memPercent: 10, diskPercent: 96, now: NOW });
     expect(r.message).toMatch(/disk/i);
   });
+
+  // Regression coverage for frontend i18n of this dynamic message
+  // (2026-09-22): the stable `resource` identifier must be present so the
+  // frontend can translate "Critically high usage: disk 96%." without
+  // re-deriving which reading crossed which threshold itself.
+  it('exposes affectedResources as a stable, translatable identifier for the single offender', () => {
+    const r = checkResources({ hasLiveReport: true, cpuPercent: 10, memPercent: 10, diskPercent: 96, now: NOW });
+    expect(r.evidence?.affectedResources).toEqual([{ resource: 'disk', percent: 96 }]);
+  });
+
+  it('lists every offending resource in affectedResources, not just one', () => {
+    const r = checkResources({ hasLiveReport: true, cpuPercent: 97, memPercent: 10, diskPercent: 96, now: NOW });
+    expect(r.evidence?.affectedResources).toEqual([
+      { resource: 'cpu', percent: 97 },
+      { resource: 'disk', percent: 96 },
+    ]);
+  });
+
+  it('affectedResources is absent when resources are normal', () => {
+    const r = checkResources({ hasLiveReport: true, cpuPercent: 10, memPercent: 10, diskPercent: 10, now: NOW });
+    expect(r.evidence?.affectedResources).toBeUndefined();
+  });
 });
 
 describe('checkTemplates', () => {

@@ -527,7 +527,13 @@ per check:
 - `homeAssistant`: `{ haVersion, haConnected }`
 - `cloudflare`: `{ publicStatus, publicCheckedAt, publicUrl }`
 - `supportAccess`: `{ accessEnabled, accessExpiresAt, activeSince: connectedAt|null }`
-- `resources`: `{ cpuPercent, memPercent, diskPercent }`
+- `resources`: `{ cpuPercent, memPercent, diskPercent }`, plus
+  `affectedResources: { resource: 'cpu'|'memory'|'disk'; percent: number }[]`
+  on `RESOURCE_HIGH_USAGE`/`RESOURCE_CRITICAL` only (added 2026-09-22 for
+  frontend i18n of the dynamic message text — `resource` is a stable
+  identifier, kept separate from the English `message`'s own wording, so
+  the frontend never has to re-derive which readings crossed which
+  threshold to translate the sentence)
 - `templates`: `{ appliedTemplates, pendingTemplates: string[] }`
 - `audit`: `{ lastEventAt, eventCount }`
 - `provisioning`: `{ installTokenExpiresAt, serviceStartConsentAt, lastConnectedAt }`

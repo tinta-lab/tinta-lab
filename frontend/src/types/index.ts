@@ -114,11 +114,19 @@ export type AuditTrailEventView = components['schemas']['AuditTrailEventViewDto'
 export type AuditChainVerification = components['schemas']['AuditChainVerificationDto'];
 
 // Sourced from the backend OpenAPI contract — Phase 1.3 Diagnostics Center
-// (PHASE1_3_DIAGNOSTICS_SPEC.md). DiagnosticCheck.title/message/evidence are
-// backend-authored text/data — the frontend renders them verbatim and must
-// never reinterpret or recompute a status from raw fields (e.g. no
-// `if cpu > 80` logic client-side); that judgment lives entirely in the
-// backend check layer.
+// (PHASE1_3_DIAGNOSTICS_SPEC.md). `status`/`code`/`evidence` are the
+// backend's judgment — the frontend must never recompute a status from raw
+// fields (e.g. no `if cpu > 80` logic client-side); that judgment lives
+// entirely in the backend check layer. `title`/`message` are English text
+// kept only for backward compatibility (unknown-code fallback) — as of
+// 2026-09-22 the frontend renders localized text built from `code` (+
+// `evidence` for the few dynamic messages) via
+// frontend/src/lib/diagnosticText.ts, never `title`/`message` directly.
+// See PHASE1_3_DIAGNOSTICS_SPEC.md's evidence field list for what
+// `evidence` carries per check, including `affectedResources` (added
+// alongside this change specifically so the frontend never has to
+// re-derive which resource crossed which threshold to translate the
+// RESOURCE_CRITICAL/HIGH_USAGE message).
 export type DiagnosticStatus = components['schemas']['DiagnosticStatus'];
 export type DiagnosticCheckKey = components['schemas']['DiagnosticCheckKey'];
 export type DiagnosticCheck = components['schemas']['DiagnosticCheckDto'];

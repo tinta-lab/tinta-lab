@@ -441,7 +441,7 @@ export interface CheckResourcesInput {
 export function checkResources(
   input: CheckResourcesInput,
 ): DiagnosticCheckDto {
-  const evidence = {
+  const baseEvidence = {
     cpuPercent: input.cpuPercent,
     memPercent: input.memPercent,
     diskPercent: input.diskPercent,
@@ -459,18 +459,25 @@ export function checkResources(
       'Resources not checked',
       'Resource usage cannot be checked while the agent is offline or unresponsive.',
       input.now,
-      evidence,
+      baseEvidence,
     );
   }
 
-  const readings: Array<{ name: string; value: number }> = [
-    { name: 'CPU', value: input.cpuPercent },
-    { name: 'memory', value: input.memPercent },
-    { name: 'disk', value: input.diskPercent },
+  // `resource` is a stable, translatable identifier, kept separate from
+  // `label` (only ever used to build this function's own English
+  // `message`). Frontend i18n must localize the dynamic RESOURCE_CRITICAL/
+  // HIGH_USAGE message text from evidence.affectedResources — never by
+  // re-deriving which readings crossed which threshold itself. That
+  // judgment stays here (§5's "never recompute a status from raw fields"
+  // principle extends to this evidence-driven message text too).
+  const readings: Array<{ resource: 'cpu' | 'memory' | 'disk'; label: string; value: number }> = [
+    { resource: 'cpu', label: 'CPU', value: input.cpuPercent },
+    { resource: 'memory', label: 'memory', value: input.memPercent },
+    { resource: 'disk', label: 'disk', value: input.diskPercent },
   ];
   const critical = readings.filter((r) => r.value >= RESOURCE_ERROR_THRESHOLD);
   if (critical.length > 0) {
-    const names = critical.map((r) => `${r.name} ${r.value}%`).join(', ');
+    const names = critical.map((r) => `${r.label} ${r.value}%`).join(', ');
     return check(
       DiagnosticCheckKey.RESOURCES,
       DiagnosticStatus.ERROR,
@@ -478,12 +485,15 @@ export function checkResources(
       'Resource usage critical',
       `Critically high usage: ${names}.`,
       input.now,
-      evidence,
+      {
+        ...baseEvidence,
+        affectedResources: critical.map((r) => ({ resource: r.resource, percent: r.value })),
+      },
     );
   }
   const high = readings.filter((r) => r.value >= RESOURCE_WARNING_THRESHOLD);
   if (high.length > 0) {
-    const names = high.map((r) => `${r.name} ${r.value}%`).join(', ');
+    const names = high.map((r) => `${r.label} ${r.value}%`).join(', ');
     return check(
       DiagnosticCheckKey.RESOURCES,
       DiagnosticStatus.WARNING,
@@ -491,7 +501,10 @@ export function checkResources(
       'Resource usage high',
       `High usage: ${names}.`,
       input.now,
-      evidence,
+      {
+        ...baseEvidence,
+        affectedResources: high.map((r) => ({ resource: r.resource, percent: r.value })),
+      },
     );
   }
   return check(
@@ -501,7 +514,7 @@ export function checkResources(
     'Resources normal',
     'CPU, memory, and disk usage are all within normal range.',
     input.now,
-    evidence,
+    baseEvidence,
   );
 }
 

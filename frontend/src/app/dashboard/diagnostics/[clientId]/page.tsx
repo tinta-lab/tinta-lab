@@ -8,6 +8,7 @@ import { useLocale } from '@/i18n/context';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 import { canViewDiagnostics } from '@/lib/permissions';
 import { diagnosticsApi } from '@/services/diagnosticsApi';
+import { buildDiagnosticText, translateDiagnosticStatus, timeAgo } from '@/lib/diagnosticText';
 import {
   ClientDiagnostics,
   DiagnosticCheck,
@@ -49,28 +50,6 @@ const STATUS_STYLES: Record<
 // This is purely a re-render trigger; it never issues a network request
 // (see the diagnostics-timestamp-sync fix note below).
 const TIME_TICK_MS = 30_000;
-
-// Terse, locale-independent relative-time formatting — matches the existing
-// TimeAgo component's convention (dashboard/admin/hubs/page.tsx), which is
-// itself never localized. Second-level granularity, since a check can be
-// only moments old. Takes `now` explicitly rather than reading Date.now()
-// internally: every card must recompute from the same wall-clock moment
-// (driven by DiagnosticsPage's ticking `now` state), not whatever instant
-// each card individually last happened to re-render at — otherwise checks
-// that share one identical backend checkedAt drift apart on screen purely
-// because one card was expanded/collapsed (and thus re-rendered) more
-// recently than a sibling that was never touched.
-function timeAgo(iso: string, now: number): string {
-  const diffMs = now - new Date(iso).getTime();
-  const sec = Math.max(0, Math.floor(diffMs / 1000));
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.floor(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.floor(hr / 24);
-  return `${day}d ago`;
-}
 
 function formatEvidenceValue(value: unknown): string {
   if (value === null || value === undefined) return '—';
@@ -206,13 +185,13 @@ export default function DiagnosticsPage() {
                 className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border ${STATUS_STYLES[data.overallStatus].badge}`}
               >
                 <span className={`w-2 h-2 rounded-full ${STATUS_STYLES[data.overallStatus].dot}`} />
-                {data.overallStatus.toUpperCase()}
+                {translateDiagnosticStatus(data.overallStatus, t)}
               </span>
             </div>
 
             <div className="flex items-center justify-between text-xs text-slate-500">
               <span>
-                {t('diagnostics_checked_prefix')} {timeAgo(data.checkedAt, now)}
+                {t('diagnostics_checked_prefix')} {timeAgo(data.checkedAt, now, t)}
               </span>
               <button
                 onClick={() => load(true)}
@@ -243,6 +222,7 @@ function CheckCard({ check, now }: { check: DiagnosticCheck; now: number }) {
   const { t } = useLocale();
   const style = STATUS_STYLES[check.status];
   const evidenceEntries = check.evidence ? Object.entries(check.evidence) : [];
+  const { title, message } = buildDiagnosticText(check, t);
 
   return (
     <div className="rounded-xl border border-slate-700/50 bg-slate-800/30 p-4">
@@ -252,19 +232,19 @@ function CheckCard({ check, now }: { check: DiagnosticCheck; now: number }) {
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2 h-2 rounded-full flex-shrink-0 ${style.dot}`} />
-          <span className="font-medium text-sm truncate">{check.title}</span>
+          <span className="font-medium text-sm truncate">{title}</span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0">
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${style.badge}`}>
-            {check.status.toUpperCase()}
+            {translateDiagnosticStatus(check.status, t)}
           </span>
           {expanded ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />}
         </div>
       </button>
 
-      <p className="text-sm text-slate-400 mt-2">{check.message}</p>
+      <p className="text-sm text-slate-400 mt-2">{message}</p>
       <p className="text-xs text-slate-600 mt-2">
-        {t('diagnostics_checked_prefix')} {timeAgo(check.checkedAt, now)}
+        {t('diagnostics_checked_prefix')} {timeAgo(check.checkedAt, now, t)}
       </p>
 
       {expanded && (
