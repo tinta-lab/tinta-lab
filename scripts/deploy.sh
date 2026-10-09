@@ -153,13 +153,21 @@ pm2 reload /home/tinta/ecosystem.config.js
 
 echo "==> Health-checking the new release"
 healthy=0
-for i in 1 2 3 4 5 6 7 8 9 10; do
+# curl already prints "000" for no connection, so this must not append its
+# own fallback: the old `|| echo "000"` produced "000000", which never equals
+# "000" — every service counted as healthy on attempt 1 even while down, and
+# the auto-rollback below could never trigger (caught 2026-10-09, when a
+# deploy logged "OK — backend=000000 frontend=000000 landing=000000").
+http_code() { curl -s -o /dev/null -w "%{http_code}" --max-time 3 "$1" 2>/dev/null || true; }
+# Down = no response (000) or a 5xx; any other status means the app is
+# serving requests (backend answers 404 on /, frontend redirects).
+is_up() { [ -n "$1" ] && [ "$1" != "000" ] && [ "${1:0:1}" != "5" ]; }
+for i in $(seq 1 15); do
   sleep 2
-  backend_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ || echo "000")
-  frontend_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3001/ || echo "000")
-  landing_code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3002/ || echo "000")
-  # 000 = connection refused/timeout — anything else means something is listening and responding
-  if [ "$backend_code" != "000" ] && [ "$frontend_code" != "000" ] && [ "$landing_code" != "000" ]; then
+  backend_code=$(http_code http://localhost:3000/)
+  frontend_code=$(http_code http://localhost:3001/)
+  landing_code=$(http_code http://localhost:3002/)
+  if is_up "$backend_code" && is_up "$frontend_code" && is_up "$landing_code"; then
     healthy=1
     break
   fi
