@@ -204,9 +204,13 @@ function HubCard({ hub, latestStable, onSelect, onUpdate }: { hub: AdminHub; lat
             <button
               onClick={() => onUpdate(hub.client.id)}
               title={`${t('hub_update_to')} ${latestStable}`}
-              className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
+              aria-label={`${t('hub_update_to')} ${latestStable}`}
+              className="flex items-center gap-1 text-xs p-1.5 rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
             >
-              <ArrowUpCircle size={12} />→ {latestStable}
+              {/* Icon only: the version text squeezed the client's name to
+                  "Na…" on 4-column layouts; the amber agent badge below plus
+                  the tooltip already say which version is available. */}
+              <ArrowUpCircle size={14} />
             </button>
           )}
           {hasTokenMismatch && (
