@@ -44,6 +44,13 @@ export interface AgentSessionSummary {
   serviceStartConsentAt: Date | null;
 }
 
+// How long a freshly issued install link stays usable. Was 48h, which a real
+// install outran (2026-09-30, Petrov House): the mini PC was prepared, the
+// link expired before the client confirmed consent, and the Agent gave up
+// with nothing visible in HA. The link is still single-use and consent-gated,
+// so a week costs little and matches how installs are actually scheduled.
+export const INSTALL_LINK_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class TintaCoreService {
   private readonly logger = new Logger(TintaCoreService.name);
@@ -77,7 +84,7 @@ export class TintaCoreService {
     const existing = await this.sessionRepo.findOne({ where: { clientId } });
     const agentToken = this.generateAgentToken(clientId);
     const installToken = randomUUID();
-    const installTokenExpiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const installTokenExpiresAt = new Date(Date.now() + INSTALL_LINK_TTL_MS);
 
     if (!existing) {
       const newSession = this.sessionRepo.create({
@@ -160,7 +167,7 @@ export class TintaCoreService {
 
   // One-time consumption: called right after a successful GET /install/:token
   // fetch, not at agent register, so the link can't be replayed for the full
-  // 48h window if it leaks (email, chat, shoulder-surfing). If the client
+  // TTL window if it leaks (email, chat, shoulder-surfing). If the client
   // needs the page again (closed the tab, etc.), re-provision issues a fresh
   // token rather than the same link staying live.
   async consumeInstallToken(token: string): Promise<void> {
@@ -168,6 +175,27 @@ export class TintaCoreService {
       { installToken: token },
       { installToken: null, installTokenExpiresAt: null },
     );
+  }
+
+  // Admin "new install link" for a hub whose Agent never enrolled (expired or
+  // lost link). Deliberately refuses once the Agent has connected even once:
+  // provisionAgent() rotates the agent JWT, which would kick a live hub
+  // offline — that's the separate, explicit POST provision/:clientId.
+  async reissueInstallLink(
+    clientId: string,
+  ): Promise<{ installToken: string; installTokenExpiresAt: Date }> {
+    const session = await this.sessionRepo.findOne({ where: { clientId } });
+    if (!session) throw new NotFoundException('No agent session for this client');
+    if (session.lastConnectedAt) {
+      throw new ApiError(
+        409,
+        'AGENT_ALREADY_ENROLLED',
+        'Agent has already connected; reissuing would rotate its live token',
+      );
+    }
+    const { installToken } = await this.provisionAgent(clientId);
+    const fresh = await this.sessionRepo.findOne({ where: { clientId } });
+    return { installToken, installTokenExpiresAt: fresh!.installTokenExpiresAt! };
   }
 
   async getAllSessions(): Promise<AgentSessionViewDto[]> {

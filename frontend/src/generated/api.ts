@@ -1414,6 +1414,9 @@ export interface components {
             installToken: string | null;
             /** Format: date-time */
             installTokenExpiresAt: string | null;
+            installUrl: string | null;
+            /** Format: date-time */
+            serviceStartConsentAt: string | null;
             isOnline: boolean;
             appliedTemplates: string[];
         };
