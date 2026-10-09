@@ -162,7 +162,7 @@ export default function LoginPage() {
 
         <p className="text-center text-slate-500 text-sm mt-4">
           {t('login_no_account')}{' '}
-          <Link href="/auth/register" className="text-teal-400 hover:text-teal-300 transition-colors">
+          <Link href="/contact" className="text-teal-400 hover:text-teal-300 transition-colors">
             {t('login_register_link')}
           </Link>
         </p>

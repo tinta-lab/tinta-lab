@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
 import { Check, Copy, AlertTriangle, Loader2, Shield, Wifi, ExternalLink, Clock, RefreshCw } from 'lucide-react';
@@ -47,7 +47,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   return (
     <div className="flex gap-4">
       <div className="flex flex-col items-center">
-        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
+        <div className="w-8 h-8 rounded-full bg-teal-500 text-slate-950 flex items-center justify-center text-sm font-bold shrink-0">
           {n}
         </div>
         <div className="flex-1 w-px bg-slate-700 mt-2" />
@@ -121,7 +121,8 @@ export default function InstallPage() {
   const { t } = useLocale();
   const [config, setConfig] = useState<InstallPreview | null>(null);
   const [error, setError] = useState<InstallError | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Starts true: the link's state is checked before anything is shown.
+  const [loading, setLoading] = useState(true);
   const [consentChecked, setConsentChecked] = useState(false);
   const [consenting, setConsenting] = useState(false);
 
@@ -137,6 +138,20 @@ export default function InstallPage() {
       .catch(err => setError(classifyInstallError(err)))
       .finally(() => { setLoading(false); setConsenting(false); });
   };
+
+  // Check the link before asking for consent. The non-consuming preview
+  // answers 403 for a valid link without consent yet (→ show the consent
+  // step), 200 if consent was already given (→ straight to the instructions,
+  // no second checkbox for someone reopening the link), and 404/410 for a
+  // dead link (→ say so now, instead of after the visitor ticked the box).
+  useEffect(() => {
+    axios.get<InstallPreview>(`${apiUrl}/install/${token}/preview`)
+      .then(r => setConfig(r.data))
+      .catch(err => {
+        if (!(axios.isAxiosError(err) && err.response?.status === 403)) setError(classifyInstallError(err));
+      })
+      .finally(() => setLoading(false));
+  }, [apiUrl, token]);
 
   // Retryable errors (rate limit, transient server issue) get a real retry
   // button instead of forcing a full page reload — same request, same
@@ -154,7 +169,7 @@ export default function InstallPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-teal-400 animate-spin" />
       </div>
     );
   }
@@ -177,14 +192,14 @@ export default function InstallPage() {
               type="checkbox"
               checked={consentChecked}
               onChange={e => setConsentChecked(e.target.checked)}
-              className="mt-1 w-4 h-4 accent-blue-600 shrink-0"
+              className="mt-1 w-4 h-4 accent-teal-500 shrink-0"
             />
             <span className="text-sm text-slate-300">{t('install_consent_checkbox')}</span>
           </label>
           <button
             onClick={confirmConsentAndLoad}
             disabled={!consentChecked}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2.5 rounded-lg text-sm font-medium bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t('install_consent_button')}
           </button>
@@ -237,7 +252,7 @@ export default function InstallPage() {
       <header className="border-b border-slate-800 px-4 py-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/15 text-teal-300 flex items-center justify-center">
               <Shield size={16} />
             </div>
             <img src="/wordmark.png" alt="Tinta Lab" width={160} height={40} className="h-8 w-auto" />
@@ -275,7 +290,7 @@ export default function InstallPage() {
 
           {/* Done step — no connector line */}
           <div className="flex gap-4">
-            <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shrink-0">
               <Check size={16} />
             </div>
             <div className="flex-1 pt-1">
@@ -287,7 +302,7 @@ export default function InstallPage() {
                   href={config.externalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                  className="text-sm text-teal-300 hover:text-teal-200 flex items-center gap-1"
                 >
                   {config.externalUrl}
                   <ExternalLink size={11} />
@@ -295,7 +310,7 @@ export default function InstallPage() {
               </div>
               <p className="text-sm text-slate-400">
                 {t('install_done_dashboard_prefix')}{' '}
-                <a href="https://app.tinta-lab.de" className="text-blue-400 hover:underline">
+                <a href="https://app.tinta-lab.de" className="text-teal-300 hover:underline">
                   {t('install_done_dashboard_link')}
                 </a>.
               </p>

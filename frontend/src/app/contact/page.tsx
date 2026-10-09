@@ -108,9 +108,9 @@ export default function ContactPage() {
     other: t('contact_subject_ph_other'),
   };
   const messagePh = {
-    sales: 'Расскажите о вашем доме…',
-    installation: 'Опишите ситуацию…',
-    support: 'Опишите проблему подробно…',
+    sales: t('contact_msg_ph_sales'),
+    installation: t('contact_msg_ph_install'),
+    support: t('contact_msg_ph_support'),
     other: t('contact_msg_ph'),
   };
 
@@ -127,7 +127,7 @@ export default function ContactPage() {
           <p className="text-slate-400 text-sm mt-1">{t('contact_subtitle')}</p>
         </div>
 
-        <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
+        <div className="bg-slate-800/50 backdrop-blur border border-slate-700/50 rounded-2xl p-5 sm:p-8 shadow-2xl">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" autoComplete="off">
 
             {/* Request type */}
@@ -142,7 +142,7 @@ export default function ContactPage() {
                       key={type.value}
                       type="button"
                       onClick={() => setValue('type', type.value)}
-                      className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all ${
+                      className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all min-w-0 break-words [hyphens:auto] ${
                         active
                           ? type.color + ' border-opacity-100'
                           : 'border-slate-700/50 bg-slate-800/40 text-slate-400 hover:border-slate-600 hover:bg-slate-700/40'
@@ -172,8 +172,9 @@ export default function ContactPage() {
               {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
             </div>
 
-            {/* Email + Phone */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Email + Phone — stacked on phones, the country picker
+                left the number field ~40px wide side by side */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>{t('contact_email')}</label>
                 <input
