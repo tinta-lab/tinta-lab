@@ -524,6 +524,10 @@ export interface CheckTemplatesInput {
   hasSession: boolean;
   activeTemplateSlugs: string[];
   appliedTemplates: string[];
+  // Templates are applied through the Agent; before it ever connected there
+  // is nothing to judge, so "N templates pending" would be noise next to
+  // the real problem (the install itself).
+  agentEverConnected: boolean;
   now: Date;
 }
 
@@ -537,6 +541,17 @@ export function checkTemplates(
       'TEMPLATES_NOT_PROVISIONED',
       'Templates not checked',
       'No agent session exists to check applied templates against.',
+      input.now,
+      { appliedTemplates: input.appliedTemplates, pendingTemplates: [] },
+    );
+  }
+  if (!input.agentEverConnected) {
+    return check(
+      DiagnosticCheckKey.TEMPLATES,
+      DiagnosticStatus.UNKNOWN,
+      'TEMPLATES_AWAITING_INSTALL',
+      'Templates after install',
+      'Templates are applied once the Agent has connected.',
       input.now,
       { appliedTemplates: input.appliedTemplates, pendingTemplates: [] },
     );
@@ -598,9 +613,12 @@ export function checkAudit(input: CheckAuditInput): DiagnosticCheckDto {
       evidence,
     );
   }
+  // No support session ever opened is the normal state for a healthy
+  // client, not missing data — as UNKNOWN it alone dragged the overall
+  // status of an otherwise all-green client down to "unknown".
   return check(
     DiagnosticCheckKey.AUDIT,
-    DiagnosticStatus.UNKNOWN,
+    DiagnosticStatus.OK,
     'AUDIT_NO_EVENTS',
     'No audit events',
     'This client has no recorded access history yet.',

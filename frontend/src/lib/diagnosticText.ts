@@ -40,6 +40,7 @@ const DIAGNOSTIC_CODE_KEYS: Record<string, { titleKey: TranslationKey; messageKe
   RESOURCE_HIGH_USAGE: { titleKey: 'diagnostic_RESOURCE_HIGH_USAGE_title', messageKey: 'diagnostic_RESOURCE_HIGH_USAGE_message' },
   RESOURCES_NORMAL: { titleKey: 'diagnostic_RESOURCES_NORMAL_title', messageKey: 'diagnostic_RESOURCES_NORMAL_message' },
   TEMPLATES_NOT_PROVISIONED: { titleKey: 'diagnostic_TEMPLATES_NOT_PROVISIONED_title', messageKey: 'diagnostic_TEMPLATES_NOT_PROVISIONED_message' },
+  TEMPLATES_AWAITING_INSTALL: { titleKey: 'diagnostic_TEMPLATES_AWAITING_INSTALL_title', messageKey: 'diagnostic_TEMPLATES_AWAITING_INSTALL_message' },
   TEMPLATES_COMPLETE: { titleKey: 'diagnostic_TEMPLATES_COMPLETE_title', messageKey: 'diagnostic_TEMPLATES_COMPLETE_message' },
   // messageKey holds a {count} placeholder — see below.
   TEMPLATES_PENDING: { titleKey: 'diagnostic_TEMPLATES_PENDING_title', messageKey: 'diagnostic_TEMPLATES_PENDING_message' },

@@ -271,12 +271,13 @@ describe('checkResources', () => {
 
 describe('checkTemplates', () => {
   it('no session -> UNKNOWN', () => {
-    const r = checkTemplates({ hasSession: false, activeTemplateSlugs: ['a'], appliedTemplates: [], now: NOW });
+    const r = checkTemplates({ hasSession: false, activeTemplateSlugs: ['a'], appliedTemplates: [], agentEverConnected: false, now: NOW });
     expect(r.status).toBe(DiagnosticStatus.UNKNOWN);
   });
   it('all active templates applied -> OK / TEMPLATES_COMPLETE', () => {
     const r = checkTemplates({
       hasSession: true,
+      agentEverConnected: true,
       activeTemplateSlugs: ['a', 'b'],
       appliedTemplates: ['a', 'b', 'c'],
       now: NOW,
@@ -287,6 +288,7 @@ describe('checkTemplates', () => {
   it('some active templates missing -> WARNING / TEMPLATES_PENDING', () => {
     const r = checkTemplates({
       hasSession: true,
+      agentEverConnected: true,
       activeTemplateSlugs: ['a', 'b'],
       appliedTemplates: ['a'],
       now: NOW,
@@ -297,10 +299,19 @@ describe('checkTemplates', () => {
   });
 });
 
-describe('checkAudit', () => {
-  it('eventCount === 0 -> UNKNOWN', () => {
-    const r = checkAudit({ eventCount: 0, lastEventAt: null, now: NOW });
+describe('checkTemplates before the Agent ever connected', () => {
+  it('-> UNKNOWN / TEMPLATES_AWAITING_INSTALL, not a pending-templates warning', () => {
+    const r = checkTemplates({ hasSession: true, agentEverConnected: false, activeTemplateSlugs: ['a', 'b'], appliedTemplates: [], now: NOW });
     expect(r.status).toBe(DiagnosticStatus.UNKNOWN);
+    expect(r.code).toBe('TEMPLATES_AWAITING_INSTALL');
+  });
+});
+
+describe('checkAudit', () => {
+  it('eventCount === 0 -> OK / AUDIT_NO_EVENTS (no support session yet is normal)', () => {
+    const r = checkAudit({ eventCount: 0, lastEventAt: null, now: NOW });
+    expect(r.status).toBe(DiagnosticStatus.OK);
+    expect(r.code).toBe('AUDIT_NO_EVENTS');
   });
   it('eventCount > 0 -> OK', () => {
     const r = checkAudit({ eventCount: 3, lastEventAt: NOW, now: NOW });
