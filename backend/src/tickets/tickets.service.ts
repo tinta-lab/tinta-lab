@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, Not, Repository } from 'typeorm';
 import { Ticket, TicketStatus, TicketType } from './entities/ticket.entity';
 import { TicketMessage } from './entities/ticket-message.entity';
 import { UserRole } from '../users/entities/user.entity';
@@ -25,6 +25,11 @@ import {
   toStaffTicketMessageView,
 } from './dto/staff-ticket-message-view.dto';
 import { PublicTicketViewDto, toPublicTicketView } from './dto/public-ticket-view.dto';
+
+// Monitoring tickets the system raises for staff (agent offline, …). Since
+// they are linked to the client for context, they must be filtered out of
+// the client's own "my requests" views explicitly.
+export const SYSTEM_TICKET_PREFIX = '[AUTO]';
 
 @Injectable()
 export class TicketsService {
@@ -141,7 +146,7 @@ export class TicketsService {
 
   async findAllForClient(clientId: string): Promise<ClientTicketViewDto[]> {
     const tickets = await this.ticketsRepository.find({
-      where: { client: { id: clientId } },
+      where: { client: { id: clientId }, subject: Not(Like(`${SYSTEM_TICKET_PREFIX}%`)) },
       relations: ['server'],
       order: { createdAt: 'DESC' },
     });
@@ -156,7 +161,7 @@ export class TicketsService {
     clientId: string,
   ): Promise<ClientTicketDetailViewDto> {
     const ticket = await this.ticketsRepository.findOne({
-      where: { id, client: { id: clientId } },
+      where: { id, client: { id: clientId }, subject: Not(Like(`${SYSTEM_TICKET_PREFIX}%`)) },
       relations: ['server'],
     });
     if (!ticket) throw new NotFoundException('Ticket not found');
