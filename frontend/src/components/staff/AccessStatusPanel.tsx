@@ -1,11 +1,11 @@
 'use client';
 import { useState } from 'react';
 import { Shield, KeyRound, RefreshCw, Clock } from 'lucide-react';
-import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import { useLocale } from '@/i18n/context';
 import { formatTime } from '@/lib/format';
+import { getApiErrorCode } from '@/lib/apiError';
 import CredentialsModal, { AccessCredentials } from './CredentialsModal';
 
 // This panel is rendered from both ADMIN (admin/tickets) and STAFF
@@ -47,7 +47,7 @@ export default function AccessStatusPanel({ server }: { server: AccessStatusServ
       const url = server.publicUrl ? `https://${server.publicUrl}` : `https://${server.subdomain}`;
       setCredentials({ serverId: server.id, url, password: data?.supportPassword ?? '' });
     } catch (e) {
-      if (isAxiosError(e) && e.response?.status === 409) {
+      if (getApiErrorCode(e) === 'SUPPORT_SESSION_CLAIMED') {
         toast.error(t('support_session_claimed'));
       } else {
         toast.error(t('support_connect_error'));

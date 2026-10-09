@@ -4,9 +4,9 @@ import {
   Inject,
   forwardRef,
   ForbiddenException,
-  ConflictException,
   NotFoundException,
 } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import { randomBytes } from 'crypto';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, LessThan, Repository } from 'typeorm';
@@ -245,8 +245,17 @@ export class AccessService {
       throw new ForbiddenException('No active support session for this server');
     }
     if (activeLog.accessedBy && activeLog.accessedBy.id !== supportUserId) {
-      throw new ConflictException(
-        `Session already claimed by ${activeLog.accessedBy.firstName} ${activeLog.accessedBy.lastName}`,
+      // The claiming staff member's name is real personal data — it goes in
+      // `details` (programmatic use only, e.g. an admin-only view), never in
+      // `message`, which all-exceptions.filter.ts logs and which a raw
+      // rendering would show directly to another user (2026-09-22 error
+      // contract migration caught this as an information-disclosure bug,
+      // not just an i18n one — see api-error.ts's MIGRATION_NOTES).
+      throw new ApiError(
+        409,
+        'SUPPORT_SESSION_CLAIMED',
+        'Session already claimed by another support user',
+        { claimedByUserId: activeLog.accessedBy.id },
       );
     }
 

@@ -18,6 +18,7 @@ import type { TranslationKey } from '@/i18n/translations';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 import { isAgentUpdateAvailable } from '@/lib/agent-version';
 import { formatDate, formatTime, formatDateTime } from '@/lib/format';
+import { translateApiError } from '@/lib/apiError';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -366,9 +367,20 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
     try {
       // No ?version= — backend resolves and validates the target itself
       // (configured latest stable release); the frontend never dictates it.
-      await api.post(`/tinta-core/update/${hub.client.id}`);
-      toast.success(latestStable ? `${t('hub_update_sent_toast')} → ${latestStable}` : t('hub_update_sent_toast'));
-    } catch { toast.error(t('hub_agent_offline')); }
+      const { data } = await api.post<{ sent: boolean; online: boolean; alreadyUpToDate?: boolean }>(
+        `/tinta-core/update/${hub.client.id}`,
+      );
+      // A 200 response doesn't mean the update was actually sent — the
+      // endpoint returns { sent: false, online: false } (no throw) when the
+      // Agent isn't connected. That was previously shown as a success toast.
+      if (!data.online) toast.error(t('hub_agent_offline'));
+      else if (data.alreadyUpToDate) toast.success(t('hub_up_to_date'));
+      else toast.success(latestStable ? `${t('hub_update_sent_toast')} → ${latestStable}` : t('hub_update_sent_toast'));
+    } catch (e) {
+      // A downgrade-rejected 409 isn't "Agent offline" — surface the real
+      // reason via the error code instead of a misleading generic message.
+      toast.error(translateApiError(e, t));
+    }
     finally { setUpdating(false); }
   };
 
@@ -1056,9 +1068,15 @@ export default function HubsPage() {
   const triggerUpdate = async (clientId: string) => {
     try {
       // No ?version= — backend resolves and validates the target itself.
-      await api.post(`/tinta-core/update/${clientId}`);
-      toast.success(t('hub_update_sent_toast'));
-    } catch { toast.error(t('hub_agent_offline')); }
+      const { data } = await api.post<{ sent: boolean; online: boolean; alreadyUpToDate?: boolean }>(
+        `/tinta-core/update/${clientId}`,
+      );
+      if (!data.online) toast.error(t('hub_agent_offline'));
+      else if (data.alreadyUpToDate) toast.success(t('hub_up_to_date'));
+      else toast.success(t('hub_update_sent_toast'));
+    } catch (e) {
+      toast.error(translateApiError(e, t));
+    }
   };
 
   if (!user) return null;

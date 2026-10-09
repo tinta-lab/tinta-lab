@@ -4,9 +4,9 @@ import {
   NotFoundException,
   GoneException,
   BadRequestException,
-  ConflictException,
   InternalServerErrorException,
 } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import {
   isValidAgentVersion,
   compareAgentVersions,
@@ -246,9 +246,12 @@ export class TintaCoreService {
     const installed = session.agentVersion;
     if (isValidAgentVersion(installed)) {
       if (isAgentDowngrade(installed, resolved)) {
-        throw new ConflictException(
+        throw new ApiError(
+          409,
+          'AGENT_DOWNGRADE_REJECTED',
           `Refusing to downgrade agent ${clientId} from ${installed} to ${resolved}. ` +
             'Intentional rollback requires a separate, explicitly-audited operation.',
+          { installed, requested: resolved },
         );
       }
       if (compareAgentVersions(installed, resolved) === 0) {

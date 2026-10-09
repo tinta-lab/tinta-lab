@@ -6,6 +6,7 @@ import { useServersSocket } from '@/hooks/useServersSocket';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { formatTime } from '@/lib/format';
+import { getApiErrorCode } from '@/lib/apiError';
 import { AdminTicket, StaffTicket, SupportServer, TicketStatus } from '@/types';
 import { LogOut, RefreshCw, Shield, KeyRound, Clock, LifeBuoy, ChevronRight, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
@@ -113,8 +114,11 @@ export default function SupportDashboard() {
         url,
         password: data?.supportPassword ?? '',
       });
-    } catch (e: any) {
-      if (e?.response?.status === 409) {
+    } catch (e) {
+      // Code-based, not status-based — a 409 could mean something other
+      // than "claimed" in the future, and this way the check survives the
+      // backend adding new conflict reasons without becoming a false match.
+      if (getApiErrorCode(e) === 'SUPPORT_SESSION_CLAIMED') {
         toast.error(t('support_session_claimed'));
       } else {
         toast.error(t('support_connect_error'));

@@ -1,10 +1,10 @@
 import {
   Injectable,
-  ConflictException,
   ForbiddenException,
   NotFoundException,
   Optional,
 } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -32,7 +32,7 @@ export class UsersService {
     role: UserRole = UserRole.CLIENT,
   ): Promise<UserSafeViewDto> {
     const exists = await this.usersRepository.findOne({ where: { email } });
-    if (exists) throw new ConflictException('Email already exists');
+    if (exists) throw new ApiError(409, 'CLIENT_EMAIL_EXISTS', 'Email already exists');
 
     const hashed = await bcrypt.hash(password, 12);
     const user = this.usersRepository.create({
@@ -102,7 +102,7 @@ export class UsersService {
         where: { email: data.email },
       });
       if (existing && existing.id !== id) {
-        throw new ConflictException('Email already exists');
+        throw new ApiError(409, 'CLIENT_EMAIL_EXISTS', 'Email already exists');
       }
     }
     await this.usersRepository.update(id, data);
