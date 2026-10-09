@@ -1,4 +1,5 @@
-import { Injectable, Logger, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -117,7 +118,7 @@ export class ProvisioningService {
           });
         } catch (err: any) {
           if (err.message?.includes('duplicate') || err.code === '23505') {
-            throw new ConflictException('Email already exists');
+            throw new ApiError(409, 'CLIENT_EMAIL_EXISTS', 'Email already exists');
           }
           throw err;
         }

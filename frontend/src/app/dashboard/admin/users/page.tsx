@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/format';
+import { translateApiError } from '@/lib/apiError';
 import { toast } from 'sonner';
 import { ArrowLeft, Plus, RefreshCw, LogOut, Pencil, KeyRound, Check, X, Trash2 } from 'lucide-react';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
@@ -120,10 +121,8 @@ export default function AdminUsersPage() {
       setForm({ email: '', firstName: '', lastName: '', role: 'support', password: '' });
       setFormErrors({});
       await load();
-    } catch (e: any) {
-      const msg = e.response?.data?.message;
-      if (msg === 'Email already exists') toast.error(t('err_email_taken'));
-      else toast.error(t('error'));
+    } catch (e) {
+      toast.error(translateApiError(e, t));
     } finally { setSaving(false); }
   };
 
@@ -144,10 +143,8 @@ export default function AdminUsersPage() {
       setEditUser(null);
       setEditEmailError('');
       await load();
-    } catch (e: any) {
-      const msg = e.response?.data?.message;
-      if (msg === 'Email already exists') toast.error(t('err_email_taken'));
-      else toast.error(t('error'));
+    } catch (e) {
+      toast.error(translateApiError(e, t));
     } finally { setSaving(false); }
   };
 

@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { ApiError } from '../common/api-error';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { TintaCoreService } from './tinta-core.service';
@@ -98,13 +99,16 @@ describe('TintaCoreService.updateAgent / getReleaseInfo', () => {
 
     it('BLOCKS the real-world regression: 2026.9.2 → 2026.8.3', async () => {
       await buildService({ clientId: 'client-1', agentVersion: '2026.9.2' });
-      await expect(service.updateAgent('client-1', '2026.8.3')).rejects.toThrow(ConflictException);
+      await expect(service.updateAgent('client-1', '2026.8.3')).rejects.toThrow(ApiError);
+      await expect(service.updateAgent('client-1', '2026.8.3')).rejects.toMatchObject({
+        code: 'AGENT_DOWNGRADE_REJECTED',
+      });
       expect(sendSelfUpdate).not.toHaveBeenCalled();
     });
 
     it('blocks any downgrade, even to an intermediate-looking version: 2026.10.0 → 2026.9.2', async () => {
       await buildService({ clientId: 'client-1', agentVersion: '2026.10.0' });
-      await expect(service.updateAgent('client-1', '2026.9.2')).rejects.toThrow(ConflictException);
+      await expect(service.updateAgent('client-1', '2026.9.2')).rejects.toThrow(ApiError);
       expect(sendSelfUpdate).not.toHaveBeenCalled();
     });
 
