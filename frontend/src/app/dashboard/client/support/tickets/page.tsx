@@ -33,7 +33,7 @@ export default function TicketListPage() {
         <h1 className="text-xl font-bold">{t('client_support_tickets_title')}</h1>
         <Link
           href="/dashboard/client/support/tickets/new"
-          className="inline-flex items-center gap-1.5 text-sm bg-teal-600 hover:bg-teal-500 text-white font-medium px-3 py-1.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold px-3 py-1.5 rounded-lg transition-colors"
         >
           <Plus size={14} /> {t('client_support_new_request')}
         </Link>

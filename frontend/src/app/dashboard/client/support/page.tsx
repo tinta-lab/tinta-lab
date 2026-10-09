@@ -61,7 +61,7 @@ export default function SupportCenterPage() {
             <p className="text-sm text-slate-300 mb-4">{t('client_support_get_help_prompt')}</p>
             <Link
               href="/dashboard/client/support/tickets/new"
-              className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-medium px-5 py-2.5 rounded-lg transition-colors"
+              className="inline-flex items-center gap-2 bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold px-5 py-2.5 rounded-lg transition-colors"
             >
               <LifeBuoy size={16} /> {t('client_support_get_help')}
             </Link>

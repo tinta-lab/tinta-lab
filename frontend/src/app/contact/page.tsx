@@ -166,7 +166,7 @@ export default function ContactPage() {
                 {...register('name')}
                 type="text"
                 autoComplete="name"
-                placeholder="Max Müller"
+                placeholder={t('ph_full_name')}
                 className={inputCls(!!errors.name)}
               />
               {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name.message}</p>}
@@ -225,7 +225,7 @@ export default function ContactPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2 mt-1"
+              className="w-full py-3 px-4 rounded-xl bg-teal-400 hover:bg-teal-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold text-sm transition-all flex items-center justify-center gap-2 mt-1"
             >
               {loading
                 ? <><Loader2 size={16} className="animate-spin" /> {t('contact_submitting')}</>

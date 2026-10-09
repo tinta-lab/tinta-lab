@@ -126,6 +126,16 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
+      {/* The text the client wrote when opening the request. It lives on
+          the ticket itself (not as the first conversation message), and
+          neither ticket page used to show it. */}
+      {ticket.message && (
+        <section className="rounded-2xl border border-white/[0.07] bg-slate-900/50 p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 mb-2">{t('ticket_description')}</h2>
+          <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{ticket.message}</p>
+        </section>
+      )}
+
       {ticket.server && (
         <section>
           <SupportAccessCard server={ticket.server} onChanged={load} ticketId={ticket.id} />
@@ -148,7 +158,7 @@ export default function TicketDetailPage() {
           <button
             onClick={submitReply}
             disabled={sending || !reply.trim()}
-            className="h-9 px-4 rounded-lg text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0"
+            className="h-9 px-4 rounded-lg text-sm font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0"
           >
             {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
             {t('client_support_reply_submit')}

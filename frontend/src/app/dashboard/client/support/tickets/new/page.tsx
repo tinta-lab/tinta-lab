@@ -87,7 +87,7 @@ export default function NewTicketPage() {
             key={opt.value}
             className={`flex items-center gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors ${
               type === opt.value
-                ? 'border-teal-500 bg-teal-600/10'
+                ? 'border-teal-500 bg-teal-400/10'
                 : 'border-slate-700 bg-slate-800/40 hover:border-slate-600'
             }`}
           >
@@ -151,7 +151,7 @@ export default function NewTicketPage() {
         <button
           onClick={submit}
           disabled={submitting || loadingServers || servers.length === 0}
-          className="flex-1 py-2.5 rounded-lg text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white transition-all disabled:opacity-50"
+          className="flex-1 py-2.5 rounded-lg text-sm font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 transition-all disabled:opacity-50"
         >
           {submitting ? t('client_support_submitting') : t('client_support_submit')}
         </button>

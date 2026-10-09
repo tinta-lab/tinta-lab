@@ -326,7 +326,7 @@ function InstallStatusSection({ agent, clientId, onRefresh }: {
           <span>{agent.installToken ? t('hub_install_expired') : t('hub_install_consumed')}</span>
         </div>
         <button onClick={reissue} disabled={reissuing}
-          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-900 font-semibold text-sm transition-colors">
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 disabled:opacity-50 text-slate-950 font-semibold text-sm transition-colors">
           {reissuing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
           {t('hub_install_reissue')}
         </button>
@@ -592,7 +592,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                   <div className="flex gap-2 pt-1">
                     <button onClick={() => setEditMode(false)} className="flex-1 py-2 rounded-lg border border-slate-700 text-slate-400 text-sm hover:border-slate-600 transition-colors">{t('cancel')}</button>
                     <button onClick={saveEdit} disabled={saving}
-                      className="flex-1 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-900 font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                      className="flex-1 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 disabled:opacity-50 text-slate-950 font-semibold text-sm transition-colors flex items-center justify-center gap-2">
                       {saving ? <Loader2 size={13} className="animate-spin" /> : null} {t('save')}
                     </button>
                   </div>
@@ -717,7 +717,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                     )}
                   </div>
                   <button onClick={grantAccess} disabled={granting || !isOnline}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 font-semibold transition-colors text-sm">
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-semibold transition-colors text-sm">
                     {granting ? <Loader2 size={15} className="animate-spin" /> : <Shield size={15} />}
                     {isOnline ? t('client_access_grant') : t('hub_agent_offline')}
                   </button>
@@ -748,7 +748,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                       <button
                         onClick={() => applyTemplate(tpl.slug)}
                         disabled={applyingSlug === tpl.slug || !isOnline}
-                        className="text-xs px-2.5 py-1 rounded-full bg-teal-600 hover:bg-teal-500 text-white transition-colors disabled:opacity-50 shrink-0"
+                        className="text-xs px-2.5 py-1 rounded-full bg-teal-400 hover:bg-teal-300 text-slate-950 transition-colors disabled:opacity-50 shrink-0"
                       >
                         {applyingSlug === tpl.slug ? <Loader2 size={10} className="animate-spin" /> : t('template_apply_btn')}
                       </button>
@@ -923,15 +923,15 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
                 // all; matches the same pattern already used in admin/users/page.tsx.
                 <form autoComplete="off" onSubmit={e => e.preventDefault()} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <Field label={t('reg_firstname')} value={firstName} onChange={setFirstName} autoComplete="off" placeholder="Max" />
-                    <Field label={t('reg_lastname')} value={lastName} onChange={setLastName} autoComplete="off" placeholder="Mustermann" />
+                    <Field label={t('reg_firstname')} value={firstName} onChange={setFirstName} autoComplete="off" placeholder={t('ph_first_name')} />
+                    <Field label={t('reg_lastname')} value={lastName} onChange={setLastName} autoComplete="off" placeholder={t('ph_last_name')} />
                   </div>
-                  <Field label={t('contact_email')} value={email} onChange={setEmail} type="email" autoComplete="off" placeholder="max@mustermann.de" />
+                  <Field label={t('contact_email')} value={email} onChange={setEmail} type="email" autoComplete="off" placeholder={t('ph_email')} />
                   <div>
                     <label className="text-xs text-slate-400 mb-1 block">{t('contact_phone')}</label>
                     <PhoneInput value={phone} onChange={setPhone} />
                   </div>
-                  <Field label={t('hub_wizard_city_optional')} value={city} onChange={setCity} autoComplete="off" placeholder="Berlin" />
+                  <Field label={t('hub_wizard_city_optional')} value={city} onChange={setCity} autoComplete="off" placeholder={t('ph_city')} />
                   <PasswordField label={t('reg_password')} value={password} onChange={setPassword} placeholder={t('reg_hint_length')} />
                 </form>
               )}
@@ -939,7 +939,7 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
               <div className="flex gap-3 pt-2">
                 <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 text-sm transition-colors">{t('cancel')}</button>
                 <button onClick={() => setStep(2)} disabled={!canNext1}
-                  className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 font-semibold text-sm transition-colors">
+                  className="flex-1 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-semibold text-sm transition-colors">
                   {t('hub_wizard_next')}
                 </button>
               </div>
@@ -950,7 +950,7 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
           {step === 2 && (
             <div className="space-y-4">
               <h2 className="font-bold text-lg">{t('hub_wizard_step_config')}</h2>
-              <Field label={t('hub_wizard_hubname_label')} value={serverName} onChange={setServerName} placeholder="Mustermann Home" />
+              <Field label={t('hub_wizard_hubname_label')} value={serverName} onChange={setServerName} placeholder={t('ph_hub_name')} />
               <Field label={t('hub_wizard_localurl_label')} value={localUrl} onChange={setLocalUrl} placeholder="http://192.168.1.100:8123" />
 
               {serverName.length >= 2 && (
@@ -964,7 +964,7 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
               <div className="flex gap-3 pt-2">
                 <button onClick={() => setStep(1)} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 hover:text-white text-sm transition-colors">{t('hub_wizard_back')}</button>
                 <button onClick={submit} disabled={!canNext2 || submitting}
-                  className="flex-1 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-900 font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                  className="flex-1 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 font-semibold text-sm transition-colors flex items-center justify-center gap-2">
                   {submitting ? <><Loader2 size={15} className="animate-spin" /> {t('creating')}</> : t('hub_create_btn')}
                 </button>
               </div>
@@ -982,8 +982,19 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
                 <p className="text-sm text-slate-400 mt-1">{t('hub_wizard_success_hint')}</p>
               </div>
 
+              {/* Step 1 for the client — without opening this link and
+                  confirming, the Agent never gets its config (Petrov House). */}
               <div className="bg-slate-800 border border-teal-500/40 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-2 uppercase tracking-wider">{t('hub_activation_section')}</p>
+                <p className="text-xs text-slate-400 mb-1 uppercase tracking-wider">1. {t('hub_install_link_label')}</p>
+                <p className="text-xs text-slate-500 mb-2">{t('hub_install_link_hint')}</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-teal-300 font-mono text-xs break-all">{result.installUrl}</code>
+                  <CopyButton text={result.installUrl} />
+                </div>
+              </div>
+
+              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
+                <p className="text-xs text-slate-400 mb-2 uppercase tracking-wider">2. {t('hub_install_code_label')}</p>
                 <div className="flex items-center gap-2">
                   <code className="flex-1 text-teal-300 font-mono text-sm break-all">{result.installToken}</code>
                   <button onClick={copyCode} className="p-2 rounded-lg hover:bg-slate-700 transition-colors text-slate-400 hover:text-white flex-shrink-0">
@@ -992,15 +1003,9 @@ function CreateHubWizard({ onClose, onSuccess }: { onClose: () => void; onSucces
                 </div>
               </div>
 
-              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 text-sm space-y-2">
-                <p className="font-medium">{t('hub_wizard_addon_config_title')}</p>
-                <code className="block text-xs text-slate-300 bg-slate-900 rounded-lg p-3 font-mono">
-                  tinta_install_token: {result.installToken}
-                </code>
-                <p className="text-xs text-slate-500">{t('hub_wizard_addon_config_hint')}</p>
-              </div>
+              <p className="text-xs text-slate-500 text-center">{t('hub_wizard_addon_config_hint')}</p>
 
-              <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-900 font-semibold text-sm transition-colors">
+              <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold text-sm transition-colors">
                 {t('hub_wizard_step_done')}
               </button>
             </div>
@@ -1108,7 +1113,7 @@ function PasswordField({ label, value, onChange, placeholder }: { label: string;
 export default function HubsPage() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t } = useLocale();
+  const { t, tn } = useLocale();
   const [hubs, setHubs] = useState<AdminHub[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedHub, setSelectedHub] = useState<AdminHub | null>(null);
@@ -1190,7 +1195,7 @@ export default function HubsPage() {
             </button>
             <AppLanguageSwitcher />
             <button onClick={() => setShowWizard(true)} aria-label={t('hub_create_btn')}
-              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-900 font-semibold text-sm transition-colors">
+              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold text-sm transition-colors">
               <Plus size={15} /> <span className="hidden sm:inline">{t('hub_create_btn')}</span>
             </button>
             <button onClick={logout} aria-label={t('logout')} className="flex items-center gap-1.5 text-slate-400 hover:text-white text-sm transition-colors">
@@ -1205,7 +1210,7 @@ export default function HubsPage() {
         <div className="mb-6">
           <h1 className="text-2xl font-bold">{t('hub_page_title')}</h1>
           <p className="text-slate-400 text-sm mt-1">
-            {hubs.length} {t('hub_installations')} · {online} {t('client_status_online')} · {offline} {t('client_status_offline')}
+            {tn('hub_installations', hubs.length)} · {online} {t('client_status_online')} · {offline} {t('client_status_offline')}
           </p>
         </div>
 
@@ -1218,7 +1223,7 @@ export default function HubsPage() {
             <Server size={40} className="mx-auto text-slate-700 mb-4" />
             <p className="text-slate-400 mb-4">{t('hub_no_hubs_yet')}</p>
             <button onClick={() => setShowWizard(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-900 font-semibold text-sm transition-colors">
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold text-sm transition-colors">
               <Plus size={15} /> {t('hub_create_first')}
             </button>
           </div>

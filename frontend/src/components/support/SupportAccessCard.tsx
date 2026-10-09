@@ -224,7 +224,7 @@ export default function SupportAccessCard({ server, onChanged, ticketId }: Suppo
                 onClick={() => setDuration(minutes)}
                 className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                   selected
-                    ? 'bg-teal-600/20 border-teal-500 text-teal-300'
+                    ? 'bg-teal-400/20 border-teal-500 text-teal-300'
                     : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
                 }`}
               >
@@ -238,7 +238,7 @@ export default function SupportAccessCard({ server, onChanged, ticketId }: Suppo
       <button
         onClick={grantAccess}
         disabled={actionLoading}
-        className="w-full py-2.5 rounded-lg text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full py-2.5 rounded-lg text-sm font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {actionLoading ? (
           <RefreshCw size={14} className="animate-spin" />

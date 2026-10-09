@@ -130,7 +130,7 @@ function SessionCard({ s }: { s: AccessSession }) {
 }
 
 function StaffCard({ member }: { member: StaffMember }) {
-  const { t } = useLocale();
+  const { t, tn } = useLocale();
   const [open, setOpen] = useState(false);
   const activeSessions = member.recentSessions.filter(s => s.connectedAt && !s.revokedAt && new Date(s.expiresAt) > new Date());
   const totalSessions = member.recentSessions.length;
@@ -163,10 +163,10 @@ function StaffCard({ member }: { member: StaffMember }) {
               {member.isOnline ? t('client_status_online') : t('client_status_offline')}
             </div>
             {activeSessions.length > 0 && (
-              <div className="text-xs text-green-400 mt-0.5">{activeSessions.length} {t('staff_active_sessions_n')}</div>
+              <div className="text-xs text-green-400 mt-0.5">{tn('staff_active_sessions_n', activeSessions.length)}</div>
             )}
             {totalSessions > 0 && (
-              <div className="text-xs text-slate-500 mt-0.5">{totalSessions} {t('staff_total_sessions_n')}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{tn('staff_total_sessions_n', totalSessions)}</div>
             )}
           </div>
         </div>

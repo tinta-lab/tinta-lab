@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
+import { ticketSubject, ticketMessage } from '@/lib/systemTicket';
 import api from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { staffTicketsApi } from '@/services/staffTicketsApi';
@@ -161,7 +162,7 @@ export default function AdminTicketsPage() {
               onClick={() => setFilter(s)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 filter === s
-                  ? 'bg-teal-600 border-teal-500 text-white'
+                  ? 'bg-teal-400 border-teal-400 text-slate-950'
                   : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-500'
               }`}
             >
@@ -195,7 +196,7 @@ export default function AdminTicketsPage() {
                   className={`${i < filtered.length - 1 ? 'border-b border-slate-700/30' : ''} hover:bg-slate-800/30 transition-colors cursor-pointer`}
                   onClick={() => openTicket(ticket)}
                 >
-                  <td className="px-4 py-3 font-medium max-w-[200px] truncate">{ticket.subject}</td>
+                  <td className="px-4 py-3 font-medium max-w-[200px] truncate">{ticketSubject(ticket.subject, t)}</td>
                   <td className="px-4 py-3 text-slate-400">
                     <div>{ticket.name}</div>
                     <div className="text-xs text-slate-600">{ticket.email}</div>
@@ -216,7 +217,7 @@ export default function AdminTicketsPage() {
 
       {/* Ticket detail modal */}
       {selected && (
-        <Modal title={selected.subject} onClose={() => setSelected(null)}>
+        <Modal title={ticketSubject(selected.subject, t)} onClose={() => setSelected(null)}>
           <div className="space-y-5">
             {/* Contact info */}
             <div className="bg-slate-900/50 rounded-xl p-4 space-y-2 text-sm">
@@ -255,7 +256,7 @@ export default function AdminTicketsPage() {
             {/* Original message */}
             <div>
               <div className="text-xs text-slate-400 mb-2">{t('sales_message')}</div>
-              <p className="text-sm text-slate-300 bg-slate-900/50 rounded-xl p-4 whitespace-pre-wrap">{selected.message}</p>
+              <p className="text-sm text-slate-300 bg-slate-900/50 rounded-xl p-4 whitespace-pre-wrap">{ticketMessage(selected.subject, selected.message, t)}</p>
             </div>
 
             {/* Status */}
@@ -289,7 +290,7 @@ export default function AdminTicketsPage() {
 
             <div className="flex gap-3">
               <button onClick={() => setSelected(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('close')}</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 text-slate-950 text-sm font-semibold transition-colors disabled:opacity-50">
                 {saving ? t('saving') : t('save')}
               </button>
             </div>

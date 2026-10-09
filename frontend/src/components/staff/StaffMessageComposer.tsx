@@ -35,7 +35,7 @@ export default function StaffMessageComposer({ onSend }: StaffMessageComposerPro
           onClick={() => setInternal(false)}
           className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
             !internal
-              ? 'bg-teal-600/20 border-teal-500 text-teal-300'
+              ? 'bg-teal-400/20 border-teal-500 text-teal-300'
               : 'bg-slate-900 border-slate-700 text-slate-400 hover:border-slate-600'
           }`}
         >
@@ -67,8 +67,8 @@ export default function StaffMessageComposer({ onSend }: StaffMessageComposerPro
         <button
           onClick={submit}
           disabled={sending || !message.trim()}
-          className={`h-9 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0 ${
-            internal ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-teal-600 hover:bg-teal-500 text-white'
+          className={`h-9 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 flex-shrink-0 ${
+            internal ? 'bg-amber-600 hover:bg-amber-500 text-slate-950' : 'bg-teal-400 hover:bg-teal-300 text-slate-950'
           }`}
         >
           {sending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}

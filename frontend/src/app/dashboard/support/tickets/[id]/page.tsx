@@ -7,6 +7,7 @@ import { isAxiosError } from 'axios';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
+import { ticketSubject, ticketMessage } from '@/lib/systemTicket';
 import type { TranslationKey } from '@/i18n/translations';
 import { formatDateTime } from '@/lib/format';
 import { staffTicketsApi } from '@/services/staffTicketsApi';
@@ -135,7 +136,7 @@ export default function StaffTicketDetailPage() {
 
       <div>
         <div className="flex items-start justify-between gap-4 mb-2">
-          <h1 className="text-xl font-bold">{ticket.subject}</h1>
+          <h1 className="text-xl font-bold">{ticketSubject(ticket.subject, t)}</h1>
           <TicketStatusBadge status={ticket.status} />
         </div>
         <div className="text-xs text-slate-500 flex items-center gap-3 flex-wrap">
@@ -153,6 +154,16 @@ export default function StaffTicketDetailPage() {
         </div>
       </div>
 
+      {/* The text the client wrote when opening the request. It lives on
+          the ticket itself (not as the first conversation message), and
+          neither ticket page used to show it. */}
+      {ticket.message && (
+        <section className="rounded-2xl border border-white/[0.07] bg-slate-900/50 p-4">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 mb-2">{t('ticket_description')}</h2>
+          <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{ticketMessage(ticket.subject, ticket.message, t)}</p>
+        </section>
+      )}
+
       {canEditStatus && (
         <div className="flex flex-wrap gap-2">
           {STATUS_OPTIONS.map((s) => (
@@ -166,7 +177,7 @@ export default function StaffTicketDetailPage() {
               }
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-50 ${
                 s === ticket.status
-                  ? 'bg-teal-600 border-teal-500 text-white'
+                  ? 'bg-teal-400 border-teal-400 text-slate-950'
                   : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-500'
               }`}
             >
