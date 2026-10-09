@@ -20,7 +20,7 @@ export default async function Datenschutz({ params }: { params: Promise<{ locale
       <h2>1. Verantwortlicher</h2>
       <p>
         Viktor Goloviznin / Tinta Lab<br />
-        E-Mail: <a href="mailto:support@tinta-lab.de">support@tinta-lab.de</a>
+        E-Mail: <a href="mailto:info@tinta-lab.de">info@tinta-lab.de</a>
       </p>
 
       <h2>2. Welche Daten wir erheben und warum</h2>
@@ -112,7 +112,7 @@ export default async function Datenschutz({ params }: { params: Promise<{ locale
       </ul>
       <p>
         Zur Ausübung Ihrer Rechte:{' '}
-        <a href="mailto:support@tinta-lab.de">support@tinta-lab.de</a>
+        <a href="mailto:info@tinta-lab.de">info@tinta-lab.de</a>
       </p>
 
       <h2>7. Beschwerderecht bei der zuständigen Aufsichtsbehörde</h2>

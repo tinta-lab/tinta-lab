@@ -47,7 +47,7 @@ export default function CtaBanner() {
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
               </a>
               <a
-                href="mailto:support@tinta-lab.de"
+                href="mailto:info@tinta-lab.de"
                 className="inline-flex items-center justify-center gap-2 border border-white/30 hover:border-white/60 bg-white/10 hover:bg-white/15 text-white font-medium text-sm px-7 py-3 rounded-xl transition-all duration-200"
               >
                 {t('secondary')}

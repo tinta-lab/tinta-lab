@@ -33,7 +33,7 @@ export default async function Widerruf({ params }: { params: Promise<{ locale: s
       </p>
       <p>
         Tinta Lab, Viktor Goloviznin<br />
-        E-Mail: <a href="mailto:support@tinta-lab.de">support@tinta-lab.de</a>
+        E-Mail: <a href="mailto:info@tinta-lab.de">info@tinta-lab.de</a>
       </p>
       <p>
         mittels einer eindeutigen Erklärung (z. B. ein mit der Post versandter Brief
@@ -93,7 +93,7 @@ export default async function Widerruf({ params }: { params: Promise<{ locale: s
       <p>
         An:<br />
         Tinta Lab, Viktor Goloviznin<br />
-        E-Mail: support@tinta-lab.de
+        E-Mail: info@tinta-lab.de
       </p>
       <p>
         Hiermit widerrufe(n) ich/wir (*) den von mir/uns (*) abgeschlossenen Vertrag

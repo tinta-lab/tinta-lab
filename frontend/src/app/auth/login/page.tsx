@@ -142,7 +142,7 @@ export default function LoginPage() {
 
           <p className="text-center text-slate-500 text-xs mt-5">
             {t('login_forgot')}{' '}
-            <a href="mailto:support@tinta-lab.de" className="text-teal-400 hover:text-teal-300 transition-colors">
+            <a href="mailto:info@tinta-lab.de" className="text-teal-400 hover:text-teal-300 transition-colors">
               {t('login_forgot_link')}
             </a>
           </p>
