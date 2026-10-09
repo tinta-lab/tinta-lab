@@ -160,6 +160,7 @@ export class DiagnosticsService {
         hasSession,
         activeTemplateSlugs: templates.map((t) => t.slug),
         appliedTemplates: sessionSummary?.appliedTemplates ?? [],
+        agentEverConnected: !!sessionSummary?.lastConnectedAt,
         now,
       }),
 

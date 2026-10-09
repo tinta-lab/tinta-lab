@@ -59,6 +59,12 @@ interface ProvisionResult {
   dashboardUrl: string;
 }
 
+// The agent reports the literal string 'unknown' when it couldn't read HA's
+// version; that's "no data", not a version to display.
+function knownHaVersion(v: string | null | undefined): string | null {
+  return v && v !== 'unknown' ? v : null;
+}
+
 // ─── Utility components ───────────────────────────────────────────────────────
 
 function CopyButton({ text }: { text: string }) {
@@ -227,7 +233,7 @@ function HubCard({ hub, latestStable, onSelect, onUpdate }: { hub: AdminHub; lat
       {/* Badges row */}
       <div className="flex gap-1.5 mb-4 flex-wrap">
         <AgentBadge version={hub.agent?.agentVersion ?? null} latest={latestStable} />
-        <HABadge version={hub.haVersion ?? hub.agent?.metrics ? hub.haVersion : null} />
+        <HABadge version={knownHaVersion(hub.haVersion)} />
         {hub.accessEnabled && (
           <span className="text-xs pl-1.5 pr-2 py-0.5 rounded-full bg-green-500/15 text-green-300 flex items-center gap-1 ring-1 ring-green-500/20">
             <span className="relative flex w-1.5 h-1.5">
@@ -622,7 +628,7 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
               <Section title={t('hub_agent_section')}>
                 <Row label={t('col_status')} value={isOnline ? `🟢 ${t('client_status_online')}` : `⚫ ${t('client_status_offline')}`} />
                 <Row label={t('hub_field_agent')} value={hub.agent?.agentVersion ?? '—'} />
-                <Row label={t('hub_field_ha')} value={hub.haVersion ?? '—'} />
+                <Row label={t('hub_field_ha')} value={knownHaVersion(hub.haVersion) ?? '—'} />
                 {hub.agent?.lastConnectedAt && (
                   <Row label={t('hub_field_last_connected')} value={formatDateTime(hub.agent.lastConnectedAt, locale)} />
                 )}
