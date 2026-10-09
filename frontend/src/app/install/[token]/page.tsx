@@ -230,6 +230,16 @@ export default function InstallPage() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">{title}</h1>
           <p className="text-slate-400 text-sm mb-5">{message}</p>
+          {/* A dead link can only be fixed by us issuing a new one — give the
+              visitor the way to ask instead of a dead end. */}
+          {isTerminal && (
+            <a
+              href="mailto:info@tinta-lab.de"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-teal-500 hover:bg-teal-400 text-slate-950 transition-colors"
+            >
+              info@tinta-lab.de
+            </a>
+          )}
           {!isTerminal && (
             <button
               onClick={retryLoad}
