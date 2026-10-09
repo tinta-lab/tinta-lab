@@ -247,7 +247,18 @@ function HubCard({ hub, latestStable, onSelect, onUpdate }: { hub: AdminHub; lat
           <MetricRow icon={HardDrive} value={hub.agent.metrics.diskPercent ?? 0} label="Disk" />
         </div>
       ) : (
-        <div className="mb-4 text-xs text-slate-600 italic">{t('hub_no_live_metrics')}</div>
+        hub.agent && !hub.agent.lastConnectedAt ? (
+          // Never enrolled: not "offline" but a stalled install that needs
+          // someone to act (link expired / consent missing) — see the drawer.
+          <div className="mb-4 flex items-center gap-1.5 text-xs text-amber-300">
+            <AlertTriangle size={12} />
+            {hub.agent.installToken && hub.agent.installTokenExpiresAt && new Date(hub.agent.installTokenExpiresAt).getTime() > Date.now()
+              ? (hub.agent.serviceStartConsentAt ? t('hub_install_pending') : t('hub_consent_waiting'))
+              : t('hub_install_stalled')}
+          </div>
+        ) : (
+          <div className="mb-4 text-xs text-slate-600 italic">{t('hub_no_live_metrics')}</div>
+        )
       )}
 
       {/* Footer: device/automation counts + last seen */}

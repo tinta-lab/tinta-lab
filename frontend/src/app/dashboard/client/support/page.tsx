@@ -103,21 +103,16 @@ export default function SupportCenterPage() {
             )}
           </section>
 
-          {/* Bottom action row */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard/client/support/tickets/new"
-              className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
-            >
-              <LifeBuoy size={14} /> {t('client_support_get_help')}
-            </Link>
+          {/* The primary "get help" action is the card at the top; repeating
+              it down here put two identical buttons on one short page. */}
+          {recent.length > 0 && (
             <Link
               href="/dashboard/client/support/tickets"
               className="inline-flex items-center gap-2 border border-slate-700 hover:border-slate-500 text-slate-300 font-medium px-4 py-2 rounded-lg text-sm transition-colors"
             >
               {t('client_support_view_all_tickets')}
             </Link>
-          </div>
+          )}
         </>
       )}
     </div>

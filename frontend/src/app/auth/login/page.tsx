@@ -20,6 +20,18 @@ const ROLE_REDIRECT: Record<string, string> = {
   client:  '/dashboard/client',
 };
 
+// Where to go after login: back to the page that sent us here (see
+// dashboard/layout.tsx) if it belongs to this role's area, else the role home.
+// Admins may return anywhere under /dashboard. Never an external URL.
+function destinationFor(role: string): string {
+  const home = ROLE_REDIRECT[role] ?? '/dashboard/client';
+  let next: string | null = null;
+  try { next = new URLSearchParams(window.location.search).get('next'); } catch { /* ignore */ }
+  if (!next || !next.startsWith('/') || next.startsWith('//')) return home;
+  if (next.startsWith(home) || (role === 'admin' && next.startsWith('/dashboard/'))) return next;
+  return home;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const { login, user, init } = useAuth();
@@ -42,7 +54,7 @@ export default function LoginPage() {
   useEffect(() => { init(); }, [init]);
 
   useEffect(() => {
-    if (user) router.push(ROLE_REDIRECT[user.role] ?? '/dashboard/client');
+    if (user) router.push(destinationFor(user.role));
   }, [user, router]);
 
   const onSubmit = async (data: FormData) => {
@@ -51,7 +63,7 @@ export default function LoginPage() {
       await login(data.email, data.password);
       const currentUser = useAuth.getState().user;
       if (currentUser) {
-        window.location.href = ROLE_REDIRECT[currentUser.role] ?? '/dashboard/client';
+        window.location.href = destinationFor(currentUser.role);
       }
     } catch (e: any) {
       if (e.response?.status === 429) {
