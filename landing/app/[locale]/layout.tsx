@@ -1,9 +1,14 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
+import { Geist } from 'next/font/google';
 import { NextIntlClientProvider, hasLocale } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import '../globals.css';
+
+// Self-hosted at build time by next/font — no request to Google at runtime
+// (matters for DSGVO: no visitor IP leaves for fonts.googleapis.com).
+const geist = Geist({ subsets: ['latin', 'cyrillic'], display: 'swap', variable: '--font-geist' });
 
 const SITE_URL = 'https://tinta-lab.de';
 const SITE_NAME = 'Tinta Lab';
@@ -41,19 +46,23 @@ export async function generateMetadata({
     authors: [{ name: SITE_NAME, url: SITE_URL }],
     openGraph: {
       type: 'website',
-      url: SITE_URL,
       siteName: SITE_NAME,
       title: m.title,
       description: m.description,
-      images: [{ url: '/og-image.png', width: 1200, height: 630, alt: SITE_NAME }],
+      locale,
     },
+    twitter: { card: 'summary_large_image', title: m.title, description: m.description },
     robots: { index: true, follow: true },
-    alternates: {
-      canonical: SITE_URL,
-      languages: { de: '/', en: '/en', it: '/it', ru: '/ru' },
-    },
+    // canonical/hreflang are set per page (see [locale]/page.tsx). Setting
+    // canonical here made every page — Impressum, AGB, every language —
+    // declare itself a duplicate of the German home page.
   };
 }
+
+export const viewport: Viewport = {
+  themeColor: '#020617',
+  colorScheme: 'dark',
+};
 
 export function generateStaticParams() {
   return routing.locales.map(locale => ({ locale }));
@@ -71,9 +80,21 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="scroll-smooth">
+    <html lang={locale} className={`scroll-smooth ${geist.variable}`}>
       <head />
-      <body className="bg-slate-950 text-white antialiased">
+      <body className="bg-slate-950 text-white antialiased font-sans">
+        <script
+          type="application/ld+json"
+          // Organization data for search engines (name, logo, contact)
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: SITE_NAME,
+            url: SITE_URL,
+            logo: `${SITE_URL}/logo.png`,
+            email: 'info@tinta-lab.de',
+          }) }}
+        />
         <NextIntlClientProvider messages={messages}>
           {children}
         </NextIntlClientProvider>

@@ -30,15 +30,14 @@ export default async function Impressum({
 
       <h2>Kontakt</h2>
       <p>
-        Telefon: [Telefonnummer]<br />
-        E-Mail: <a href="mailto:info@tinta-lab.de">info@tinta-lab.de</a>
+        E-Mail: <a href="mailto:info@tinta-lab.de">info@tinta-lab.de</a><br />
+        Kontaktformular: <a href="https://app.tinta-lab.de/contact">app.tinta-lab.de/contact</a>
       </p>
 
       <h2>Umsatzsteuer</h2>
       <p>
         Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer berechnet
-        und ausgewiesen.<br />
-        Steuernummer: [Steuernummer folgt nach Erteilung durch das Finanzamt]
+        und ausgewiesen.
       </p>
 
       <hr />

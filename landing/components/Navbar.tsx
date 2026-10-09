@@ -9,6 +9,7 @@ const APP = 'https://app.tinta-lab.de';
 
 export default function Navbar() {
   const t = useTranslations('nav');
+  const cta = useTranslations('cta');
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -33,7 +34,7 @@ export default function Navbar() {
       role="banner"
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-slate-950/90 backdrop-blur-md border-b border-slate-800/60 shadow-lg shadow-black/20'
+          ? 'bg-slate-950/70 backdrop-blur-xl border-b border-white/[0.06]'
           : 'bg-transparent'
       }`}
     >
@@ -63,10 +64,15 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-3">
-          <a href={`${APP}/auth/login`} className="text-sm font-medium bg-teal-600 hover:bg-teal-500 text-white px-4 py-1.5 rounded-lg transition-colors">
-            {t('start')}
+        {/* Desktop CTA — new visitors want a consultation; existing clients
+            just need a way in. "Mein Konto" as the only button sent both to
+            the login form. */}
+        <div className="hidden md:flex items-center gap-5">
+          <a href={`${APP}/auth/login`} className="text-sm text-slate-300 hover:text-white transition-colors">
+            {t('login')}
+          </a>
+          <a href={`${APP}/contact`} className="text-sm font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 px-4 py-2 rounded-full transition-colors">
+            {cta('primary')}
           </a>
         </div>
 
@@ -101,11 +107,18 @@ export default function Navbar() {
           </ul>
           <div className="px-4 pb-5 space-y-2 border-t border-slate-800 pt-4">
             <a
+              href={`${APP}/contact`}
+              onClick={close}
+              className="block w-full text-center py-3 rounded-full bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold text-sm transition-colors"
+            >
+              {cta('primary')}
+            </a>
+            <a
               href={`${APP}/auth/login`}
               onClick={close}
-              className="block w-full text-center py-2.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-medium text-sm transition-colors"
+              className="block w-full text-center py-3 rounded-full border border-white/10 text-slate-200 text-sm transition-colors hover:border-white/25"
             >
-              {t('start')}
+              {t('login')}
             </a>
           </div>
         </div>
