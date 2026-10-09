@@ -44,12 +44,12 @@ export default function Footer() {
             </div>
             <p className="text-sm text-slate-500 leading-relaxed mb-5">{t('desc')}</p>
             <a
-              href="mailto:support@tinta-lab.de"
+              href="mailto:info@tinta-lab.de"
               className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-              aria-label="support@tinta-lab.de"
+              aria-label="info@tinta-lab.de"
             >
               <Mail size={14} aria-hidden="true" />
-              support@tinta-lab.de
+              info@tinta-lab.de
             </a>
           </div>
 

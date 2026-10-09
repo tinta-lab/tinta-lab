@@ -31,7 +31,7 @@ export default async function Impressum({
       <h2>Kontakt</h2>
       <p>
         Telefon: [Telefonnummer]<br />
-        E-Mail: <a href="mailto:support@tinta-lab.de">support@tinta-lab.de</a>
+        E-Mail: <a href="mailto:info@tinta-lab.de">info@tinta-lab.de</a>
       </p>
 
       <h2>Umsatzsteuer</h2>
