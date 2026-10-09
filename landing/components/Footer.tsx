@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Mail, ExternalLink } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { legalHref } from './legal/company';
 import LanguageSwitcher from './LanguageSwitcher';
 
 const APP = 'https://app.tinta-lab.de';
@@ -9,6 +10,7 @@ const YEAR = new Date().getFullYear();
 export default function Footer() {
   const t = useTranslations('footer');
   const l = useTranslations('footer.links');
+  const locale = useLocale();
 
   const LINKS: Record<string, Array<{ label: string; href: string }>> = {
     [t('sections.platform')]: [
@@ -24,10 +26,10 @@ export default function Footer() {
       { label: l('contact'),   href: `${APP}/contact`          },
     ],
     [t('sections.legal')]: [
-      { label: l('impressum'),  href: '/impressum'   },
-      { label: l('privacy'),    href: '/datenschutz' },
-      { label: l('terms'),      href: '/agb'         },
-      { label: l('withdrawal'), href: '/widerruf'    },
+      { label: l('impressum'),  href: legalHref(locale, 'impressum')   },
+      { label: l('privacy'),    href: legalHref(locale, 'datenschutz') },
+      { label: l('terms'),      href: legalHref(locale, 'agb')         },
+      { label: l('withdrawal'), href: legalHref(locale, 'widerruf')    },
     ],
   };
 

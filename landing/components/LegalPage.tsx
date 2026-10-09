@@ -15,8 +15,8 @@ export default function LegalPage({ title, note, children }: Props) {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-white mb-3">{title}</h1>
           {note && (
-            <div className="mb-8 inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs rounded-lg px-3 py-2">
-              <span>⚠</span> {note}
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-slate-400">
+              <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-teal-300" /> {note}
             </div>
           )}
           <div className="legal">
