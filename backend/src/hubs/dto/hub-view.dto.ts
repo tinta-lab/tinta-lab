@@ -33,6 +33,10 @@ export class HubAgentViewDto {
   lastTokenMismatchAt: Date | null;
   installToken: string | null;
   installTokenExpiresAt: Date | null;
+  // The browser page the client opens to confirm the § 356 BGB consent —
+  // without it the Agent waits forever and the install looks "broken".
+  installUrl: string | null;
+  serviceStartConsentAt: Date | null;
   isOnline: boolean;
   appliedTemplates: string[];
 }

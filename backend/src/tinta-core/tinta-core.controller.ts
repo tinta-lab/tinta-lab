@@ -29,6 +29,13 @@ export class TintaCoreController {
     return this.coreService.provisionAgent(clientId);
   }
 
+  // Admin: fresh install link for a hub whose Agent never enrolled
+  @Post('install-link/:clientId')
+  @Roles(UserRole.ADMIN)
+  async reissueInstallLink(@Param('clientId') clientId: string) {
+    return this.coreService.reissueInstallLink(clientId);
+  }
+
   // Admin: get all agent sessions
   @Get('sessions')
   @Roles(UserRole.ADMIN)

@@ -283,6 +283,80 @@ function HubCard({ hub, latestStable, onSelect, onUpdate }: { hub: AdminHub; lat
 
 // ─── Hub Detail Drawer ────────────────────────────────────────────────────────
 
+function InstallStatusSection({ agent, clientId, onRefresh }: {
+  agent: NonNullable<AdminHub['agent']>; clientId: string; onRefresh: () => void;
+}) {
+  const { t, locale } = useLocale();
+  const [reissuing, setReissuing] = useState(false);
+  const expired = !!agent.installTokenExpiresAt && new Date(agent.installTokenExpiresAt).getTime() < Date.now();
+  const usable = !!agent.installToken && !expired;
+
+  const reissue = async () => {
+    setReissuing(true);
+    try {
+      await api.post(`/tinta-core/install-link/${clientId}`);
+      toast.success(t('hub_install_reissued'));
+      onRefresh();
+    } catch (e) { toast.error(translateApiError(e, t)); }
+    finally { setReissuing(false); }
+  };
+
+  if (!usable) {
+    return (
+      <Section title={t('hub_activation_section')} highlight>
+        <div className="flex items-start gap-2 text-sm text-amber-300 mb-3">
+          <AlertTriangle size={15} className="mt-0.5 shrink-0" />
+          <span>{agent.installToken ? t('hub_install_expired') : t('hub_install_consumed')}</span>
+        </div>
+        <button onClick={reissue} disabled={reissuing}
+          className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-teal-500 hover:bg-teal-400 disabled:opacity-50 text-slate-900 font-semibold text-sm transition-colors">
+          {reissuing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+          {t('hub_install_reissue')}
+        </button>
+      </Section>
+    );
+  }
+
+  return (
+    <Section title={t('hub_activation_section')} highlight>
+      <ol className="space-y-4">
+        <li>
+          <p className="text-xs font-medium text-slate-300 mb-1">1. {t('hub_install_link_label')}</p>
+          <p className="text-xs text-slate-400 mb-2">{t('hub_install_link_hint')}</p>
+          {agent.installUrl && (
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-2">
+              <code className="flex-1 text-xs text-teal-300 font-mono break-all">{agent.installUrl}</code>
+              <CopyButton text={agent.installUrl} />
+              <a href={agent.installUrl} target="_blank" rel="noopener noreferrer"
+                className="p-1.5 rounded hover:bg-slate-700 text-slate-400 hover:text-white transition-colors">
+                <ExternalLink size={13} />
+              </a>
+            </div>
+          )}
+          <p className={`flex items-center gap-1.5 text-xs mt-2 ${agent.serviceStartConsentAt ? 'text-green-400' : 'text-amber-300'}`}>
+            {agent.serviceStartConsentAt
+              ? <><Check size={13} /> {t('hub_consent_done')} · {formatDateTime(agent.serviceStartConsentAt, locale)}</>
+              : <><Clock size={13} /> {t('hub_consent_waiting')}</>}
+          </p>
+        </li>
+        <li>
+          <p className="text-xs font-medium text-slate-300 mb-1">2. {t('hub_install_code_label')}</p>
+          <p className="text-xs text-slate-400 mb-2">{t('hub_activation_hint')}</p>
+          <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg p-3">
+            <code className="flex-1 text-sm text-teal-300 font-mono break-all">{agent.installToken}</code>
+            <CopyButton text={agent.installToken!} />
+          </div>
+        </li>
+      </ol>
+      {agent.installTokenExpiresAt && (
+        <p className="text-xs text-slate-500 mt-3">
+          {t('hub_valid_until')}: {formatDateTime(agent.installTokenExpiresAt, locale)}
+        </p>
+      )}
+    </Section>
+  );
+}
+
 function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; latestStable: string | null; onClose: () => void; onRefresh: () => void }) {
   const { t, locale } = useLocale();
   const [tab, setTab] = useState<'overview' | 'access' | 'activity' | 'templates'>('overview');
@@ -563,22 +637,13 @@ function HubDrawer({ hub, latestStable, onClose, onRefresh }: { hub: AdminHub; l
                 </Link>
               </Section>
 
-              {/* Activation code if not yet connected */}
-              {hub.agent?.installToken && (
-                <Section title={t('hub_activation_section')} highlight>
-                  <p className="text-xs text-slate-400 mb-3">
-                    {t('hub_activation_hint')}
-                  </p>
-                  <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg p-3">
-                    <code className="flex-1 text-sm text-teal-300 font-mono break-all">{hub.agent.installToken}</code>
-                    <CopyButton text={hub.agent.installToken} />
-                  </div>
-                  {hub.agent.installTokenExpiresAt && (
-                    <p className="text-xs text-slate-500 mt-2">
-                      {t('hub_valid_until')}: {formatDateTime(hub.agent.installTokenExpiresAt, locale)}
-                    </p>
-                  )}
-                </Section>
+              {/* Install status until the Agent has connected once. Covers all
+                  three ways an install stalls: client hasn't confirmed consent
+                  yet, link expired, or the Agent took its config and never
+                  connected (2026-09-30 Petrov House sat in the first two
+                  with nothing on this screen saying so). */}
+              {hub.agent && !hub.agent.lastConnectedAt && (
+                <InstallStatusSection agent={hub.agent} clientId={hub.client.id} onRefresh={onRefresh} />
               )}
             </div>
           )}

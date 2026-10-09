@@ -44,6 +44,10 @@ export class HubsService {
       lastTokenMismatchAt: session.lastTokenMismatchAt ?? null,
       installToken: session.installToken ?? null,
       installTokenExpiresAt: session.installTokenExpiresAt ?? null,
+      installUrl: session.installToken
+        ? `${this.config.get('FRONTEND_URL', 'https://app.tinta-lab.de')}/install/${session.installToken}`
+        : null,
+      serviceStartConsentAt: session.serviceStartConsentAt ?? null,
       isOnline: this.gateway.isConnected(clientId),
       appliedTemplates: session.appliedTemplates ?? [],
     };

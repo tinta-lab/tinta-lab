@@ -13,6 +13,7 @@ export type ApiErrorCode =
   | 'CLIENT_EMAIL_EXISTS'
   | 'SUPPORT_SESSION_CLAIMED'
   | 'AGENT_DOWNGRADE_REJECTED'
+  | 'AGENT_ALREADY_ENROLLED'
   // Generic — one per HTTP status class, used as the fallback for any
   // exception that doesn't (yet) carry a specific ApiError.
   | 'BAD_REQUEST'

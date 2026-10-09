@@ -280,7 +280,7 @@ export class ProvisioningService {
     };
 
     // One-time link: consume it now so a leaked/replayed URL can't be
-    // fetched again for the rest of its 48h expiry window.
+    // fetched again for the rest of its expiry window.
     await this.tintaCore.consumeInstallToken(token);
 
     return config;
