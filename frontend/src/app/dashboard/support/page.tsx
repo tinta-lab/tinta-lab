@@ -129,7 +129,6 @@ export default function SupportDashboard() {
 
   if (!user) return null;
 
-  const online = servers.filter(s => s.status === 'online').length;
   const accessible = servers.filter(s => s.accessEnabled);
 
   const openTickets = tickets
@@ -208,11 +207,6 @@ export default function SupportDashboard() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
             <div className="hidden sm:flex items-center gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-                {online} online
-              </span>
-              <span className="text-slate-600">·</span>
               <span className="flex items-center gap-1.5">
                 <Shield size={11} className="text-amber-400" />
                 {accessible.length} {t('support_access_open')}
