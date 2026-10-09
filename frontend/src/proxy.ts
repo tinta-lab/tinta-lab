@@ -13,7 +13,11 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value;
 
   if (!token && pathname.startsWith('/dashboard')) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    // Remember where the visitor wanted to go; the login page sends them back
+    // there if it belongs to their role (see destinationFor in auth/login).
+    const login = new URL('/auth/login', request.url);
+    login.searchParams.set('next', pathname);
+    return NextResponse.redirect(login);
   }
 
   return NextResponse.next();
