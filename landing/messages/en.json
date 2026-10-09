@@ -1,7 +1,7 @@
 {
   "nav": {
-    "features": "Features",
-    "howItWorks": "How It Works",
+    "features": "Benefits",
+    "howItWorks": "How it works",
     "security": "Security",
     "devices": "Devices",
     "login": "Log In",
@@ -11,72 +11,77 @@
     "logoAriaLabel": "Tinta Lab – go to homepage",
     "openMenu": "Open menu",
     "closeMenu": "Close menu",
-    "mobileMenu": "Mobile menu"
+    "mobileMenu": "Mobile menu",
+    "packages": "Services"
   },
   "hero": {
-    "eyebrow": "Professional Smart Home Management",
+    "eyebrow": "Independent smart home consulting & care",
     "h1a": "Smart Home",
     "h1b": "without the hassle",
-    "lead": "We set up, monitor, and fix your smart home. A technician connects only when you grant access —",
-    "leadStrong": " with a single tap.",
-    "socialProof": "50+ smart homes already connected",
-    "ctaPrimary": "Start free consultation",
+    "lead": "We plan your smart home independently of any brand, set it up at your place and look after it afterwards. You buy the devices directly from the retailer –",
+    "leadStrong": " with no markup from us.",
+    "ctaPrimary": "Free initial call",
     "ctaSecondary": "How it works",
-    "badgeData": "Your data stays at home",
-    "badgeAccess": "Access only with your permission",
-    "badgeHome": "Works with any device supported by Home Assistant",
+    "badgeData": "We don't sell devices – our advice is neutral",
+    "badgeAccess": "Remote access only with your approval",
+    "badgeHome": "Your smart home data stays on your hardware",
     "scrollHint": "Scroll"
   },
   "features": {
-    "eyebrow": "Features",
-    "h2": "Everything included – from setup to support",
-    "lead": "We handle the technical side. You simply live in a comfortable, secure, and smart home.",
+    "eyebrow": "Benefits",
+    "h2": "What you get from us",
+    "lead": "We take care of the technology – you enjoy a safe, well-thought-out home.",
     "items": [
       {
-        "title": "Your home invisible to outsiders",
-        "desc": "No open ports on your router. Your smart home has no exposed entry point on the internet. Attackers simply can't find it – like a house with no address on the map."
+        "title": "No open ports on your router",
+        "desc": "Remote access runs through an encrypted tunnel instead of port forwarding, so your home has no open door on the internet – and Home Assistant stays protected by its own login."
       },
       {
         "title": "You decide who gets in and when",
-        "desc": "The technician can't just walk in. Only you open access with a button press – and only you close it. Like an intercom: you see who's calling and you open the door yourself."
+        "desc": "The technician can't just walk in. Only you open access with a tap – and only you close it. Like an intercom: you see who's ringing and open the door yourself."
       },
       {
         "title": "Automations without programming",
-        "desc": "Lights turn off when you leave. Heating adjusts on schedule. Ready-made scenes – activated in one click, no technical knowledge needed."
+        "desc": "Lights turn off when you leave. Heating follows a schedule. We set up the scenes for you – no technical knowledge needed on your side."
       },
       {
-        "title": "Problems solved before you notice them",
-        "desc": "If a sensor stops responding or a device freezes, we're the first to know. The technician fixes the issue while you go about your day."
+        "title": "Spot problems early",
+        "desc": "Our monitoring reports when your system is no longer reachable – often before you notice. Depending on your plan, we take care of it promptly."
       },
       {
-        "title": "Control from anywhere in the world",
-        "desc": "Your personal dashboard on smartphone, tablet, or PC. Check home status, turn on lights, verify the lock – all in one place."
+        "title": "Control from anywhere",
+        "desc": "With the Home Assistant app on your phone, tablet or PC: check the status, switch lights, check the lock – even on the go."
       },
       {
-        "title": "Real people, not chatbots",
-        "desc": "Setup, updates, troubleshooting – our technicians do it all. You just need to grant access."
+        "title": "Neutral advice, real people",
+        "desc": "We don't earn money on devices, so we recommend what suits you. Our technicians handle setup, updates and help themselves – no chatbots."
       }
     ]
   },
   "howItWorks": {
-    "eyebrow": "How It Works",
-    "h2": "Three simple steps",
-    "lead": "Nothing complicated. From first contact to a working smart home – in less than 15 minutes.",
+    "eyebrow": "How it works",
+    "h2": "Four steps to your smart home",
+    "lead": "You pay us for consulting, setup and support – not for hardware. That keeps our recommendations neutral.",
     "steps": [
       {
-        "title": "Submit a request",
-        "desc": "Fill in a short form – your name, email, and what devices you have at home. Our specialist will contact you the same day and help you get started.",
-        "note": "No technical knowledge required"
+        "title": "Consultation & shopping list",
+        "desc": "We go through your rooms, budget and wishes – lighting, climate, security, energy. You get a shopping list with specific, compatible models and links to retailers.",
+        "note": "Initial call is free"
       },
       {
-        "title": "We install everything for you",
-        "desc": "You receive a one-click setup link. Open it on your smart home device – we take care of the rest. No terminal, no manual configuration.",
-        "note": "5–15 minutes to set up"
+        "title": "You buy the devices",
+        "desc": "You order directly from retailers such as Amazon or IKEA – in your name, at their prices. Warranty and returns are handled directly by the retailer.",
+        "note": "No markup from us"
       },
       {
-        "title": "Live your life, we watch over it",
-        "desc": "The system runs, devices are connected. Need help – one click is all it takes. We come in, fix it, and leave. Without your permission, nobody touches your home.",
-        "note": "24/7 support"
+        "title": "On-site setup",
+        "desc": "We install the devices, set up Home Assistant, the Zigbee network and your automations, and walk you through everything. You also get a short PDF guide.",
+        "note": "About 3–7 hours, depending on the home"
+      },
+      {
+        "title": "Support subscription",
+        "desc": "We monitor availability, apply security updates and help when something doesn't work. We only access your system when you allow it.",
+        "note": "Switch plans at any time"
       }
     ]
   },
@@ -86,18 +91,18 @@
     "lead": "We built the system so you are always in charge – even when you use our support.",
     "pillars": [
       {
-        "title": "Encrypted TLS connection",
-        "desc": "Your smart home connects to our platform through an encrypted (TLS) tunnel – the same encryption standard used for secure data transmission across the internet. There is no single point from the outside that anyone could breach.",
+        "title": "Encrypted – without port forwarding",
+        "desc": "Your smart home establishes the connection itself through an encrypted tunnel (TLS) – no port forwarding on your router is needed. Access from outside is additionally protected by the Home Assistant login.",
         "label": "No open ports"
       },
       {
         "title": "Technician enters only on your invitation",
-        "desc": "Technically, we cannot connect without your explicit permission. You press «Allow» – the technician is in. You press «Disconnect» – they're gone. Every session is logged.",
+        "desc": "Without your explicit approval we technically cannot connect. You press «Allow» – the technician is in. You press «Disconnect» – they're gone. Every session is logged.",
         "label": "Full control is yours"
       },
       {
-        "title": "Your data never leaves your home",
-        "desc": "Devices, automations, and event history are stored on your own hardware, inside your home network. Only technical metrics and device status – such as a sensor going unresponsive – are sent to our platform. Passwords, camera content, and detailed usage history never leave your home.",
+        "title": "Your data stays on your hardware",
+        "desc": "Devices, automations and history are stored on your own hardware. Only technical metrics and device status – such as a sensor going unresponsive – reach our platform. We don't store passwords, camera images or detailed usage history.",
         "label": "GDPR · Data stays with you"
       }
     ],
@@ -109,7 +114,7 @@
   "devices": {
     "eyebrow": "Compatibility",
     "h2": "Works with your devices",
-    "lead": "Home Assistant supports over 3,000 integrations. Tinta Lab manages any of them.",
+    "lead": "Home Assistant supports over 3,000 integrations. Together we choose devices that work reliably together.",
     "footer": "And thousands more devices via Home Assistant – Zigbee, Z-Wave, Wi-Fi, Thread, Matter",
     "categories": [
       {
@@ -138,7 +143,8 @@
       "Door/Window",
       "Smoke",
       "CO₂"
-    ]
+    ],
+    "note": "We don't sell devices. Brand names are given only to indicate compatibility."
   },
   "mockup": {
     "title": "My Smart Home",
@@ -152,7 +158,7 @@
     "doorSub": "Lock · Door sensor",
     "closed": "Locked",
     "accessTitle": "Technician Access",
-    "accessSub": "Nobody sees your home",
+    "accessSub": "Support has no access",
     "lastVisit": "Last visit: yesterday, 2:32 PM · 23 min · Session ended",
     "systemOk": "System OK",
     "dataTag": "Your data, your home"
@@ -164,48 +170,56 @@
     "contactLink": "Write to us",
     "items": [
       {
-        "q": "Can technicians monitor me without my knowledge?",
-        "a": "No. A specialist only gains access after you actively grant it, and loses it the moment you switch it off. Every access session is recorded in a tamper-evident log, visible to you in your account at any time – you can always see who accessed your system, when, and what they did."
-      },
-      {
-        "q": "Will my personal data end up on some server?",
-        "a": "No. All your smart home data – devices, automations, history – stays on your hardware, in your home network. Only technical metrics and device status, plus the commands you issue yourself, are sent to our platform. Passwords, camera content, and detailed usage history never leave your home. The platform is built with GDPR requirements in mind."
-      },
-      {
-        "q": "Do I need to know anything about technology?",
-        "a": "Not at all. That's exactly why we exist. All you need is: internet at home and smart home devices (or the desire to get some). Everything else – installation, configuration, updates, diagnostics – is on us."
-      },
-      {
-        "q": "What is Home Assistant and why do I need it?",
-        "a": "Home Assistant is a free smart home system trusted by hundreds of thousands of users worldwide. It brings devices from different brands together in one place: lighting, climate, security, multimedia. We install and configure it for you – you don't need to know how it works under the hood."
+        "q": "Do I have to buy the devices from you?",
+        "a": "No – we don't sell devices. You get a shopping list with suitable models from us and buy directly from the retailer. We're happy to include devices you already own, as long as they're compatible with Home Assistant."
       },
       {
         "q": "How much does it cost?",
-        "a": "The price depends on your home size and the number of devices. Write to us – we'll assess your situation for free and offer the best option. No hidden fees."
+        "a": "You pay us for consulting, setup and support – you buy the devices directly from the retailer. The cost depends on the size of your home and your wishes. In the free initial call we give you a fixed price for our work and an estimate for the devices. No hidden costs."
+      },
+      {
+        "q": "Who is responsible if a device is faulty?",
+        "a": "The warranty and guarantee of the retailer or manufacturer you bought from apply to the devices. We help you identify the fault and prepare the claim. For our own work – installation and setup – we're responsible ourselves."
+      },
+      {
+        "q": "Can technicians monitor me without my knowledge?",
+        "a": "No. A staff member only gets access after you actively approve it, and loses it as soon as you switch it off. Every access session is recorded in a tamper-evident log that you can view in your account at any time."
+      },
+      {
+        "q": "Will my personal data end up on some server?",
+        "a": "Your smart home data – devices, automations, history – stays on your hardware, in your home network. Only technical metrics and device status, plus the commands you trigger yourself, are sent to our platform. We don't store passwords, camera images or detailed usage history."
+      },
+      {
+        "q": "Do I need to know anything about technology?",
+        "a": "Not at all. All you need is internet at home and the wish for a smart home. We work out together which devices fit – installation, setup and updates are on us."
+      },
+      {
+        "q": "What is Home Assistant and why do I need it?",
+        "a": "Home Assistant is a free, brand-independent smart home system trusted by hundreds of thousands of users worldwide. It brings devices from different brands together in one place and runs locally at your home. We install and configure it – you don't need to know how it works under the hood."
       },
       {
         "q": "What if I want to cancel?",
-        "a": "Your data stays with you – because it never left your home. Home Assistant stays with you and keeps running. You lose nothing. We simply disconnect the agent – no data loss, no obligations."
+        "a": "Support can be cancelled with 30 days’ notice to the end of a month. Your devices are yours anyway, Home Assistant keeps running and your data stays with you. We simply disconnect the Tinta Agent – without any data loss."
       }
     ]
   },
   "cta": {
-    "badge": "Free consultation – no obligation",
+    "badge": "Free initial call – no obligation",
     "h2": "Ready to make your home smart?",
-    "lead": "Tell us about your home. We'll evaluate the task, propose a solution, and answer all your questions – for free, no pressure.",
-    "primary": "Get a consultation",
+    "lead": "Tell us about your home. We clarify what you want, suggest an approach and tell you the cost – free of charge and without pressure.",
+    "primary": "Book an initial call",
     "secondary": "Write directly",
-    "tagline": "No hidden fees · Your data stays with you · Cancel anytime"
+    "tagline": "We don't sell devices · Fixed price for our work · No minimum term"
   },
   "footer": {
-    "desc": "Professional smart home management. Setup, monitoring, and support – with data privacy as the top priority.",
+    "desc": "Independent smart home consulting, setup and support – with data privacy first.",
     "sections": {
       "platform": "Platform",
       "account": "Account",
       "legal": "Legal"
     },
     "links": {
-      "features": "Features",
+      "features": "Benefits",
       "howItWorks": "How It Works",
       "security": "Security",
       "devices": "Devices",
@@ -217,7 +231,8 @@
       "impressum": "Impressum",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
-      "withdrawal": "Right of Withdrawal"
+      "withdrawal": "Right of Withdrawal",
+      "packages": "Services"
     },
     "copyright": "Tinta Lab. All rights reserved."
   },
@@ -236,5 +251,60 @@
   "widerruf": {
     "title": "Right of Withdrawal",
     "note": "Convenience translation — the German version is legally binding."
+  },
+  "packages": {
+    "eyebrow": "Services",
+    "h2": "Consulting, setup, support",
+    "lead": "You decide how much we take on. We tell you the price for our work in the free initial call – as a fixed price, with no hidden costs.",
+    "consult": {
+      "title": "Consulting",
+      "tag": "For DIYers",
+      "desc": "You install yourself but want the right devices and a clear plan.",
+      "items": [
+        "Needs analysis via video call",
+        "Choice of compatible devices for your budget",
+        "Shopping list with links to retailers",
+        "System plan: hub, Zigbee network, installation order",
+        "Optional: review call after your installation"
+      ]
+    },
+    "setup": {
+      "title": "On-site setup",
+      "tag": "Recommended",
+      "desc": "We plan, install and set up everything for you.",
+      "items": [
+        "Consulting and shopping list included",
+        "Installation of the devices at your home",
+        "Home Assistant, Zigbee and automations",
+        "Voice assistant integration",
+        "Hand-over walkthrough and PDF guide"
+      ],
+      "sizes": [
+        "1–2 rooms · approx. 3–4 h on site",
+        "3 rooms / house · approx. 5–7 h on site"
+      ]
+    },
+    "care": {
+      "title": "Support subscription",
+      "tag": "Monthly",
+      "desc": "So your system keeps running reliably.",
+      "tiers": [
+        {
+          "name": "Start",
+          "desc": "Monitoring, security updates, email support"
+        },
+        {
+          "name": "Care",
+          "desc": "Plus phone & chat during business hours, reply within 24 h, one on-site check per year"
+        },
+        {
+          "name": "Energy·Pro",
+          "desc": "Plus energy monitoring, PV & wallbox, support 7 days a week"
+        }
+      ]
+    },
+    "hardwareTitle": "Why we don't sell devices",
+    "hardwareText": "You buy the devices directly from the retailer – in your name and with no markup. Warranty and guarantee apply directly with the retailer or manufacturer; we help you with any claim. That keeps our recommendation independent.",
+    "cta": "Book a free initial call"
   }
 }

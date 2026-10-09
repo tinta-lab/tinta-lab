@@ -56,6 +56,9 @@ export default function Devices() {
         </div>
 
         <p className="text-center text-slate-500 text-sm mt-8">{t('footer')}</p>
+        {/* Positioning + nominative trademark use: we name brands only to
+            say what works, we don't sell any of them. */}
+        <p className="text-center text-slate-600 text-xs mt-2">{t('note')}</p>
       </div>
     </section>
   );

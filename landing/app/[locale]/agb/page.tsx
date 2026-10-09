@@ -15,17 +15,19 @@ const who = `${COMPANY.owner} / ${COMPANY.brand}`;
 const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
   de: (privacy) => (
     <>
-      <p className="text-slate-500 text-sm mb-8">Stand: August 2025 — {COMPANY.brand} / {COMPANY.owner}</p>
+      <p className="text-slate-500 text-sm mb-8">Stand: Oktober 2026 — {COMPANY.brand} / {COMPANY.owner}</p>
       <h2>§ 1 Geltungsbereich</h2>
       <p>Diese AGB gelten für alle Verträge zwischen {who} und den Kunden über die Nutzung der Tinta Lab Smart-Home-Managementplattform.</p>
       <h2>§ 2 Leistungsgegenstand</h2>
       <ul>
+        <li>Beratung zur Geräteauswahl und Erstellung einer Einkaufsliste</li>
         <li>Installation und Einrichtung von Home Assistant auf kundeneigener Hardware</li>
         <li>Bereitstellung einer gesicherten Fernzugriff-Infrastruktur (Cloudflare Tunnel)</li>
         <li>Monitoring des Betriebszustands</li>
         <li>Technischer Support und Optimierung von Automatisierungen</li>
       </ul>
       <p>Der Fernzugriff ist technisch nur möglich, wenn der Kunde diesen aktiv freigibt.</p>
+      <p>Tinta Lab verkauft und liefert keine Geräte. Der Kunde erwirbt die Geräte selbst und unmittelbar beim jeweiligen Verkäufer; Kaufvertrag, Gewährleistung und Garantie bestehen ausschließlich zwischen dem Kunden und dem Verkäufer bzw. Hersteller. Preisangaben in der Einkaufsliste sind unverbindliche Richtwerte zum Zeitpunkt der Beratung.</p>
       <h2>§ 3 Vertragsschluss</h2>
       <p>Der Vertrag kommt durch schriftliche Bestätigung per E-Mail zustande. Die Nutzung der Plattform setzt die Registrierung und Annahme dieser AGB voraus.</p>
       <h2>§ 4 Mitwirkungspflichten des Kunden</h2>
@@ -33,6 +35,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
         <li>Stabile Internetverbindung für das Home-Assistant-Gerät</li>
         <li>Dauerhaft eingeschaltetes und erreichbares Gerät</li>
         <li>Bereitstellung von Zugangsdaten auf Anfrage, sofern für die Einrichtung erforderlich</li>
+        <li>Rechtzeitiger Erwerb der für die Einrichtung vorgesehenen Geräte</li>
       </ul>
       <h2>§ 5 Vergütung</h2>
       <p>Die Vergütung richtet sich nach der individuellen Vereinbarung. Keine versteckten Gebühren. Die Abrechnung erfolgt je nach Vereinbarung monatlich oder einmalig.</p>
@@ -47,7 +50,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
       <h2>§ 7 Fernwartungszugriff</h2>
       <p>Jeder Zugriff erfordert die aktive Freigabe durch den Kunden. Jede Sitzung wird protokolliert und ist jederzeit einsehbar. Der Kunde kann eine laufende Sitzung jederzeit beenden.</p>
       <h2>§ 8 Haftung</h2>
-      <p>Tinta Lab haftet unbegrenzt bei Vorsatz und grober Fahrlässigkeit. Im Übrigen ist die Haftung auf den vertragstypisch vorhersehbaren Schaden begrenzt. Für Datenverluste durch Ausfall der Kundenhardware übernimmt Tinta Lab keine Haftung.</p>
+      <p>Tinta Lab haftet unbegrenzt bei Vorsatz und grober Fahrlässigkeit. Im Übrigen ist die Haftung auf den vertragstypisch vorhersehbaren Schaden begrenzt. Für Datenverluste durch Ausfall der Kundenhardware übernimmt Tinta Lab keine Haftung. Für Mängel der vom Kunden erworbenen Geräte haftet Tinta Lab nicht; auf Wunsch unterstützt Tinta Lab bei der Fehlerdiagnose und der Reklamation.</p>
       <h2>§ 9 Kündigung</h2>
       <p>Kündigung mit 30 Tagen Frist zum Monatsende. Nach Kündigung werden alle plattformseitig gespeicherten Daten gelöscht. Kundendaten auf eigener Hardware bleiben vollständig erhalten.</p>
       <h2>§ 10 Anzuwendendes Recht</h2>
@@ -58,17 +61,19 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
   ),
   en: (privacy) => (
     <>
-      <p className="text-slate-500 text-sm mb-8">Last updated: August 2025 — {COMPANY.brand} / {COMPANY.owner}</p>
+      <p className="text-slate-500 text-sm mb-8">Last updated: October 2026 — {COMPANY.brand} / {COMPANY.owner}</p>
       <h2>§ 1 Scope</h2>
       <p>These terms apply to all contracts between {who} and its customers for the use of the Tinta Lab smart home management platform.</p>
       <h2>§ 2 Services</h2>
       <ul>
+        <li>Advice on choosing devices and preparation of a shopping list</li>
         <li>Installation and setup of Home Assistant on hardware owned by the customer</li>
         <li>Provision of a secured remote access infrastructure (Cloudflare Tunnel)</li>
         <li>Monitoring of the operating status</li>
         <li>Technical support and optimisation of automations</li>
       </ul>
       <p>Remote access is technically only possible when the customer actively grants it.</p>
+      <p>Tinta Lab does not sell or supply devices. The customer purchases the devices directly from the respective seller; the purchase contract, statutory warranty and any guarantee exist solely between the customer and the seller or manufacturer. Prices in the shopping list are non-binding guide values as of the consultation.</p>
       <h2>§ 3 Conclusion of contract</h2>
       <p>The contract is concluded by written confirmation by email. Use of the platform requires registration and acceptance of these terms.</p>
       <h2>§ 4 Customer’s obligations to cooperate</h2>
@@ -76,6 +81,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
         <li>A stable internet connection for the Home Assistant device</li>
         <li>The device is permanently switched on and reachable</li>
         <li>Access credentials are provided on request where required for the setup</li>
+        <li>Timely purchase of the devices planned for the setup</li>
       </ul>
       <h2>§ 5 Fees</h2>
       <p>Fees are based on the individual agreement. No hidden charges. Billing is monthly or one-off, depending on the agreement.</p>
@@ -89,7 +95,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
       <h2>§ 7 Remote maintenance access</h2>
       <p>Every access requires the customer’s active approval. Every session is logged and can be reviewed at any time. The customer can end an ongoing session at any time.</p>
       <h2>§ 8 Liability</h2>
-      <p>Tinta Lab is liable without limitation for intent and gross negligence. Otherwise, liability is limited to the damage typically foreseeable under the contract. Tinta Lab accepts no liability for data loss caused by failure of the customer’s hardware.</p>
+      <p>Tinta Lab is liable without limitation for intent and gross negligence. Otherwise, liability is limited to the damage typically foreseeable under the contract. Tinta Lab accepts no liability for data loss caused by failure of the customer’s hardware. Tinta Lab is not liable for defects of devices purchased by the customer; on request, Tinta Lab helps with fault diagnosis and the claim.</p>
       <h2>§ 9 Termination</h2>
       <p>Either party may terminate with 30 days’ notice to the end of a month. After termination, all data stored on the platform is deleted. Customer data on the customer’s own hardware remains fully intact.</p>
       <h2>§ 10 Applicable law</h2>
@@ -100,17 +106,19 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
   ),
   it: (privacy) => (
     <>
-      <p className="text-slate-500 text-sm mb-8">Ultimo aggiornamento: agosto 2025 — {COMPANY.brand} / {COMPANY.owner}</p>
+      <p className="text-slate-500 text-sm mb-8">Ultimo aggiornamento: ottobre 2026 — {COMPANY.brand} / {COMPANY.owner}</p>
       <h2>§ 1 Ambito di applicazione</h2>
       <p>Le presenti condizioni si applicano a tutti i contratti tra {who} e i clienti per l’utilizzo della piattaforma di gestione smart home Tinta Lab.</p>
       <h2>§ 2 Oggetto dei servizi</h2>
       <ul>
+        <li>Consulenza nella scelta dei dispositivi e redazione di una lista della spesa</li>
         <li>Installazione e configurazione di Home Assistant sull’hardware del cliente</li>
         <li>Fornitura di un’infrastruttura protetta per l’accesso remoto (Cloudflare Tunnel)</li>
         <li>Monitoraggio dello stato di funzionamento</li>
         <li>Supporto tecnico e ottimizzazione delle automazioni</li>
       </ul>
       <p>L’accesso remoto è tecnicamente possibile solo se il cliente lo autorizza attivamente.</p>
+      <p>Tinta Lab non vende né fornisce dispositivi. Il cliente acquista i dispositivi direttamente dal rispettivo venditore; contratto di acquisto, garanzia legale ed eventuale garanzia commerciale intercorrono esclusivamente tra il cliente e il venditore o produttore. I prezzi nella lista della spesa sono valori indicativi non vincolanti alla data della consulenza.</p>
       <h2>§ 3 Conclusione del contratto</h2>
       <p>Il contratto si conclude con conferma scritta via email. L’uso della piattaforma presuppone la registrazione e l’accettazione delle presenti condizioni.</p>
       <h2>§ 4 Obblighi di collaborazione del cliente</h2>
@@ -118,6 +126,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
         <li>Connessione internet stabile per il dispositivo Home Assistant</li>
         <li>Dispositivo sempre acceso e raggiungibile</li>
         <li>Messa a disposizione delle credenziali su richiesta, se necessarie per la configurazione</li>
+        <li>Acquisto tempestivo dei dispositivi previsti per l’installazione</li>
       </ul>
       <h2>§ 5 Corrispettivo</h2>
       <p>Il corrispettivo è stabilito dall’accordo individuale. Nessun costo nascosto. La fatturazione avviene mensilmente o una tantum, secondo l’accordo.</p>
@@ -131,7 +140,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
       <h2>§ 7 Accesso per assistenza remota</h2>
       <p>Ogni accesso richiede l’autorizzazione attiva del cliente. Ogni sessione viene registrata ed è consultabile in qualsiasi momento. Il cliente può interrompere una sessione in corso in qualsiasi momento.</p>
       <h2>§ 8 Responsabilità</h2>
-      <p>Tinta Lab risponde senza limiti in caso di dolo e colpa grave. Negli altri casi la responsabilità è limitata al danno prevedibile tipico del contratto. Tinta Lab non risponde della perdita di dati dovuta a guasti dell’hardware del cliente.</p>
+      <p>Tinta Lab risponde senza limiti in caso di dolo e colpa grave. Negli altri casi la responsabilità è limitata al danno prevedibile tipico del contratto. Tinta Lab non risponde della perdita di dati dovuta a guasti dell’hardware del cliente. Tinta Lab non risponde dei difetti dei dispositivi acquistati dal cliente; su richiesta aiuta nella diagnosi del guasto e nel reclamo.</p>
       <h2>§ 9 Recesso dal contratto</h2>
       <p>Disdetta con preavviso di 30 giorni alla fine del mese. Dopo la disdetta tutti i dati memorizzati sulla piattaforma vengono cancellati. I dati del cliente sul proprio hardware restano integralmente conservati.</p>
       <h2>§ 10 Legge applicabile</h2>
@@ -142,17 +151,19 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
   ),
   ru: (privacy) => (
     <>
-      <p className="text-slate-500 text-sm mb-8">Редакция: август 2025 — {COMPANY.brand} / {COMPANY.owner}</p>
+      <p className="text-slate-500 text-sm mb-8">Редакция: октябрь 2026 — {COMPANY.brand} / {COMPANY.owner}</p>
       <h2>§ 1 Сфера применения</h2>
       <p>Настоящие условия применяются ко всем договорам между {who} и клиентами об использовании платформы управления умным домом Tinta Lab.</p>
       <h2>§ 2 Предмет услуг</h2>
       <ul>
+        <li>Консультация по выбору устройств и составление списка покупок</li>
         <li>Установка и настройка Home Assistant на оборудовании клиента</li>
         <li>Предоставление защищённой инфраструктуры удалённого доступа (Cloudflare Tunnel)</li>
         <li>Мониторинг рабочего состояния</li>
         <li>Техническая поддержка и оптимизация автоматизаций</li>
       </ul>
       <p>Удалённый доступ технически возможен только тогда, когда клиент сам его открывает.</p>
+      <p>Tinta Lab не продаёт и не поставляет оборудование. Клиент приобретает устройства самостоятельно и напрямую у соответствующего продавца; договор купли-продажи, законная и добровольная гарантия действуют исключительно между клиентом и продавцом или производителем. Цены в списке покупок — ориентировочные и не обязывающие, на дату консультации.</p>
       <h2>§ 3 Заключение договора</h2>
       <p>Договор считается заключённым после письменного подтверждения по электронной почте. Для использования платформы необходимы регистрация и принятие настоящих условий.</p>
       <h2>§ 4 Обязанности клиента</h2>
@@ -160,6 +171,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
         <li>Стабильное подключение к интернету для устройства с Home Assistant</li>
         <li>Устройство постоянно включено и доступно</li>
         <li>Предоставление данных для входа по запросу, если они нужны для настройки</li>
+        <li>Своевременная покупка устройств, предусмотренных для установки</li>
       </ul>
       <h2>§ 5 Оплата</h2>
       <p>Стоимость определяется индивидуальной договорённостью. Скрытых платежей нет. Оплата — ежемесячно или единоразово, по договорённости.</p>
@@ -173,7 +185,7 @@ const CONTENT: Record<string, (privacyHref: string) => React.ReactNode> = {
       <h2>§ 7 Удалённый доступ для обслуживания</h2>
       <p>Каждый доступ требует активного разрешения клиента. Каждая сессия записывается в журнал и доступна для просмотра в любое время. Клиент может прервать текущую сессию в любой момент.</p>
       <h2>§ 8 Ответственность</h2>
-      <p>Tinta Lab несёт неограниченную ответственность за умысел и грубую неосторожность. В остальных случаях ответственность ограничена ущербом, типично предсказуемым для договора. Tinta Lab не отвечает за потерю данных из-за отказа оборудования клиента.</p>
+      <p>Tinta Lab несёт неограниченную ответственность за умысел и грубую неосторожность. В остальных случаях ответственность ограничена ущербом, типично предсказуемым для договора. Tinta Lab не отвечает за потерю данных из-за отказа оборудования клиента. За дефекты устройств, приобретённых клиентом, Tinta Lab ответственности не несёт; по желанию помогает с диагностикой неисправности и рекламацией.</p>
       <h2>§ 9 Расторжение</h2>
       <p>Расторжение с уведомлением за 30 дней до конца месяца. После расторжения все данные, хранящиеся на платформе, удаляются. Данные клиента на его собственном оборудовании полностью сохраняются.</p>
       <h2>§ 10 Применимое право</h2>
