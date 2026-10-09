@@ -87,8 +87,13 @@ prune_releases() {
   # above for why "current" can't just be inferred from mtime ordering.
   local live
   live="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
-  ls -1dt "$RELEASES"/*/ 2>/dev/null \
+  # Newest first by NAME (<YYYY-MM-DD-HHMM>-<slug>), not mtime: rsync -a
+  # copies the source dir's mtime onto each new release dir, so mtime order
+  # was effectively random — on 2026-10-09 it kept a 3-week-old release as
+  # the "rollback point" and pruned the previous good one.
+  ls -1d "$RELEASES"/*/ 2>/dev/null \
     | sed 's:/$::' \
+    | sort -r \
     | grep -vxF "${live:-__none_will_match__}" \
     | tail -n +"$KEEP" \
     | xargs -r rm -rf
