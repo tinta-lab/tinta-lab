@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Home, Users } from 'lucide-react';
+import { ArrowRight, Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import DashboardMockup from './DashboardMockup';
 
@@ -7,112 +7,78 @@ const APP = 'https://app.tinta-lab.de';
 export default function Hero() {
   const t = useTranslations('hero');
 
-  const BADGES = [
-    { icon: ShieldCheck, label: t('badgeData')   },
-    { icon: Users,       label: t('badgeAccess') },
-    { icon: Home,        label: t('badgeHome')   },
-  ];
+  // Honest trust points only. A "50+ smart homes connected" counter with
+  // placeholder avatars used to sit here — unverifiable social proof is an
+  // UWG risk in Germany and reads as a template to anyone who looks closely.
+  const POINTS = [t('badgeData'), t('badgeAccess'), t('badgeHome')];
 
   return (
     <section
       id="hero"
       aria-label={t('eyebrow')}
-      className="relative min-h-screen flex items-center overflow-hidden"
+      className="relative flex items-center overflow-hidden min-h-[100svh]"
     >
       <div aria-hidden="true" className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal-600/6 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-600/5 rounded-full blur-3xl" />
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage:
-              'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-            backgroundSize: '64px 64px',
-          }}
-        />
+        <div className="aurora absolute -inset-[20%]" />
+        <div className="grid-fade absolute inset-0" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-slate-950" />
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16 w-full">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-20 w-full">
+        <div className="grid lg:grid-cols-[1.15fr_1fr] gap-14 lg:gap-10 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 bg-teal-600/10 border border-teal-500/20 rounded-full px-3 py-1 text-xs font-medium text-teal-400 mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-teal-400 animate-pulse" />
+            <div className="enter inline-flex items-center gap-2 rounded-full border border-teal-400/20 bg-teal-400/[0.06] px-3 py-1 text-xs font-medium text-teal-300 mb-7 backdrop-blur">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full rounded-full bg-teal-300 opacity-60 motion-safe:animate-ping" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-teal-300" />
+              </span>
               {t('eyebrow')}
             </div>
 
             <h1
-              className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold text-white leading-[1.1] tracking-tight mb-6"
+              className="enter enter-1 text-[2.75rem] leading-[1.02] sm:text-6xl lg:text-7xl font-semibold tracking-[-0.035em] text-white mb-7"
               style={{ textWrap: 'balance' }}
             >
               {t('h1a')}{' '}
-              <span className="text-teal-400">{t('h1b')}</span>
+              <span className="text-gradient">{t('h1b')}</span>
             </h1>
 
-            <p className="text-lg text-slate-400 leading-relaxed mb-8 max-w-lg">
+            <p className="enter enter-2 text-lg sm:text-xl text-slate-400 leading-relaxed mb-10 max-w-xl" style={{ textWrap: 'pretty' }}>
               {t('lead')}
-              <strong className="text-slate-300">{t('leadStrong')}</strong>
+              <strong className="font-medium text-slate-200">{t('leadStrong')}</strong>
             </p>
 
-            {/* Social proof */}
-            <div className="flex items-center gap-2 mb-8">
-              <div className="flex -space-x-2">
-                {(['bg-teal-500','bg-blue-500','bg-indigo-500','bg-violet-500'] as const).map((c, i) => (
-                  <div
-                    key={i}
-                    className={`w-7 h-7 rounded-full ${c} border-2 border-slate-950 flex items-center justify-center text-[9px] text-white font-bold`}
-                  >
-                    {['A','B','M','S'][i]}
-                  </div>
-                ))}
-              </div>
-              <p className="text-sm text-slate-400">
-                <strong className="text-white">50+</strong> {t('socialProof').replace('50+ ', '')}
-              </p>
-            </div>
-
-            {/* CTA buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 mb-10">
+            <div className="enter enter-3 flex flex-col sm:flex-row gap-3 mb-10">
               <a
                 href={`${APP}/contact`}
-                className="inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-teal-500/25 group"
+                className="group inline-flex items-center justify-center gap-2 rounded-full bg-teal-400 px-7 py-3.5 text-sm font-semibold text-slate-950 transition-all duration-200 hover:bg-teal-300 hover:shadow-[0_0_40px_-8px_rgb(45_212_191/0.7)]"
               >
                 {t('ctaPrimary')}
-                <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+                <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
               </a>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center justify-center gap-2 border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium text-sm px-6 py-3 rounded-xl transition-all duration-200 hover:bg-slate-800/50"
+                className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-7 py-3.5 text-sm font-medium text-slate-200 backdrop-blur transition-colors hover:border-white/25 hover:bg-white/[0.06]"
               >
                 {t('ctaSecondary')}
               </a>
             </div>
 
-            {/* Trust badges */}
-            <div className="flex flex-wrap gap-3" role="list" aria-label={t('eyebrow')}>
-              {BADGES.map(b => (
-                <div
-                  key={b.label}
-                  role="listitem"
-                  className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800/50 border border-slate-700/50 rounded-lg px-2.5 py-1.5"
-                >
-                  <b.icon size={12} className="text-teal-400 shrink-0" aria-hidden="true" />
-                  {b.label}
-                </div>
+            <ul className="enter enter-4 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2.5" role="list">
+              {POINTS.map(p => (
+                <li key={p} className="flex items-center gap-2 text-sm text-slate-400">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-teal-400/15">
+                    <Check size={10} strokeWidth={3} className="text-teal-300" aria-hidden="true" />
+                  </span>
+                  {p}
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
 
-          <div className="lg:pl-8">
+          <div className="enter enter-3 lg:pl-6">
             <DashboardMockup />
           </div>
-        </div>
-
-        <div
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 text-slate-600"
-          aria-hidden="true"
-        >
-          <span className="text-xs">{t('scrollHint')}</span>
-          <div className="w-px h-8 bg-gradient-to-b from-slate-600 to-transparent" />
         </div>
       </div>
     </section>

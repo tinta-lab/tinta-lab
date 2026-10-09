@@ -1,11 +1,12 @@
 import { ShieldCheck, Lock, Server } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import SectionHeading from './SectionHeading';
 
 const ICONS = [ShieldCheck, Lock, Server];
 const LABEL_COLORS = [
-  'text-teal-400 bg-teal-500/10 border-teal-500/20',
-  'text-blue-400 bg-blue-500/10 border-blue-500/20',
-  'text-violet-400 bg-violet-500/10 border-violet-500/20',
+  'text-teal-200 bg-teal-400/[0.06] border-teal-400/20',
+  'text-teal-200 bg-teal-400/[0.06] border-teal-400/20',
+  'text-teal-200 bg-teal-400/[0.06] border-teal-400/20',
 ];
 
 export default function Security() {
@@ -13,33 +14,21 @@ export default function Security() {
   const pillars = t.raw('pillars') as Array<{ title: string; desc: string; label: string }>;
 
   return (
-    <section id="security" aria-labelledby="security-heading" className="py-24 bg-slate-900/70">
+    <section id="security" aria-labelledby="security-heading" className="relative py-20 sm:py-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-14">
-          <div className="inline-block text-xs font-semibold text-teal-400 uppercase tracking-widest mb-3">
-            {t('eyebrow')}
-          </div>
-          <h2
-            id="security-heading"
-            className="text-3xl sm:text-4xl font-bold text-white mb-4"
-            style={{ textWrap: 'balance' }}
-          >
-            {t('h2')}
-          </h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">{t('lead')}</p>
-        </div>
+        <SectionHeading id="security-heading" eyebrow={t('eyebrow')} title={t('h2')} lead={t('lead')} />
 
-        <div className="bg-slate-950 border border-slate-800/60 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
+        <div className="reveal glass-card rounded-3xl overflow-hidden shadow-2xl shadow-black/40">
           <div className="h-px w-full bg-gradient-to-r from-transparent via-teal-500/40 to-transparent" aria-hidden="true" />
-          <div className="grid lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-slate-800/60">
+          <div className="grid lg:grid-cols-3 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.06]">
             {pillars.map((p, i) => {
               const Icon = ICONS[i];
               return (
                 <article key={i} className="p-8">
-                  <div className="inline-flex p-3 rounded-xl bg-teal-600/10 border border-teal-500/20 mb-5">
-                    <Icon size={22} className="text-teal-400" aria-hidden="true" />
+                  <div className="inline-flex p-3 rounded-2xl bg-teal-400/[0.08] border border-teal-400/20 mb-5">
+                    <Icon size={22} className="text-teal-300" aria-hidden="true" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white mb-3 leading-snug" style={{ textWrap: 'balance' }}>
+                  <h3 className="text-xl font-semibold tracking-tight text-white mb-3 leading-snug" style={{ textWrap: 'balance' }}>
                     {p.title}
                   </h3>
                   <p className="text-slate-400 text-sm leading-relaxed mb-5">{p.desc}</p>
@@ -51,7 +40,7 @@ export default function Security() {
             })}
           </div>
 
-          <div className="px-8 py-4 bg-slate-900/50 border-t border-slate-800/60 flex flex-wrap gap-4 items-center justify-between">
+          <div className="px-8 py-4 bg-slate-950/40 border-t border-white/[0.06] flex flex-wrap gap-4 items-center justify-between">
             <p className="text-xs text-slate-500">
               {t('poweredBy')}{' '}
               <strong className="text-slate-400">Home Assistant</strong>

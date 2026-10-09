@@ -38,9 +38,9 @@ export default function DashboardMockup() {
 
   return (
     <div aria-hidden="true" className="relative w-full max-w-sm mx-auto select-none">
-      <div className="absolute inset-0 bg-teal-500/8 rounded-2xl blur-2xl scale-105" />
+      <div className="absolute -inset-6 bg-teal-400/10 rounded-[2rem] blur-3xl" />
 
-      <div className="relative bg-slate-900 border border-slate-700/60 rounded-2xl overflow-hidden shadow-2xl shadow-black/50">
+      <div className="relative glass-card backdrop-blur-xl rounded-3xl overflow-hidden shadow-2xl shadow-black/60">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700/60 bg-slate-800/50">
           <div className="flex items-center gap-2">
             <div className="flex gap-1.5">
@@ -49,10 +49,6 @@ export default function DashboardMockup() {
               <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
             </div>
             <span className="text-xs text-slate-400 ml-1">{t('title')}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-green-400">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span>{t('status')}</span>
           </div>
         </div>
 
@@ -105,14 +101,14 @@ export default function DashboardMockup() {
         </div>
       </div>
 
-      <div className="absolute -top-3 -right-4 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 shadow-lg text-xs flex items-center gap-2 whitespace-nowrap">
+      <div className="absolute -top-3 right-3 sm:-right-4 bg-slate-900/90 backdrop-blur border border-white/10 rounded-full px-3 py-2 shadow-lg text-xs flex items-center gap-2 whitespace-nowrap">
         <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
         <span className="text-slate-300">{t('systemOk')}</span>
       </div>
 
-      <div className="absolute -bottom-3 -left-3 bg-teal-600 rounded-xl px-3 py-2 shadow-lg text-xs flex items-center gap-1.5 whitespace-nowrap">
-        <Shield size={11} className="text-white" />
-        <span className="text-white font-medium">{t('dataTag')}</span>
+      <div className="absolute -bottom-3 left-3 sm:-left-4 bg-teal-400 rounded-full px-3 py-2 shadow-lg text-xs flex items-center gap-1.5 whitespace-nowrap">
+        <Shield size={11} className="text-slate-950" />
+        <span className="text-slate-950 font-semibold">{t('dataTag')}</span>
       </div>
     </div>
   );
