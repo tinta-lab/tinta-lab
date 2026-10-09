@@ -45,6 +45,39 @@ KEEP=2  # current release + this many rollback points
 RELEASE="$RELEASES/$(date +%Y-%m-%d-%H%M)-$SLUG"
 PREVIOUS_RELEASE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
 
+# 4. On 2026-10-09 a deploy shipped two weeks of uncommitted work-in-progress
+#    to prod, because $SRC is also the place people edit code on this box and
+#    the build simply takes whatever is on disk. A release must be exactly a
+#    commit, so refuse to build from a dirty tree.
+if [ -n "$(git -C "$SRC" status --porcelain --untracked-files=normal)" ]; then
+  echo "FATAL: $SRC has uncommitted changes — commit or stash them first:"
+  git -C "$SRC" status --short
+  exit 1
+fi
+
+# Never part of a release: secrets (linked from ~/shared below), the repo-root
+# data/ and .git/ (anchored with a leading / — an unanchored `data/` also
+# matched node_modules/caniuse-lite/data, the very dir that went missing in
+# incident #1), and Next's dev-server output / build cache (~500MB per
+# release, unused by `next start`). Used for both the copy and the file-count
+# check so the two always agree.
+EXCLUDES=(.env .env.local /data/ /.git/ .next/dev/ .next/cache/)
+RSYNC_EXCLUDES=()
+for e in "${EXCLUDES[@]}"; do RSYNC_EXCLUDES+=(--exclude="$e"); done
+
+count_files() {
+  find "$1" \( -path '*/.next/dev' -o -path '*/.next/cache' \) -prune \
+    -o -type f ! -name .env ! -name .env.local -print 2>/dev/null | wc -l
+}
+
+# Unchanged files (in practice: almost all of node_modules) are hardlinked
+# from the live release instead of copied — a release costs tens of MB of
+# new disk instead of ~2GB, which is what kept filling the 28GB root volume.
+LINK_DEST=()
+if [ -n "$PREVIOUS_RELEASE" ] && [ -d "$PREVIOUS_RELEASE" ]; then
+  LINK_DEST=(--link-dest="$PREVIOUS_RELEASE")
+fi
+
 prune_releases() {
   # Lists releases newest-first, drops whatever `current` points to from
   # consideration (re-resolved fresh on every call — this runs both before
@@ -77,17 +110,17 @@ echo "==> Building landing"
 
 echo "==> Copying to $RELEASE"
 mkdir -p "$RELEASE"
-rsync -a --delete --exclude='.env' --exclude='.env.local' --exclude='data/' "$SRC/" "$RELEASE/"
+rsync -a --delete "${RSYNC_EXCLUDES[@]}" "${LINK_DEST[@]}" "$SRC/" "$RELEASE/"
 
 echo "==> Verifying copy is structurally complete"
 incomplete=0
 for d in backend frontend landing; do
-  src_n=$(find "$SRC/$d" -type f 2>/dev/null | wc -l)
-  dst_n=$(find "$RELEASE/$d" -type f 2>/dev/null | wc -l)
+  src_n=$(count_files "$SRC/$d")
+  dst_n=$(count_files "$RELEASE/$d")
   if [ "$src_n" != "$dst_n" ]; then
     echo "  $d mismatch ($src_n vs $dst_n files total) — patching with a checksum pass"
-    rsync -a --checksum "$SRC/$d/" "$RELEASE/$d/"
-    dst_n2=$(find "$RELEASE/$d" -type f 2>/dev/null | wc -l)
+    rsync -a --checksum "${RSYNC_EXCLUDES[@]}" "$SRC/$d/" "$RELEASE/$d/"
+    dst_n2=$(count_files "$RELEASE/$d")
     if [ "$src_n" != "$dst_n2" ]; then
       echo "  FATAL: $d still incomplete after checksum pass ($src_n vs $dst_n2)"
       incomplete=1
