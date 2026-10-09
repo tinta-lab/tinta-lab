@@ -9,7 +9,7 @@ import api from '@/lib/api';
 import { formatDate, formatTime } from '@/lib/format';
 import { ClientServer } from '@/types';
 import type { TranslationKey } from '@/i18n/translations';
-import { LogOut, RefreshCw, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff, Globe, Shield, LifeBuoy, ChevronRight } from 'lucide-react';
+import { LogOut, RefreshCw, WifiOff, CheckCircle, XCircle, ChevronDown, ChevronUp, Activity, UserCog, X, Eye, EyeOff, Globe, Shield, LifeBuoy, ChevronRight, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import AppLanguageSwitcher from '@/components/AppLanguageSwitcher';
 import SupportAccessCard, { AccessReason, ACCESS_REASON_LABEL_KEY } from '@/components/support/SupportAccessCard';
@@ -369,8 +369,11 @@ export default function ClientDashboard() {
                 <div>
                   <div className="font-semibold">{server.name}</div>
                   <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                    <span>{server.subdomain}</span>
-                    {server.haVersion && <span className="bg-slate-700/60 rounded px-1.5 py-0.5">HA {server.haVersion}</span>}
+                    {/* publicUrl is the hostname that actually resolves
+                        (hub-xxxx.tinta-lab.de); subdomain is a legacy name
+                        with no DNS record behind it. */}
+                    <span>{server.publicUrl ?? server.subdomain}</span>
+                    {server.haVersion && server.haVersion !== 'unknown' && <span className="bg-slate-700/60 rounded px-1.5 py-0.5">HA {server.haVersion}</span>}
                     <span className={`capitalize ${
                       server.status === 'online' ? 'text-green-400' :
                       server.status === 'offline' ? 'text-red-400' : 'text-slate-500'
@@ -381,6 +384,17 @@ export default function ClientDashboard() {
                   </div>
                 </div>
               </div>
+
+              {server.publicUrl && (
+                <a
+                  href={`https://${server.publicUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mb-4 flex w-full items-center justify-center gap-2 rounded-lg bg-white/[0.06] border border-slate-600/60 hover:border-teal-500/50 hover:bg-teal-500/10 px-4 py-2.5 text-sm font-medium text-white transition-colors"
+                >
+                  <ExternalLink size={15} className="text-teal-400" /> {t('client_open_home')}
+                </a>
+              )}
 
               {/* Access control — shared with the ticket detail page, see components/support/SupportAccessCard.tsx */}
               <SupportAccessCard

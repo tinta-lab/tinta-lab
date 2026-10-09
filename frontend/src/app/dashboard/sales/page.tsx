@@ -196,12 +196,12 @@ export default function SalesDashboard() {
 
       {/* Kanban board */}
       <div className="flex-1 overflow-x-auto px-6 py-4">
-        <div className="flex gap-4 min-w-max h-full">
+        <div className="flex gap-4 min-w-max xl:min-w-0 h-full">
           {COLUMNS.map(status => {
             const cols = STATUS_COLORS[status];
             const items = byStatus(status);
             return (
-              <div key={status} className="w-72 flex flex-col">
+              <div key={status} className="w-72 xl:w-auto xl:flex-1 xl:min-w-0 flex flex-col">
                 {/* Column header */}
                 <div className="flex items-center justify-between mb-3 px-1">
                   <span className={`text-sm font-semibold ${cols.header}`}>
