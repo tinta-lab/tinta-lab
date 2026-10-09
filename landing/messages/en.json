@@ -92,7 +92,7 @@
       },
       {
         "title": "Technician enters only on your invitation",
-        "desc": "We physically cannot connect without your explicit permission. You press «Allow» – the technician is in. You press «Disconnect» – they're gone instantly. Every session is logged.",
+        "desc": "Technically, we cannot connect without your explicit permission. You press «Allow» – the technician is in. You press «Disconnect» – they're gone. Every session is logged.",
         "label": "Full control is yours"
       },
       {
@@ -112,14 +112,33 @@
     "lead": "Home Assistant supports over 3,000 integrations. Tinta Lab manages any of them.",
     "footer": "And thousands more devices via Home Assistant – Zigbee, Z-Wave, Wi-Fi, Thread, Matter",
     "categories": [
-      { "title": "Lighting" },
-      { "title": "Climate" },
-      { "title": "Security" },
-      { "title": "Smart Plugs" },
-      { "title": "Multimedia" },
-      { "title": "Sensors" }
+      {
+        "title": "Lighting"
+      },
+      {
+        "title": "Climate"
+      },
+      {
+        "title": "Security"
+      },
+      {
+        "title": "Smart Plugs"
+      },
+      {
+        "title": "Multimedia"
+      },
+      {
+        "title": "Sensors"
+      }
     ],
-    "sensorBrands": ["Temperature", "Humidity", "Motion", "Door/Window", "Smoke", "CO₂"]
+    "sensorBrands": [
+      "Temperature",
+      "Humidity",
+      "Motion",
+      "Door/Window",
+      "Smoke",
+      "CO₂"
+    ]
   },
   "mockup": {
     "title": "My Smart Home",
@@ -158,7 +177,7 @@
       },
       {
         "q": "What is Home Assistant and why do I need it?",
-        "a": "Home Assistant is a free smart home system trusted by over 500,000 users worldwide. It unifies devices from different brands in one place: lighting, climate, security, multimedia. We install and configure it for you – you don't need to know how it works under the hood."
+        "a": "Home Assistant is a free smart home system trusted by hundreds of thousands of users worldwide. It brings devices from different brands together in one place: lighting, climate, security, multimedia. We install and configure it for you – you don't need to know how it works under the hood."
       },
       {
         "q": "How much does it cost?",
@@ -204,18 +223,18 @@
   },
   "impressum": {
     "title": "Impressum",
-    "note": "This is a legally binding document available in German only."
+    "note": "Convenience translation — the German version is legally binding."
   },
   "datenschutz": {
     "title": "Privacy Policy",
-    "note": "The legally binding version is available in German only."
+    "note": "Convenience translation — the German version is legally binding."
   },
   "agb": {
     "title": "Terms of Service",
-    "note": "The legally binding version is available in German only."
+    "note": "Convenience translation — the German version is legally binding."
   },
   "widerruf": {
     "title": "Right of Withdrawal",
-    "note": "The legally binding version is available in German only."
+    "note": "Convenience translation — the German version is legally binding."
   }
 }

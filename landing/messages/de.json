@@ -112,14 +112,33 @@
     "lead": "Home Assistant unterstützt über 3.000 Integrationen. Tinta Lab verwaltet jede davon.",
     "footer": "Und tausende weitere Geräte über Home Assistant – Zigbee, Z-Wave, WLAN, Thread, Matter",
     "categories": [
-      { "title": "Beleuchtung" },
-      { "title": "Klimaanlage" },
-      { "title": "Sicherheit" },
-      { "title": "Smarte Steckdosen" },
-      { "title": "Multimedia" },
-      { "title": "Sensoren" }
+      {
+        "title": "Beleuchtung"
+      },
+      {
+        "title": "Klima & Heizung"
+      },
+      {
+        "title": "Sicherheit"
+      },
+      {
+        "title": "Smarte Steckdosen"
+      },
+      {
+        "title": "Multimedia"
+      },
+      {
+        "title": "Sensoren"
+      }
     ],
-    "sensorBrands": ["Temperatur", "Luftfeuchte", "Bewegung", "Öffnung", "Rauch", "CO₂"]
+    "sensorBrands": [
+      "Temperatur",
+      "Luftfeuchte",
+      "Bewegung",
+      "Öffnung",
+      "Rauch",
+      "CO₂"
+    ]
   },
   "mockup": {
     "title": "Mein Smart Home",
@@ -158,7 +177,7 @@
       },
       {
         "q": "Was ist Home Assistant und wozu brauche ich es?",
-        "a": "Home Assistant ist ein kostenloses Smart-Home-System, dem weltweit über 500.000 Nutzer vertrauen. Es verbindet Geräte verschiedener Hersteller an einem Ort: Beleuchtung, Klima, Sicherheit, Multimedia. Wir installieren und konfigurieren es für Sie – Sie müssen nicht wissen, wie es innen funktioniert."
+        "a": "Home Assistant ist ein kostenloses Smart-Home-System, dem weltweit Hunderttausende Nutzer vertrauen. Es verbindet Geräte verschiedener Hersteller an einem Ort: Beleuchtung, Klima, Sicherheit, Multimedia. Wir installieren und konfigurieren es für Sie – Sie müssen nicht wissen, wie es innen funktioniert."
       },
       {
         "q": "Was kostet das?",
@@ -203,17 +222,7 @@
     "copyright": "Tinta Lab. Alle Rechte vorbehalten."
   },
   "impressum": {
-    "title": "Impressum",
-    "subtitle": "Angaben gemäß § 5 TMG",
-    "responsible": "Verantwortlicher",
-    "contact": "Kontakt",
-    "liability": "Haftung für Inhalte",
-    "liabilityText": "Als Diensteanbieter sind wir gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Nach §§ 8 bis 10 TMG sind wir als Diensteanbieter jedoch nicht verpflichtet, übermittelte oder gespeicherte fremde Informationen zu überwachen oder nach Umständen zu forschen, die auf eine rechtswidrige Tätigkeit hinweisen. Verpflichtungen zur Entfernung oder Sperrung der Nutzung von Informationen nach den allgemeinen Gesetzen bleiben hiervon unberührt. Eine diesbezügliche Haftung ist jedoch erst ab dem Zeitpunkt der Kenntnis einer konkreten Rechtsverletzung möglich.",
-    "links": "Haftung für Links",
-    "linksText": "Unser Angebot enthält Links zu externen Webseiten Dritter, auf deren Inhalte wir keinen Einfluss haben. Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der Seiten verantwortlich.",
-    "copyright": "Urheberrecht",
-    "copyrightText": "Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen dem deutschen Urheberrecht. Vervielfältigung, Bearbeitung und Verbreitung außerhalb der Grenzen des Urheberrechts bedürfen der schriftlichen Zustimmung des Autors.",
-    "note": "Rechtlich bindende Fassung – nur auf Deutsch verfügbar"
+    "title": "Impressum"
   },
   "datenschutz": {
     "title": "Datenschutzerklärung",
