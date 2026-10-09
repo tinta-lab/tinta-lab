@@ -24,25 +24,32 @@ export default function AccessLogTable({ events, onSelect }: AccessLogTableProps
           </tr>
         </thead>
         <tbody>
-          {events.map((ev, i) => (
+          {events.map((ev, i) => {
+            // Session whose server/client were deleted later (e.g. test data):
+            // audit rows are append-only and hash-chained, so they stay —
+            // label them instead of showing three bare dashes.
+            const orphan = !ev.server && !ev.client;
+            const muted = <span className="italic text-slate-500">{t('access_deleted_entity')}</span>;
+            return (
             <tr
               key={ev.id}
               onClick={() => onSelect(ev.accessLogId)}
-              className={`${i < events.length - 1 ? 'border-b border-slate-700/30' : ''} hover:bg-slate-800/30 transition-colors cursor-pointer`}
+              className={`${i < events.length - 1 ? 'border-b border-slate-700/30' : ''} ${orphan ? 'opacity-60' : ''} hover:bg-slate-800/30 transition-colors cursor-pointer`}
             >
               <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
                 {formatDateTime(ev.createdAt, locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
               </td>
               <td className="px-4 py-3"><AccessLogEventBadge eventType={ev.eventType} /></td>
               <td className="px-4 py-3 text-slate-300">
-                {ev.client ? `${ev.client.firstName} ${ev.client.lastName}` : '—'}
+                {ev.client ? `${ev.client.firstName} ${ev.client.lastName}` : orphan ? muted : '—'}
               </td>
-              <td className="px-4 py-3 text-slate-300">{ev.server?.name ?? '—'}</td>
+              <td className="px-4 py-3 text-slate-300">{ev.server?.name ?? (orphan ? muted : '—')}</td>
               <td className="px-4 py-3 text-slate-300">
-                {ev.actor ? `${ev.actor.firstName} ${ev.actor.lastName}` : '—'}
+                {ev.actor ? `${ev.actor.firstName} ${ev.actor.lastName}` : orphan ? muted : <span className="text-slate-500">{t('access_actor_system')}</span>}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
