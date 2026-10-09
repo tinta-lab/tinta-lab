@@ -4,6 +4,7 @@ import { AgentMonitorScheduler } from './agent-monitor.scheduler';
 import { AgentSession } from './entities/agent-session.entity';
 import { Ticket } from '../tickets/entities/ticket.entity';
 import { OFFLINE_THRESHOLD_MS } from './agent-offline-threshold';
+import { ServersService } from '../servers/servers.service';
 
 // Regression coverage for PHASE1_3_DIAGNOSTICS_SPEC.md §0 item 5: there
 // must be exactly one source of truth for the agent-offline threshold.
@@ -26,8 +27,9 @@ describe('OFFLINE_THRESHOLD_MS', () => {
         },
         {
           provide: getRepositoryToken(Ticket),
-          useValue: { create: jest.fn(), save: jest.fn() },
+          useValue: { create: jest.fn(), save: jest.fn(), find: jest.fn(async () => []), findOne: jest.fn() },
         },
+        { provide: ServersService, useValue: { findByClientId: jest.fn(async () => []) } },
       ],
     }).compile();
 
