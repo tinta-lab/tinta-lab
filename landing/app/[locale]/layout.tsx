@@ -16,19 +16,19 @@ const SITE_NAME = 'Tinta Lab';
 const META: Record<string, { title: string; description: string }> = {
   de: {
     title: `${SITE_NAME} — Smart Home als Service`,
-    description: 'Professionelles Smart-Home-Management: Einrichtung, Überwachung und Support mit maximaler Datensicherheit.',
+    description: 'Herstellerunabhängige Smart-Home-Beratung, Einrichtung und Betreuung. Wir verkaufen keine Geräte – Sie kaufen direkt beim Händler, wir planen, installieren und betreuen.',
   },
   en: {
     title: `${SITE_NAME} — Smart Home as a Service`,
-    description: 'Professional smart home management: setup, monitoring and support with maximum data privacy.',
+    description: "Independent smart home consulting, setup and support. We don't sell devices – you buy directly from the retailer, we plan, install and look after it.",
   },
   it: {
     title: `${SITE_NAME} — Smart Home come servizio`,
-    description: 'Gestione professionale della smart home: configurazione, monitoraggio e supporto con la massima protezione dei dati.',
+    description: 'Consulenza, installazione e assistenza smart home indipendenti. Non vendiamo dispositivi: li acquisti dal rivenditore, noi progettiamo, installiamo e assistiamo.',
   },
   ru: {
     title: `${SITE_NAME} — Умный дом как услуга`,
-    description: 'Профессиональное управление умным домом: настройка, мониторинг и поддержка с максимальной защитой данных.',
+    description: 'Независимый консалтинг, установка и поддержка умного дома. Мы не продаём оборудование — вы покупаете у продавца, мы проектируем, устанавливаем и обслуживаем.',
   },
 };
 

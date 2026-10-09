@@ -23,10 +23,10 @@ export default function Navbar() {
   const close = () => setOpen(false);
 
   const NAV = [
-    { href: '#features',     label: t('features')   },
     { href: '#how-it-works', label: t('howItWorks')  },
+    { href: '#features',     label: t('features')   },
+    { href: '#packages',     label: t('packages')    },
     { href: '#security',     label: t('security')    },
-    { href: '#devices',      label: t('devices')     },
   ];
 
   return (

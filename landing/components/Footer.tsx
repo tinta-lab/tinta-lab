@@ -14,8 +14,9 @@ export default function Footer() {
 
   const LINKS: Record<string, Array<{ label: string; href: string }>> = {
     [t('sections.platform')]: [
-      { label: l('features'),   href: '#features'    },
       { label: l('howItWorks'), href: '#how-it-works' },
+      { label: l('features'),   href: '#features'    },
+      { label: l('packages'),   href: '#packages'    },
       { label: l('security'),   href: '#security'     },
       { label: l('devices'),    href: '#devices'      },
       { label: l('faq'),        href: '#faq'          },
