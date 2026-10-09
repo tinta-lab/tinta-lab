@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 import { useLocale } from '@/i18n/context';
+import { ticketSubject, ticketMessage } from '@/lib/systemTicket';
 import { AdminTicket, StaffTicket } from '@/types';
 import { formatDate } from '@/lib/format';
 import TicketStatus from '@/components/support/TicketStatus';
@@ -21,7 +22,7 @@ export default function StaffTicketCard({ ticket }: { ticket: StaffTicket | Admi
       className="flex items-center justify-between gap-4 px-4 py-4 hover:bg-slate-800/60 transition-colors"
     >
       <div className="min-w-0">
-        <div className="font-medium text-sm text-white truncate">{ticket.subject}</div>
+        <div className="font-medium text-sm text-white truncate">{ticketSubject(ticket.subject, t)}</div>
         <div className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
           <span>{ticket.name}</span>
           <span className="text-slate-700">·</span>

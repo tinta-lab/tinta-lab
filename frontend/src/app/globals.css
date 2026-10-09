@@ -4,6 +4,17 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Shared Tinta palette (same as tinta-lab.de). The app's pages are built on
+   slate-900 page backgrounds, slate-800 cards and slate-700 borders; pulling
+   those three shades deeper here gives every page the landing site's look
+   (near-black canvas, quiet cards, hairline borders) without rewriting each
+   page's classes. Text shades (400–600) are untouched for readability. */
+@theme {
+  --color-slate-900: #040a17;
+  --color-slate-800: #0c1426;
+  --color-slate-700: #1c2639;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -72,7 +83,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);

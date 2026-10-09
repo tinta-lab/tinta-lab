@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocale } from '@/i18n/context';
+import { ticketSubject, ticketMessage } from '@/lib/systemTicket';
 import api from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { toast } from 'sonner';
@@ -45,7 +46,7 @@ type TypeFilter = 'all' | 'sales' | 'installation' | 'support';
 export default function SalesDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t, locale } = useLocale();
+  const { t, tn, locale } = useLocale();
   const [tickets, setTickets] = useState<(StaffTicket | AdminTicket)[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<StaffTicket | AdminTicket | null>(null);
@@ -146,7 +147,7 @@ export default function SalesDashboard() {
             <span className="text-slate-500 text-sm">/ Sales</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500">{tickets.filter(ticket => ticket.status === 'new').length} {t('sales_new_tickets')}</span>
+            <span className="text-xs text-slate-500">{tn('sales_new_tickets', tickets.filter(ticket => ticket.status === 'new').length)}</span>
             <button onClick={load} className="text-slate-400 hover:text-white transition-colors">
               <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
             </button>
@@ -182,7 +183,7 @@ export default function SalesDashboard() {
             onClick={() => setTypeFilter(f.value)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
               typeFilter === f.value
-                ? 'bg-teal-600 text-white'
+                ? 'bg-teal-400 text-slate-950'
                 : 'bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700 border border-slate-700'
             }`}
           >
@@ -226,7 +227,7 @@ export default function SalesDashboard() {
                       onClick={() => openTicket(ticket)}
                       className={`bg-slate-800/70 border ${cols.col} rounded-xl p-4 cursor-pointer hover:bg-slate-800 transition-all group`}
                     >
-                      <div className="font-medium text-sm leading-tight mb-2 line-clamp-2">{ticket.subject}</div>
+                      <div className="font-medium text-sm leading-tight mb-2 line-clamp-2">{ticketSubject(ticket.subject, t)}</div>
                       <div className="text-xs text-slate-500 mb-3">{ticket.name}</div>
 
                       <div className="flex items-center gap-2 text-xs text-slate-600">
@@ -264,7 +265,7 @@ export default function SalesDashboard() {
 
       {/* Ticket detail modal */}
       {selected && (
-        <Modal title={selected.subject} onClose={() => setSelected(null)}>
+        <Modal title={ticketSubject(selected.subject, t)} onClose={() => setSelected(null)}>
           <div className="space-y-5">
             {/* Contact */}
             <div className="bg-slate-900/50 rounded-xl p-4 space-y-2 text-sm">
@@ -295,7 +296,7 @@ export default function SalesDashboard() {
             {/* Message */}
             <div>
               <div className="text-xs text-slate-400 mb-2">{t('sales_message')}</div>
-              <p className="text-sm text-slate-300 bg-slate-900/50 rounded-xl p-4 whitespace-pre-wrap">{selected.message}</p>
+              <p className="text-sm text-slate-300 bg-slate-900/50 rounded-xl p-4 whitespace-pre-wrap">{ticketMessage(selected.subject, selected.message, t)}</p>
             </div>
 
             {/* Status */}
@@ -326,7 +327,7 @@ export default function SalesDashboard() {
 
             <div className="flex gap-3">
               <button onClick={() => setSelected(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('close')}</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+              <button onClick={handleSave} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 text-slate-950 text-sm font-semibold transition-colors disabled:opacity-50">
                 {saving ? t('saving') : t('save')}
               </button>
             </div>

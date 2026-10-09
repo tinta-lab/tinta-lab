@@ -203,7 +203,7 @@ export default function AdminUsersPage() {
             </button>
             <button
               onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-500 text-white text-sm px-3 py-1.5 rounded-lg transition-colors"
+              className="flex items-center gap-1.5 bg-teal-400 hover:bg-teal-300 text-slate-950 text-sm px-3 py-1.5 rounded-lg transition-colors"
             >
               <Plus size={14} /> {t('create')}
             </button>
@@ -351,7 +351,7 @@ export default function AdminUsersPage() {
             </Field>
             <div className="flex gap-3 pt-1">
               <button type="button" onClick={() => { setShowCreate(false); setFormErrors({}); }} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
-              <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+              <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 text-slate-950 text-sm font-semibold transition-colors disabled:opacity-50">
                 {saving ? t('creating') : t('create')}
               </button>
             </div>
@@ -398,7 +398,7 @@ export default function AdminUsersPage() {
             </Field>
             <div className="flex gap-3 pt-2">
               <button onClick={() => setEditUser(null)} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
-              <button onClick={handleEdit} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium transition-colors disabled:opacity-50">
+              <button onClick={handleEdit} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 text-slate-950 text-sm font-semibold transition-colors disabled:opacity-50">
                 {saving ? t('saving') : t('save')}
               </button>
             </div>

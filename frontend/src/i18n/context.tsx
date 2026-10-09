@@ -7,6 +7,11 @@ interface LocaleContextValue {
   locale: Locale;
   setLocale: (l: Locale) => void;
   t: (key: TranslationKey) => string;
+  // Count-aware lookup: the value holds plural forms separated by "|" with
+  // a {n} placeholder — Russian one|few|many, the other languages one|other
+  // (e.g. "{n} сессия|{n} сессии|{n} сессий"). Picked via Intl.PluralRules,
+  // so "1 устройств" / "4 установок" can't happen.
+  tn: (key: TranslationKey, n: number) => string;
 }
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -36,12 +41,24 @@ export function LocaleProvider({ children, initialLocale }: { children: ReactNod
     writeCookie(l);
   }, []);
 
+  // Keep <html lang> in sync after a switch (screen readers, hyphenation).
+  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
+
   const t = useCallback((key: TranslationKey): string => {
     return translations[locale][key] ?? translations[DEFAULT_LOCALE][key] ?? key;
   }, [locale]);
 
+  const tn = useCallback((key: TranslationKey, n: number): string => {
+    const forms = t(key).split('|');
+    const cat = new Intl.PluralRules(locale).select(n);
+    const idx = forms.length === 3
+      ? (cat === 'one' ? 0 : cat === 'few' ? 1 : 2)
+      : (cat === 'one' ? 0 : forms.length - 1);
+    return (forms[idx] ?? forms[forms.length - 1]).replace('{n}', String(n));
+  }, [t, locale]);
+
   return (
-    <LocaleContext.Provider value={{ locale, setLocale, t }}>
+    <LocaleContext.Provider value={{ locale, setLocale, t, tn }}>
       {children}
     </LocaleContext.Provider>
   );

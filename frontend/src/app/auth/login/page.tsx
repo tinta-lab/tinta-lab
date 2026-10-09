@@ -107,7 +107,7 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 inputMode="email"
-                placeholder="ihr@email.de"
+                placeholder={t('ph_email')}
                 className={inputCls(!!errors.email)}
               />
               {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email.message}</p>}
@@ -142,7 +142,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading || !mounted}
-              className="w-full py-2.5 px-4 rounded-lg bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium text-sm transition-all flex items-center justify-center gap-2 mt-2"
+              className="w-full py-2.5 px-4 rounded-lg bg-teal-400 hover:bg-teal-300 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-semibold text-sm transition-all flex items-center justify-center gap-2 mt-2"
             >
               {loading ? (
                 <><Loader2 size={16} className="animate-spin" /> {t('login_submitting')}</>

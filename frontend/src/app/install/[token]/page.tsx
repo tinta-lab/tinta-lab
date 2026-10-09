@@ -199,7 +199,7 @@ export default function InstallPage() {
           <button
             onClick={confirmConsentAndLoad}
             disabled={!consentChecked}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-teal-500 hover:bg-teal-400 text-slate-950 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            className="w-full py-2.5 rounded-lg text-sm font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             {t('install_consent_button')}
           </button>
@@ -235,7 +235,7 @@ export default function InstallPage() {
           {isTerminal && (
             <a
               href="mailto:info@tinta-lab.de"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-teal-500 hover:bg-teal-400 text-slate-950 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 transition-colors"
             >
               info@tinta-lab.de
             </a>

@@ -58,7 +58,7 @@ function AccessTimer({ expiresAt, label }: { expiresAt: string | null; label: st
 export default function SupportDashboard() {
   const router = useRouter();
   const { user, logout, init } = useAuth();
-  const { t, locale } = useLocale();
+  const { t, tn, locale } = useLocale();
   const [servers, setServers] = useState<SupportServer[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -209,7 +209,7 @@ export default function SupportDashboard() {
             <div className="hidden sm:flex items-center gap-3 text-xs text-slate-400">
               <span className="flex items-center gap-1.5">
                 <Shield size={11} className="text-amber-400" />
-                {accessible.length} {t('support_access_open')}
+                {tn('support_access_open_n', accessible.length)}
               </span>
             </div>
             <button onClick={loadServers} className="text-slate-400 hover:text-white transition-colors">

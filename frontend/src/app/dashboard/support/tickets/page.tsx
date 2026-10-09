@@ -58,7 +58,7 @@ export default function StaffTicketListPage() {
             onClick={() => setFilter(s)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               filter === s
-                ? 'bg-teal-600 border-teal-500 text-white'
+                ? 'bg-teal-400 border-teal-400 text-slate-950'
                 : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-500'
             }`}
           >

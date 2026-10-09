@@ -35,7 +35,7 @@ export default function StaffMessageList({ messages }: { messages: StaffTicketMe
                   ? 'bg-amber-500/10 border-amber-500/30 border-dashed'
                   : isClient
                     ? 'bg-slate-800/60 border-slate-700/50'
-                    : 'bg-teal-600/15 border-teal-500/20'
+                    : 'bg-teal-400/15 border-teal-500/20'
               }`}
             >
               <div className="flex items-center gap-2 mb-1">

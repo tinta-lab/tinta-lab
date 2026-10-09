@@ -166,7 +166,7 @@ export default function AccessLogFilters({ value, onChange, showStaffFilter }: A
       <div className="flex gap-2 mt-3">
         <button
           onClick={apply}
-          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white transition-colors"
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-400 hover:bg-teal-300 text-slate-950 transition-colors"
         >
           {t('access_logs_apply')}
         </button>

@@ -193,11 +193,11 @@ function ProfileModal({ user, onClose, t }: { user: any; onClose: () => void; t:
               </div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">{t('reg_city')}</label>
-                <input className={inputCls()} value={infoForm.city} onChange={e => setInfoForm(f => ({ ...f, city: e.target.value }))} placeholder="Berlin" />
+                <input className={inputCls()} value={infoForm.city} onChange={e => setInfoForm(f => ({ ...f, city: e.target.value }))} placeholder={t('ph_city')} />
               </div>
               <div className="flex gap-3 pt-1">
                 <button onClick={onClose} className="flex-1 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-700 transition-colors">{t('cancel')}</button>
-                <button onClick={saveInfo} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium disabled:opacity-50">
+                <button onClick={saveInfo} disabled={saving} className="flex-1 py-2 rounded-lg bg-teal-400 hover:bg-teal-300 text-slate-950 text-sm font-semibold disabled:opacity-50">
                   {saving ? t('saving') : t('save')}
                 </button>
               </div>
@@ -411,7 +411,7 @@ export default function ClientDashboard() {
           className="flex items-center justify-between gap-3 rounded-xl border border-slate-700/50 bg-slate-800/50 hover:bg-slate-800 transition-colors px-6 py-4"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-teal-600/15 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-lg bg-teal-400/15 flex items-center justify-center flex-shrink-0">
               <LifeBuoy size={18} className="text-teal-400" />
             </div>
             <div>

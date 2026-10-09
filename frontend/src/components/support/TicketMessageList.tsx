@@ -17,7 +17,7 @@ export default function TicketMessageList({ messages }: { messages: ClientTicket
           <div key={m.id} className={`flex ${isStaff ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] rounded-xl px-4 py-3 ${
               isStaff
-                ? 'bg-teal-600/15 border border-teal-500/20'
+                ? 'bg-teal-400/15 border border-teal-500/20'
                 : 'bg-slate-800/60 border border-slate-700/50'
             }`}>
               <div className="flex items-center gap-2 mb-1">
