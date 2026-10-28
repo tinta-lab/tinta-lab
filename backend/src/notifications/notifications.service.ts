@@ -43,44 +43,32 @@ export class NotificationsService implements OnModuleInit {
     });
 
     await this.send(
-      `🟢 *Доступ открыт*\n\n` +
-        `👤 Клиент: ${clientName} (${clientEmail})\n` +
-        `🏠 Сервер: ${serverName}\n` +
-        `🔗 Ссылка: ${serverUrl}\n` +
-        `⏱ Истекает в: ${expires}\n\n` +
-        `_Нажмите ссылку чтобы подключиться к Home Assistant_`,
+      `🟢 <b>Доступ открыт</b>\n\n` +
+        `👤 Клиент: ${esc(clientName)} (${esc(clientEmail)})\n` +
+        `🏠 Сервер: ${esc(serverName)}\n` +
+        `🔗 Ссылка: ${esc(serverUrl)}\n` +
+        `⏱ Истекает в: ${esc(expires)}\n\n` +
+        `<i>Нажмите ссылку чтобы подключиться к Home Assistant</i>`,
     );
   }
 
+  // No token fragments here — they were never useful in a chat message and
+  // Telegram is a third-party service.
   async notifyProvisioningComplete(params: {
     clientName: string;
     clientEmail: string;
     serverName: string;
     subdomain: string;
     dashboardUrl: string;
-    agentToken: string;
-    tunnelToken: string | null;
   }) {
-    const {
-      clientName,
-      clientEmail,
-      serverName,
-      subdomain,
-      dashboardUrl,
-      agentToken,
-      tunnelToken,
-    } = params;
+    const { clientName, clientEmail, serverName, subdomain, dashboardUrl } =
+      params;
     await this.send(
-      `🚀 *Новый клиент провижинен*\n\n` +
-        `👤 ${clientName} (${clientEmail})\n` +
-        `🏠 Сервер: ${serverName}\n` +
-        `🌐 Поддомен: ${subdomain}\n` +
-        `🔗 Dashboard: ${dashboardUrl}\n\n` +
-        `*Agent JWT:* \`${agentToken.slice(0, 20)}...\`\n` +
-        (tunnelToken
-          ? `*Tunnel Token:* \`${tunnelToken.slice(0, 20)}...\`\n`
-          : '') +
-        `\n_Все токены показаны частично. Полные — в API ответе._`,
+      `🚀 <b>Новый клиент провижинен</b>\n\n` +
+        `👤 ${esc(clientName)} (${esc(clientEmail)})\n` +
+        `🏠 Сервер: ${esc(serverName)}\n` +
+        `🌐 Поддомен: ${esc(subdomain)}\n` +
+        `🔗 Dashboard: ${esc(dashboardUrl)}`,
     );
   }
 
@@ -90,10 +78,10 @@ export class NotificationsService implements OnModuleInit {
     lastSeen: Date | null;
   }) {
     await this.send(
-      `🔴 *Агент офлайн*\n\n` +
-        `👤 ${params.clientName}\n` +
-        `🆔 Client ID: \`${params.clientId}\`\n` +
-        `⏱ Последний heartbeat: ${params.lastSeen?.toLocaleString('de-DE') ?? 'неизвестно'}`,
+      `🔴 <b>Агент офлайн</b>\n\n` +
+        `👤 ${esc(params.clientName)}\n` +
+        `🆔 Client ID: <code>${esc(params.clientId)}</code>\n` +
+        `⏱ Последний heartbeat: ${esc(params.lastSeen?.toLocaleString('de-DE') ?? 'неизвестно')}`,
     );
   }
 
@@ -108,37 +96,71 @@ export class NotificationsService implements OnModuleInit {
       reason === 'expired' ? 'истёк автоматически' : 'закрыт клиентом';
 
     await this.send(
-      `${icon} *Доступ ${text}*\n\n` +
-        `👤 Клиент: ${clientName}\n` +
-        `🏠 Сервер: ${serverName}`,
+      `${icon} <b>Доступ ${text}</b>\n\n` +
+        `👤 Клиент: ${esc(clientName)}\n` +
+        `🏠 Сервер: ${esc(serverName)}`,
     );
   }
 
+  // anomaly details carry usernames from the client's HA — i.e. whatever a
+  // rogue session chose to name the account it created. Unescaped, an odd
+  // `_` in that name made Telegram reject the message and the alert vanished.
   async notifySecurityAnomaly(params: {
     clientName: string;
     serverName: string;
     anomalies: { type: string; detail: string }[];
   }) {
     const { clientName, serverName, anomalies } = params;
-    const lines = anomalies.map((a) => `• ${a.detail}`).join('\n');
+    const lines = anomalies.map((a) => `• ${esc(a.detail)}`).join('\n');
 
     await this.send(
-      `🚨 *ПОДОЗРИТЕЛЬНАЯ АКТИВНОСТЬ В SUPPORT-СЕССИИ*\n\n` +
-        `👤 Клиент: ${clientName}\n` +
-        `🏠 Сервер: ${serverName}\n\n` +
+      `🚨 <b>ПОДОЗРИТЕЛЬНАЯ АКТИВНОСТЬ В SUPPORT-СЕССИИ</b>\n\n` +
+        `👤 Клиент: ${esc(clientName)}\n` +
+        `🏠 Сервер: ${esc(serverName)}\n\n` +
         `${lines}\n\n` +
-        `_Обнаружено при закрытии доступа поддержки. Найденные новые администраторы ` +
+        `<i>Обнаружено при закрытии доступа поддержки. Найденные новые администраторы ` +
         `в HA клиента уже удалены автоматически. Проверьте журнал аудита и, если это ` +
-        `не действие клиента, свяжитесь с сотрудником, который вёл сессию._`,
+        `не действие клиента, свяжитесь с сотрудником, который вёл сессию.</i>`,
     );
   }
 
-  private async send(text: string) {
+  // HTML with every interpolated value escaped. If Telegram still refuses
+  // the message, it's re-sent as plain text: an alert must not be lost to
+  // formatting.
+  private async send(html: string) {
     if (!this.bot || !this.chatId) return;
     try {
-      await this.bot.sendMessage(this.chatId, text, { parse_mode: 'Markdown' });
+      await this.bot.sendMessage(this.chatId, html, { parse_mode: 'HTML' });
+      return;
     } catch (err) {
-      this.logger.error('Telegram send failed:', err);
+      this.logger.warn(
+        `Telegram rejected the formatted message, retrying as plain text: ${errorMessage(err)}`,
+      );
+    }
+    try {
+      await this.bot.sendMessage(this.chatId, htmlToPlain(html));
+    } catch (err) {
+      this.logger.error(`Telegram send failed: ${errorMessage(err)}`);
     }
   }
+}
+
+// Telegram's HTML mode only needs &, < and > escaped in text.
+export function esc(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function htmlToPlain(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }

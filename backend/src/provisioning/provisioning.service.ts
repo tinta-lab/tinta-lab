@@ -172,8 +172,6 @@ export class ProvisioningService {
       serverName: dto.serverName,
       subdomain: publicHostname,
       dashboardUrl: publicUrl,
-      agentToken,
-      tunnelToken: server.tunnelToken,
     });
 
     const frontendUrl = this.config.get(
