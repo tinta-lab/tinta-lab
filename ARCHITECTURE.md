@@ -17,8 +17,8 @@ tinta-lab/
 ├── tinta-agent/       # HA App — агент внутри клиентского HAOS (Node.js)
 ├── data/
 │   ├── postgres/      # PostgreSQL 16 data (docker volume)
-│   └── redis/         # Redis 7 data (docker volume)
-└── docker-compose.yml # PostgreSQL + Redis + Adminer
+│   └── redis/         # Данные удалённого Redis (с 2026-10-28 не используется, сохранены до решения об очистке)
+└── docker-compose.yml # PostgreSQL + Adminer + Grafana
 ```
 
 ---
@@ -48,7 +48,6 @@ NestJS Backend :3000
 
 Инфраструктура:
     PostgreSQL 16   (docker, :5432)
-    Redis 7         (docker, :6379)
     PM2             (process manager)
     Cloudflare      (Tunnels + DNS + Zero Trust)
 ```
@@ -358,7 +357,7 @@ Admin/Support → POST /tinta-core/execute/:clientId { entityType, haEntityId, a
 tinta-lab/
 ├── .env                      # Docker Compose: DB_PASSWORD, GRAFANA_ADMIN_PASSWORD
 │                             # ← в .gitignore, не трогать вручную
-├── backend/.env              # NestJS: JWT_SECRET, DB_*, REDIS_*, CF_*, TELEGRAM_*
+├── backend/.env              # NestJS: JWT_SECRET, DB_*, CF_*, TELEGRAM_*
 │                             # ← в .gitignore, единый источник правды для API
 └── frontend/.env.local       # Next.js: NEXT_PUBLIC_API_URL (если нужно переопределить)
 
@@ -387,10 +386,6 @@ DB_USERNAME=tinta
 DB_PASSWORD=...
 DB_NAME=tinta_lab
 
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
 # JWT
 JWT_SECRET=...             # User tokens (15 min) — openssl rand -hex 32
 JWT_REFRESH_SECRET=...     # Refresh tokens — отдельный секрет
@@ -417,7 +412,7 @@ CLOUDFLARE_BASE_DOMAIN=tinta-lab.de
 
 ```bash
 # Инфраструктура
-docker compose up -d   # PostgreSQL + Redis
+docker compose up -d   # PostgreSQL, Adminer, Grafana
 
 # Backend
 cd backend && npm run build
@@ -440,7 +435,7 @@ pm2 start "node_modules/.bin/next start -p 3001" --name tinta-frontend
 |------|-----------|
 | Backend API | NestJS 10, TypeScript, Passport/JWT |
 | ORM | TypeORM 0.3, PostgreSQL 16 |
-| Отзыв сессий | PostgreSQL (`revoked_sessions`); Redis backend больше не использует |
+| Отзыв сессий | PostgreSQL (`revoked_sessions`); Redis удалён 2026-10-28 |
 | WebSocket | Socket.io 4 |
 | Frontend | Next.js 15, React 19, Tailwind CSS 3 |
 | State management | Zustand |

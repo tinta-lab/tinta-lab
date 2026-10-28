@@ -427,7 +427,7 @@ pm2 logs tinta-agent-vigol
 # Последние 50 строк логов бекенда
 pm2 logs tinta-backend --lines 50 --nostream
 
-# Docker контейнеры (БД, Redis)
+# Docker контейнеры (БД, Adminer, Grafana)
 docker ps
 ```
 

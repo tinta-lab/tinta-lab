@@ -23,24 +23,14 @@ services:
     ports:
       # Bound to loopback only — was "5432:5432" (binds 0.0.0.0, reachable
       # from the whole LAN with just the DB password as the only barrier).
-      # The backend connects via REDIS_HOST/DB_HOST=localhost anyway (it
-      # runs on this same host outside Docker), so this doesn't change how
-      # the app reaches it.
+      # The backend connects via DB_HOST=localhost anyway (it runs on this
+      # same host outside Docker), so this doesn't change how the app
+      # reaches it.
       - "127.0.0.1:5432:5432"
 
-  redis:
-    image: redis:7-alpine
-    container_name: tinta-redis
-    logging: *default-logging
-    restart: always
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - ./data/redis:/data
-    ports:
-      # Was "6379:6379" (0.0.0.0, no password) — this instance backs the
-      # JWT revocation blacklist (token-blacklist.service.ts), so anyone on
-      # the LAN could previously clear an entry and un-revoke a dead token.
-      - "127.0.0.1:6379:6379"
+  # Redis was removed 2026-10-28: its only consumer, the JWT blacklist, was
+  # replaced by session revocation in Postgres (sql/012_revoked_sessions.sql).
+  # ./data/redis is kept for now, until a separate decision to delete it.
 
   adminer:
     # Pinned: was the bare "adminer" tag (:latest).
