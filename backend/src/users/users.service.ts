@@ -190,12 +190,15 @@ export class UsersService {
 
   // Lean lookup for JwtStrategy — runs on every authenticated request, so
   // only pull the columns needed to validate the token is still current.
+  // What SessionRevocationService needs on every authenticated request.
+  // isActive matters there too: deactivating a user must end their live
+  // sessions, not just block the next login.
   async getAuthMeta(
     id: string,
-  ): Promise<{ passwordChangedAt: Date | null } | null> {
+  ): Promise<{ passwordChangedAt: Date | null; isActive: boolean } | null> {
     return this.usersRepository.findOne({
       where: { id },
-      select: ['id', 'passwordChangedAt'],
+      select: ['id', 'passwordChangedAt', 'isActive'],
     });
   }
 

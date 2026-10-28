@@ -25,6 +25,7 @@ import { TicketMessage } from './tickets/entities/ticket-message.entity';
 import { GoldenTemplate } from './tinta-core/entities/golden-template.entity';
 import { AgentSession } from './tinta-core/entities/agent-session.entity';
 import { ProvisioningOperation } from './provisioning/entities/provisioning-operation.entity';
+import { RevokedSession } from './auth/entities/revoked-session.entity';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { ProvisioningOperation } from './provisioning/entities/provisioning-oper
           GoldenTemplate,
           AgentSession,
           ProvisioningOperation,
+          RevokedSession,
         ],
         synchronize: config.get('NODE_ENV') !== 'production',
         logging: false,

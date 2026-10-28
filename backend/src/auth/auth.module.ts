@@ -3,12 +3,14 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { ClientsModule } from '../clients/clients.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { TokenBlacklistService } from './token-blacklist.service';
+import { SessionRevocationService } from './session-revocation.service';
+import { RevokedSession } from './entities/revoked-session.entity';
 import { SlidingSessionInterceptor } from './sliding-session.interceptor';
 
 @Module({
@@ -16,6 +18,7 @@ import { SlidingSessionInterceptor } from './sliding-session.interceptor';
     UsersModule,
     ClientsModule,
     PassportModule,
+    TypeOrmModule.forFeature([RevokedSession]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
@@ -28,10 +31,10 @@ import { SlidingSessionInterceptor } from './sliding-session.interceptor';
   providers: [
     AuthService,
     JwtStrategy,
-    TokenBlacklistService,
+    SessionRevocationService,
     { provide: APP_INTERCEPTOR, useClass: SlidingSessionInterceptor },
   ],
   controllers: [AuthController],
-  exports: [AuthService, TokenBlacklistService],
+  exports: [AuthService, SessionRevocationService],
 })
 export class AuthModule {}

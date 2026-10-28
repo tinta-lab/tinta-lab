@@ -11,16 +11,14 @@ import { ClientsModule } from '../clients/clients.module';
 import { CloudflareModule } from '../cloudflare/cloudflare.module';
 import { AuthModule } from '../auth/auth.module';
 import { PresenceModule } from '../presence/presence.module';
-import { UsersModule } from '../users/users.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Server]),
     ClientsModule,
     CloudflareModule,
-    AuthModule, // provides TokenBlacklistService
+    AuthModule, // provides SessionRevocationService for the /servers WS auth check
     PresenceModule,
-    UsersModule, // provides UsersService.getAuthMeta for the passwordChangedAt check
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({

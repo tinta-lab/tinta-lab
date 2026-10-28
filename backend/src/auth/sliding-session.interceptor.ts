@@ -5,6 +5,16 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import type { Request, Response } from 'express';
 import { AUTH_COOKIE, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from './auth-cookie.constants';
+import type { AuthUser } from './strategies/jwt.strategy';
+
+const SESSION_ENDED = Symbol('sessionEnded');
+
+// Called by handlers that end the session (logout): no fresh cookie may be
+// issued on that response. Without it the interceptor re-set a valid token
+// right after logout's clearCookie, so the browser stayed signed in.
+export function markSessionEnded(req: object): void {
+  (req as Record<symbol, unknown>)[SESSION_ENDED] = true;
+}
 
 // Cookie sessions hard-expired 15 minutes after login with nothing to renew
 // them — dashboards had no session-expiry warning, so a staff member merely
@@ -26,6 +36,10 @@ import { AUTH_COOKIE, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from './auth-c
 // Deliberately scoped to cookie-authenticated requests only — Bearer-token
 // callers (curl, scripts, Swagger) never had a cookie to slide
 // and shouldn't have one silently created for them.
+//
+// The re-issued token keeps the session id (sid), so logging out revokes
+// every token this session ever produced, and a revoked session can never
+// be renewed: JwtStrategy rejects it before this interceptor runs.
 @Injectable()
 export class SlidingSessionInterceptor implements NestInterceptor {
   constructor(
@@ -45,15 +59,16 @@ export class SlidingSessionInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap(() => {
         if (!hadCookie) return;
-        const user = (req as any).user as
-          | { id: string; email: string; role: string }
-          | undefined;
+        if ((req as unknown as Record<symbol, unknown>)[SESSION_ENDED]) return;
+        const user = (req as any).user as AuthUser | undefined;
         if (!user) return; // request wasn't actually authenticated (e.g. hit a public route)
+        if (!user.sid) return; // never mint a session-less token
 
         const token = this.jwtService.sign({
           sub: user.id,
           email: user.email,
           role: user.role,
+          sid: user.sid,
         });
         res.cookie(AUTH_COOKIE, token, {
           ...authCookieOptions(this.config.get('COOKIE_DOMAIN', '.tinta-lab.de')),

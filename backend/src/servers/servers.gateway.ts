@@ -5,13 +5,12 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Logger } from '@nestjs/common';
+import { HttpException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
-import { TokenBlacklistService } from '../auth/token-blacklist.service';
+import { SessionRevocationService } from '../auth/session-revocation.service';
 import { PresenceService } from '../presence/presence.service';
-import { UsersService } from '../users/users.service';
 
 // Parses just the one cookie we need out of a raw `Cookie` header — a full
 // cookie-parsing dependency is overkill for a single httpOnly token lookup.
@@ -42,9 +41,8 @@ export class ServersGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-    private readonly blacklist: TokenBlacklistService,
+    private readonly sessions: SessionRevocationService,
     private readonly presence: PresenceService,
-    private readonly usersService: UsersService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -63,54 +61,37 @@ export class ServersGateway
       return;
     }
 
+    let payload: { sub: string; sid?: string; iat: number; exp: number; role?: string };
     try {
-      const payload = this.jwtService.verify<{
-        sub: string;
-        iat: number;
-        exp: number;
-      }>(token, {
+      payload = this.jwtService.verify(token, {
         secret: this.config.get<string>('JWT_SECRET'),
       });
-
-      // Check token blacklist (covers logged-out tokens)
-      const revoked = await this.blacklist.isBlacklisted(
-        payload.sub,
-        payload.iat,
-      );
-      if (revoked) {
-        this.logger.warn(
-          `WS rejected (revoked token): ${client.id} user=${payload.sub}`,
-        );
-        client.emit('error', { message: 'Token revoked' });
-        client.disconnect();
-        return;
-      }
-
-      // Same passwordChangedAt check as JwtStrategy — a WS session shouldn't
-      // outlive a password reset just because it doesn't go through Passport.
-      const meta = await this.usersService.getAuthMeta(payload.sub);
-      if (meta?.passwordChangedAt && payload.iat) {
-        const changedAtSeconds = Math.floor(meta.passwordChangedAt.getTime() / 1000);
-        if (payload.iat < changedAtSeconds) {
-          this.logger.warn(
-            `WS rejected (password changed since token issued): ${client.id} user=${payload.sub}`,
-          );
-          client.emit('error', { message: 'Token invalidated by password change' });
-          client.disconnect();
-          return;
-        }
-      }
-
-      client.data.user = payload;
-      this.presence.markOnline(payload.sub);
-      this.logger.log(
-        `WS authenticated: ${client.id} user=${payload.sub} role=${payload['role']}`,
-      );
     } catch {
       this.logger.warn(`WS rejected (invalid token): ${client.id}`);
       client.emit('error', { message: 'Invalid token' });
       client.disconnect();
+      return;
     }
+
+    // Same session check as JwtStrategy (revoked session, inactive user,
+    // token older than the last password change, no session id) — a WS
+    // connection mustn't get around it just because it skips Passport. If
+    // the check can't be made, refuse: never fail open.
+    try {
+      await this.sessions.assertSessionValid(payload);
+    } catch (err) {
+      const message = err instanceof HttpException ? err.message : 'Unauthorized';
+      this.logger.warn(`WS rejected (${message}): ${client.id} user=${payload.sub}`);
+      client.emit('error', { message });
+      client.disconnect();
+      return;
+    }
+
+    client.data.user = payload;
+    this.presence.markOnline(payload.sub);
+    this.logger.log(
+      `WS authenticated: ${client.id} user=${payload.sub} role=${payload.role}`,
+    );
   }
 
   handleDisconnect(client: Socket) {

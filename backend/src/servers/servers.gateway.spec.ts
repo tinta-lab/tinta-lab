@@ -1,3 +1,4 @@
+import { ServiceUnavailableException, UnauthorizedException } from '@nestjs/common';
 import { ServersGateway } from './servers.gateway';
 
 // Regression test for a real, previously-shipped functional bug (not just a
@@ -9,13 +10,7 @@ import { ServersGateway } from './servers.gateway';
 // grant/revoke never updated the on-screen countdown. See P1.4-C.
 describe('ServersGateway', () => {
   function createGateway() {
-    const gateway = new ServersGateway(
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-      {} as any,
-    );
+    const gateway = new ServersGateway({} as any, {} as any, {} as any, {} as any);
     const emit = jest.fn();
     const to = jest.fn().mockReturnValue({ emit });
     (gateway as any).server = { to };
@@ -73,6 +68,67 @@ describe('ServersGateway', () => {
 
       expect(to).toHaveBeenCalledWith('servers-room');
       expect(emit).toHaveBeenCalledWith('server:update', payload);
+    });
+  });
+
+  // The /servers WS used to run its own copy of the token checks against the
+  // Redis blacklist (fail-open). It now goes through the same
+  // SessionRevocationService as HTTP, and refuses when the check can't run.
+  describe('handleConnection', () => {
+    function connect(assert: jest.Mock, verify: jest.Mock = jest.fn().mockReturnValue({ sub: 'user-1', sid: 'sid-1', iat: 1, exp: 2, role: 'admin' })) {
+      const presence = { markOnline: jest.fn() };
+      const gateway = new ServersGateway(
+        { verify } as any,
+        { get: jest.fn().mockReturnValue('secret') } as any,
+        { assertSessionValid: assert } as any,
+        presence as any,
+      );
+      const client: any = {
+        id: 'c1',
+        handshake: { auth: { token: 'tok' }, headers: {} },
+        data: {},
+        emit: jest.fn(),
+        disconnect: jest.fn(),
+      };
+      return gateway.handleConnection(client).then(() => ({ client, presence }));
+    }
+
+    it('accepts a valid session', async () => {
+      const { client, presence } = await connect(jest.fn().mockResolvedValue(undefined));
+      expect(presence.markOnline).toHaveBeenCalledWith('user-1');
+      expect(client.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('rejects a revoked session', async () => {
+      const { client, presence } = await connect(
+        jest.fn().mockRejectedValue(new UnauthorizedException('Session has been revoked')),
+      );
+      expect(client.emit).toHaveBeenCalledWith('error', { message: 'Session has been revoked' });
+      expect(client.disconnect).toHaveBeenCalled();
+      expect(presence.markOnline).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when the session check is unavailable', async () => {
+      const { client, presence } = await connect(
+        jest.fn().mockRejectedValue(new ServiceUnavailableException('Authorization temporarily unavailable')),
+      );
+      expect(client.emit).toHaveBeenCalledWith('error', {
+        message: 'Authorization temporarily unavailable',
+      });
+      expect(client.disconnect).toHaveBeenCalled();
+      expect(presence.markOnline).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid token without consulting the session store', async () => {
+      const assert = jest.fn();
+      const { client } = await connect(
+        assert,
+        jest.fn(() => {
+          throw new Error('invalid signature');
+        }),
+      );
+      expect(client.emit).toHaveBeenCalledWith('error', { message: 'Invalid token' });
+      expect(assert).not.toHaveBeenCalled();
     });
   });
 });

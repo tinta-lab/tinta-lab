@@ -1,22 +1,32 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
-import { TokenBlacklistService } from '../token-blacklist.service';
-import { UsersService } from '../../users/users.service';
+import { SessionRevocationService } from '../session-revocation.service';
 
 // Browser clients authenticate via the httpOnly `access_token` cookie;
 // the Bearer header stays supported for scripts/tools (curl, Swagger).
 const cookieExtractor = (req: Request): string | null =>
   req?.cookies?.access_token ?? null;
 
+// What every authenticated request gets as req.user. sid/iat/exp are carried
+// for SlidingSessionInterceptor (re-issues under the same sid) and logout
+// (revokes the sid until the session's newest token has expired).
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: string;
+  sid: string;
+  iat: number;
+  exp: number;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     config: ConfigService,
-    private blacklist: TokenBlacklistService,
-    private usersService: UsersService,
+    private sessions: SessionRevocationService,
   ) {
     const secret = config.get<string>('JWT_SECRET');
     if (!secret) {
@@ -33,21 +43,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    if (await this.blacklist.isBlacklisted(payload.sub, payload.iat)) {
-      throw new UnauthorizedException('Token has been revoked');
-    }
-
-    // Reject tokens issued before the user's last password change — closes
-    // the window where a leaked token would otherwise outlive a reset.
-    const meta = await this.usersService.getAuthMeta(payload.sub);
-    if (meta?.passwordChangedAt && payload.iat) {
-      const changedAtSeconds = Math.floor(meta.passwordChangedAt.getTime() / 1000);
-      if (payload.iat < changedAtSeconds) {
-        throw new UnauthorizedException('Token invalidated by password change');
-      }
-    }
-
-    return { id: payload.sub, email: payload.email, role: payload.role };
+  // Throws 401 (revoked / inactive / pre-password-change / no session id)
+  // or 503 (the check itself couldn't be made — never let the request
+  // through in that case).
+  async validate(payload: any): Promise<AuthUser> {
+    await this.sessions.assertSessionValid(payload);
+    return {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      sid: payload.sid,
+      iat: payload.iat,
+      exp: payload.exp,
+    };
   }
 }

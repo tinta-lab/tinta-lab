@@ -23,6 +23,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateMeDto } from './dto/update-me.dto';
 import { UpdateClientDto } from '../clients/dto/update-client.dto';
 import { AUTH_COOKIE, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from './auth-cookie.constants';
+import { markSessionEnded } from './sliding-session.interceptor';
 import { AuthResponseDto } from './dto/auth-response.dto';
 import { UserSafeViewDto } from '../users/dto/user-safe-view.dto';
 import { ClientViewDto, toClientView } from '../clients/dto/client-view.dto';
@@ -67,20 +68,27 @@ export class AuthController {
     throw new ForbiddenException('Self-registration is disabled. Contact your administrator.');
   }
 
-  // Logout is authenticated — no brute-force risk
+  // Logout is authenticated — no brute-force risk. Revokes the whole session
+  // (every token the sliding session issued under its sid); answers 503 if
+  // that couldn't be recorded. The cookie is cleared either way, and the
+  // sliding session must not hand out a fresh one on this response — it used
+  // to, right after clearCookie, so the browser kept a valid session.
   @Post('logout')
   @HttpCode(204)
   @SkipThrottle()
   @UseGuards(JwtAuthGuard)
   async logout(@Request() req: any, @Res({ passthrough: true }) res: Response) {
-    const token =
-      req.cookies?.[AUTH_COOKIE] ?? req.headers.authorization?.replace('Bearer ', '');
-    if (token) await this.authService.logout(token);
-    res.clearCookie(AUTH_COOKIE, AUTH_COOKIE_OPTS);
+    markSessionEnded(req);
+    try {
+      await this.authService.logout(req.user);
+    } finally {
+      res.clearCookie(AUTH_COOKIE, AUTH_COOKIE_OPTS);
+    }
   }
 
   // Self-service — requires the current password, invalidates every token
-  // issued before now (see JwtStrategy: rejects iat < passwordChangedAt).
+  // issued before now (SessionRevocationService rejects iat <
+  // passwordChangedAt), i.e. all of the user's other sessions.
   @Post('change-password')
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
@@ -94,8 +102,11 @@ export class AuthController {
       dto.oldPassword,
       dto.newPassword,
     );
-    // The cookie's own token is now invalid (iat < passwordChangedAt) — clear
-    // it so the next request cleanly 401s instead of retrying a dead token.
+    // The presented token is now invalid (iat < passwordChangedAt). The
+    // sliding session then re-issues a fresh token for this same session on
+    // this response (iat = now), so the user who just changed the password
+    // stays signed in while every other session is cut off — the frontend
+    // relies on that (it shows a toast and keeps the page open).
     res.clearCookie(AUTH_COOKIE, AUTH_COOKIE_OPTS);
   }
 

@@ -67,9 +67,9 @@ backend/src/
 │   ├── auth.service.ts        # login / register / logout
 │   ├── auth.controller.ts     # POST /auth/login|register|logout
 │   ├── auth.module.ts
-│   ├── token-blacklist.service.ts  # In-memory JWT blacklist (logout)
+│   ├── session-revocation.service.ts  # Отзыв сессий (logout) в Postgres, fail-closed
 │   ├── strategies/
-│   │   └── jwt.strategy.ts    # Passport JWT + blacklist check
+│   │   └── jwt.strategy.ts    # Passport JWT + проверка сессии
 │   ├── guards/
 │   │   ├── jwt-auth.guard.ts  # @UseGuards для REST
 │   │   ├── roles.guard.ts     # @Roles(UserRole.ADMIN) проверка
@@ -310,7 +310,8 @@ Admin/Support → POST /tinta-core/execute/:clientId { entityType, haEntityId, a
 
 ## Безопасность
 
-- **JWT** (15 мин) + in-memory blacklist при logout
+- **JWT** (15 мин, sliding) с идентификатором сессии `sid`; logout отзывает всю сессию
+  (таблица `revoked_sessions`, sql/012). Нельзя проверить — 503, а не пропуск
 - **Agent JWT** (365 дней, отдельный секрет `AGENT_JWT_SECRET`)
 - **Roles**: admin / support / sales / client — декоратор `@Roles()`
 - **Cloudflare Zero Trust** — клиентский HA доступен только через Tunnel
@@ -439,7 +440,7 @@ pm2 start "node_modules/.bin/next start -p 3001" --name tinta-frontend
 |------|-----------|
 | Backend API | NestJS 10, TypeScript, Passport/JWT |
 | ORM | TypeORM 0.3, PostgreSQL 16 |
-| Кэш/Blacklist | Redis 7 (in-memory для dev) |
+| Отзыв сессий | PostgreSQL (`revoked_sessions`); Redis backend больше не использует |
 | WebSocket | Socket.io 4 |
 | Frontend | Next.js 15, React 19, Tailwind CSS 3 |
 | State management | Zustand |
