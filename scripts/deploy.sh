@@ -22,14 +22,20 @@
 # 3. On 2026-08-13, the site went down (dangling `current` symlink) because
 #    the disk-space prune below sorted releases by mtime and kept the
 #    newest N *including* an abandoned, never-linked release dir left behind
-#    by an earlier failed deploy (see "Broken release left at ... for
-#    inspection" below — that message means exactly this can happen). That
+#    by an earlier failed deploy (such dirs are now renamed *.failed — see
+#    #5). That
 #    abandoned dir was newer than the real `current` release, so it got kept
 #    and the actually-live release got pruned instead — out from under a
 #    running PM2 process, which then crash-looped for hours (581 restarts on
 #    one service) until someone noticed. Fixed by excluding whatever
 #    `current` resolves to from deletion candidates entirely, regardless of
 #    mtime ordering, in both prune passes below.
+# 5. (Found in review 2026-10-28, before it bit.) A release left behind by a
+#    failed deploy still looked like a normal release: being newest by name,
+#    the next successful deploy kept IT as the rollback point and pruned the
+#    last known-good release. Failed releases are now renamed *.failed and
+#    pruned separately, so the rollback point is always a release that
+#    passed its health check.
 #
 # Usage: scripts/deploy.sh <slug>
 #   e.g. scripts/deploy.sh fix-support-hub-url
@@ -41,6 +47,8 @@ SRC="/home/tinta/tinta-lab"
 RELEASES="/home/tinta/releases/tinta-lab"
 CURRENT_LINK="/home/tinta/current/tinta-lab"
 KEEP=2  # current release + this many rollback points
+KEEP_FAILED=1  # newest failed release(s) kept for inspection
+MIN_FREE_KB=4000000  # ~4GB
 
 RELEASE="$RELEASES/$(date +%Y-%m-%d-%H%M)-$SLUG"
 PREVIOUS_RELEASE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
@@ -78,32 +86,60 @@ if [ -n "$PREVIOUS_RELEASE" ] && [ -d "$PREVIOUS_RELEASE" ]; then
   LINK_DEST=(--link-dest="$PREVIOUS_RELEASE")
 fi
 
-prune_releases() {
-  # Lists releases newest-first, drops whatever `current` points to from
-  # consideration (re-resolved fresh on every call — this runs both before
-  # and after the symlink switch below, and must never delete the live
-  # release regardless of which release that currently is), keeps the next
-  # $((KEEP - 1)) as rollback points, deletes the rest. See incident #3
-  # above for why "current" can't just be inferred from mtime ordering.
-  local live
-  live="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
-  # Newest first by NAME (<YYYY-MM-DD-HHMM>-<slug>), not mtime: rsync -a
-  # copies the source dir's mtime onto each new release dir, so mtime order
-  # was effectively random — on 2026-10-09 it kept a 3-week-old release as
-  # the "rollback point" and pruned the previous good one.
-  ls -1d "$RELEASES"/*/ 2>/dev/null \
-    | sed 's:/$::' \
-    | sort -r \
-    | grep -vxF "${live:-__none_will_match__}" \
-    | tail -n +"$KEEP" \
-    | xargs -r rm -rf
+# Release dirs newest first by NAME (<YYYY-MM-DD-HHMM>-<slug>), not mtime:
+# rsync -a copies the source dir's mtime onto each new release dir, so mtime
+# order was effectively random — on 2026-10-09 it kept a 3-week-old release
+# as the "rollback point" and pruned the previous good one.
+# $1 = good | failed (see incident #5).
+list_releases() {
+  local all
+  all="$(ls -1d "$RELEASES"/*/ 2>/dev/null | sed 's:/$::' | sort -r || true)"
+  if [ "$1" = failed ]; then
+    grep -e '\.failed$' <<<"$all" || true
+  else
+    grep -v -e '\.failed$' -e '^$' <<<"$all" || true
+  fi
 }
 
+prune_failed() {
+  list_releases failed | tail -n +"$((KEEP_FAILED + 1))" | xargs -r rm -rf
+}
+
+prune_releases() {
+  # Drops whatever `current` points to from consideration (re-resolved fresh
+  # on every call — this runs both before and after the symlink switch
+  # below, and must never delete the live release regardless of which
+  # release that currently is), keeps the next $((KEEP - 1)) good releases
+  # as rollback points, deletes the rest. See incident #3 above for why
+  # "current" can't just be inferred from ordering.
+  local live
+  live="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+  list_releases good \
+    | { grep -vxF "${live:-__none_will_match__}" || true; } \
+    | tail -n +"$KEEP" \
+    | xargs -r rm -rf
+  prune_failed
+}
+
+# Takes a release that must never become a rollback point out of the
+# rotation, keeping it on disk for diagnosis.
+mark_failed() {
+  mv "$RELEASE" "$RELEASE.failed"
+  prune_failed
+  echo "Broken release kept as $RELEASE.failed for inspection (only the newest $KEEP_FAILED failed release(s) are kept)."
+}
+
+avail_kb() { df --output=avail / | tail -1 | tr -d ' '; }
+
 echo "==> Disk space check"
-avail_kb=$(df --output=avail / | tail -1 | tr -d ' ')
-if [ "$avail_kb" -lt 4000000 ]; then  # < ~4GB free
-  echo "Only $((avail_kb / 1024))MB free — pruning old releases before building"
+if [ "$(avail_kb)" -lt "$MIN_FREE_KB" ]; then
+  echo "Only $(( $(avail_kb) / 1024 ))MB free — pruning old releases before building"
   prune_releases
+  if [ "$(avail_kb)" -lt "$MIN_FREE_KB" ]; then
+    echo "FATAL: still only $(( $(avail_kb) / 1024 ))MB free after pruning — not starting a build that could fill the disk."
+    echo "Check: docker system df, journalctl --disk-usage, du -sh ~/.npm ~/.pm2/logs"
+    exit 1
+  fi
 fi
 
 echo "==> Building backend"
@@ -116,6 +152,7 @@ echo "==> Building landing"
 echo "==> Copying to $RELEASE"
 mkdir -p "$RELEASE"
 rsync -a --delete "${RSYNC_EXCLUDES[@]}" "${LINK_DEST[@]}" "$SRC/" "$RELEASE/"
+git -C "$SRC" rev-parse HEAD > "$RELEASE/REVISION"
 
 echo "==> Verifying copy is structurally complete"
 incomplete=0
@@ -143,7 +180,7 @@ for f in "$RELEASE/backend/dist/main.js" "$RELEASE/frontend/.next/BUILD_ID" "$RE
 done
 if [ "$incomplete" != "0" ]; then
   echo "Refusing to deploy an incomplete release. Not switching the symlink."
-  echo "Broken release left at $RELEASE for inspection — clean it up manually once diagnosed."
+  mark_failed
   exit 1
 fi
 echo "  OK — backend, frontend, landing all present and complete"
@@ -184,7 +221,8 @@ if [ "$healthy" != "1" ]; then
   if [ -n "$PREVIOUS_RELEASE" ] && [ -d "$PREVIOUS_RELEASE" ]; then
     ln -sfn "$PREVIOUS_RELEASE" "$CURRENT_LINK"
     pm2 reload /home/tinta/ecosystem.config.js
-    echo "Rolled back to $PREVIOUS_RELEASE. Broken release left at $RELEASE for inspection."
+    echo "Rolled back to $PREVIOUS_RELEASE."
+    mark_failed
   else
     echo "No previous release to roll back to — manual intervention required NOW."
   fi

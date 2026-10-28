@@ -4,6 +4,17 @@ on:
   push:
     branches: [main]
 
+# The job needs no GitHub API access at all (it fetches over the server's own
+# SSH deploy key), so the token gets nothing.
+permissions: {}
+
+# One production deploy at a time. A newer push waiting in the queue replaces
+# an older waiting one (no point building a commit that's about to be
+# superseded); a running deploy is never cancelled mid-switch.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     # Runs on tinta-backend-vm itself (registered as a self-hosted runner,
@@ -13,6 +24,9 @@ jobs:
     # public internet just to let GitHub reach it would be a worse trade
     # than a runner that polls GitHub outbound and needs no inbound port at
     # all. This also means no SSH key/host secrets exist anywhere.
+    #
+    # This repo is public: never add a pull_request trigger to a job on this
+    # runner — that would run code from forks on the production server.
     runs-on: [self-hosted, tinta-backend]
     steps:
       - name: Disk space check
@@ -22,5 +36,14 @@ jobs:
         working-directory: /home/tinta/tinta-lab
         run: |
           set -e
-          git pull --ff-only
+          # Build exactly the commit that triggered this run. `git pull` used
+          # to take whatever main was by the time the job started, while the
+          # release was still named after GITHUB_SHA. --ff-only also refuses
+          # if local main has diverged (e.g. unpushed commits on the server).
+          git fetch --quiet origin main
+          git merge --ff-only --quiet "$GITHUB_SHA"
+          if [ "$(git rev-parse HEAD)" != "$GITHUB_SHA" ]; then
+            echo "FATAL: HEAD is $(git rev-parse HEAD), expected $GITHUB_SHA — local main is ahead of this run's commit"
+            exit 1
+          fi
           scripts/deploy.sh "gha-${GITHUB_SHA::7}"
