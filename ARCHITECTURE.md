@@ -110,7 +110,9 @@ backend/src/
 │   └── cloudflare.module.ts   # Optional — работает без API ключа
 │
 ├── notifications/             # Уведомления
-│   ├── notifications.service.ts  # Telegram Bot API
+│   ├── notifications.service.ts  # Постановка уведомлений в очередь (notification_outbox)
+│   ├── notification-dispatcher.ts  # Фоновая доставка: SKIP LOCKED, аренда, повторы, журнал попыток
+│   ├── telegram-sender.ts      # Telegram Bot API: 45с бюджет, 429, HTML→plain, без токена в логах
 │   │                             # notifyAccessGranted/Revoked/ProvisioningComplete/AgentOffline
 │   └── notifications.module.ts
 │
@@ -275,7 +277,7 @@ Admin → POST /provisioning/client
   ├── TintaCoreService.provisionAgent() → generate JWT (365d)
   ├── Apply default golden templates (non-blocking)
   ├── Generate installToken (UUID, 48h TTL) → installUrl = /install/:token
-  └── NotificationsService.notifyProvisioningComplete() → Telegram (@SmartHubInstalBot)
+  └── NotificationsService.notifyProvisioningComplete() → notification_outbox → Telegram (@SmartHubInstalBot)
 Response: { clientId, agentToken, tunnelToken, dashboardUrl, installUrl }
 
 GET /install/:token (public, 48h)

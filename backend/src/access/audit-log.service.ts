@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { createHash } from 'crypto';
 import { AuditEvent, AuditEventType } from './entities/audit-event.entity';
 
@@ -25,11 +25,19 @@ export class AuditLogService {
 
   constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
 
+  // `inTransaction` runs inside the same transaction, after the event is
+  // written — used to queue a notification (notification_outbox) that must
+  // exist if and only if the event does. If it throws, the event is rolled
+  // back too; the caller decides how to recover.
   async append(
     accessLogId: string,
     eventType: AuditEventType,
     actorUserId: string | null,
     metadata: Record<string, unknown> = {},
+    inTransaction?: (
+      manager: EntityManager,
+      event: AuditEvent,
+    ) => Promise<unknown>,
   ): Promise<AuditEvent> {
     return this.dataSource.transaction(async (manager) => {
       // Serializes concurrent appends so "last event" below is stable.
@@ -60,7 +68,9 @@ export class AuditLogService {
         prevHash,
         hash,
       });
-      return repo.save(event);
+      const saved = await repo.save(event);
+      if (inTransaction) await inTransaction(manager, saved);
+      return saved;
     });
   }
 

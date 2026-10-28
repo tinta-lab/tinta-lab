@@ -595,6 +595,46 @@ printf '%s' "$NEW" | docker exec -i tinta-grafana grafana cli admin reset-admin-
 Секреты в `docker-compose.yml` не писать: репозиторий публичный (старый пароль
 Grafana из истории git пришлось ротировать 2026-10-28).
 
+### Уведомления в Telegram и очередь (outbox)
+
+Бот @SmartHubInstalBot пишет в личный чат администратора. Все уведомления сначала
+записываются в таблицу `notification_outbox` (sql/013), а фоновый обработчик в backend
+доставляет их в Telegram.
+
+| Тип | Приоритет | Повторы при сбое |
+|-----|-----------|------------------|
+| 🚨 `security_anomaly` (аномалия в support-сессии) | критический | ~сутки (10 попыток: 1, 2, 5, 10, 30 мин, 1, 2, 4, 8 ч) |
+| `agent_offline` | высокий | 5 попыток за ~1,5 ч |
+| `provisioning_complete` (новый клиент) | обычный | 3 попытки за ~6 мин |
+| `access_granted` / `access_revoked` | низкий | 1 попытка |
+
+- Алерт безопасности пишется **в одной транзакции** с событием в `audit_events`: если событие
+  записано, алерт гарантированно в очереди и переживёт перезапуск backend и недоступность
+  Telegram. Если очередь недоступна — событие всё равно пишется в аудит (алерт теряется,
+  в логе `security anomaly alert NOT queued`).
+- Доставка «хотя бы один раз»: после таймаута или падения процесса сообщение может прийти
+  дважды. Метка `#xxxxxxxx` в конце сообщения — id уведомления, у дубля она та же.
+
+**Где смотреть:** Grafana → папка Tinta Lab → **Tinta Notifications** (отправки, отказы, повторы,
+доля успешных, возраст очереди, недоставленные). В логах backend: `notification.sent|retry|failed`
+и `telegram.sent|retry|failed`.
+
+**Окончательно недоставленные** (`failed`) остаются в таблице для разбора. Повторить вручную:
+
+```sql
+-- через Adminer или psql; #id из Grafana / сообщения
+UPDATE notification_outbox
+   SET status = 'pending', attempts = 0, "nextAttemptAt" = now(), "lastErrorCode" = NULL
+ WHERE status = 'failed' AND id::text LIKE 'xxxxxxxx%';
+```
+
+Если Telegram не настроен (в логе при старте `Telegram not configured`), уведомления копятся
+в очереди со статусом `pending` — в Grafana растёт «Возраст очереди». После настройки они уйдут
+сами (кроме тех, что уже `failed`). Доставленные записи и история попыток хранятся 90 дней.
+
+**Смена токена бота:** @BotFather → `/revoke` → `bash ~/shared/rotate-telegram-token.sh`
+(скрытый ввод, проверка токена до записи, перезапуск backend, тестовое сообщение).
+
 ---
 
 ## Контакты и ресурсы

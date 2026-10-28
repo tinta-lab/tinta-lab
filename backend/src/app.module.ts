@@ -26,6 +26,8 @@ import { GoldenTemplate } from './tinta-core/entities/golden-template.entity';
 import { AgentSession } from './tinta-core/entities/agent-session.entity';
 import { ProvisioningOperation } from './provisioning/entities/provisioning-operation.entity';
 import { RevokedSession } from './auth/entities/revoked-session.entity';
+import { NotificationOutbox } from './notifications/entities/notification-outbox.entity';
+import { NotificationAttempt } from './notifications/entities/notification-attempt.entity';
 
 @Module({
   imports: [
@@ -55,6 +57,8 @@ import { RevokedSession } from './auth/entities/revoked-session.entity';
           AgentSession,
           ProvisioningOperation,
           RevokedSession,
+          NotificationOutbox,
+          NotificationAttempt,
         ],
         synchronize: config.get('NODE_ENV') !== 'production',
         logging: false,

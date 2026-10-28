@@ -460,39 +460,81 @@ export class TintaAgentGateway
     const clientId = client.data.clientId as string | undefined;
     if (!clientId || !payload?.accessLogId || !payload.anomalies?.length) return;
 
-    await this.auditLog.append(
-      payload.accessLogId,
-      AuditEventType.SECURITY_ANOMALY,
-      null,
-      { anomalies: payload.anomalies },
-    );
     this.logger.warn(
       `SECURITY ANOMALY for access ${payload.accessLogId} (client ${clientId}): ` +
         `${payload.anomalies.length} finding(s) — ${payload.anomalies.map((a) => a.type).join(', ')}`,
     );
+    await this.recordSecurityAnomaly(payload.accessLogId, payload.anomalies);
+  }
 
+  // Records the anomaly in audit_events and queues the Telegram alert in the
+  // SAME transaction: once it commits, the alert survives restarts and
+  // Telegram outages (NotificationDispatcher retries it for ~a day). If the
+  // alert can't be queued, the event is still recorded on its own — losing
+  // the audit record is never an acceptable trade for the alert.
+  async recordSecurityAnomaly(
+    accessLogId: string,
+    anomalies: { type: string; detail: string; userId?: string }[],
+  ): Promise<void> {
+    const metadata = { anomalies };
+    if (!this.notifications) {
+      await this.auditLog.append(
+        accessLogId,
+        AuditEventType.SECURITY_ANOMALY,
+        null,
+        metadata,
+      );
+      return;
+    }
+
+    // Names for the alert text — best effort; the alert is queued even if
+    // they can't be resolved.
+    let clientName: string | null = null;
+    let serverName: string | null = null;
     try {
       const log = await this.accessLogRepo.findOne({
-        where: { id: payload.accessLogId },
+        where: { id: accessLogId },
         relations: ['server'],
       });
       if (log?.server?.id) {
         const server = await this.serversService.findById(log.server.id);
+        serverName = server.name;
         if (server.client?.user) {
-          await this.notifications?.notifySecurityAnomaly({
-            clientName: `${server.client.user.firstName} ${server.client.user.lastName}`,
-            serverName: server.name,
-            anomalies: payload.anomalies,
-          });
-          return;
+          clientName = `${server.client.user.firstName} ${server.client.user.lastName}`;
         }
       }
-      // The anomaly is in audit_events either way; say when no alert went out.
-      this.logger.warn(
-        `security anomaly alert NOT sent for access ${payload.accessLogId}: no server/client found for it`,
-      );
     } catch (e) {
-      this.logger.error('Failed to send security anomaly notification', e as Error);
+      this.logger.warn(
+        `security anomaly: couldn't resolve names for access ${accessLogId}: ${(e as Error).message}`,
+      );
+    }
+
+    const alert = {
+      clientName,
+      serverName,
+      accessLogId,
+      anomalies: anomalies.map(({ type, detail }) => ({ type, detail })),
+    };
+    try {
+      await this.auditLog.append(
+        accessLogId,
+        AuditEventType.SECURITY_ANOMALY,
+        null,
+        metadata,
+        (manager) =>
+          this.notifications!.enqueue('security_anomaly', alert, manager),
+      );
+      this.notifications.kick();
+    } catch (e) {
+      this.logger.error(
+        `security anomaly alert NOT queued for access ${accessLogId} (${(e as Error).message}) — recording the audit event without it`,
+      );
+      await this.auditLog.append(
+        accessLogId,
+        AuditEventType.SECURITY_ANOMALY,
+        null,
+        metadata,
+      );
     }
   }
 
