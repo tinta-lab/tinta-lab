@@ -1,8 +1,18 @@
 
+# Docker's default json-file driver never rotates (Grafana alone writes
+# ~1GB/year of noise). "local" is compressed and rotated; `docker logs`
+# still works. Applies when a container is (re)created.
+x-logging: &default-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: tinta-postgres
+    logging: *default-logging
     restart: always
     environment:
       POSTGRES_DB: tinta_lab
@@ -21,6 +31,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: tinta-redis
+    logging: *default-logging
     restart: always
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
@@ -35,6 +46,7 @@ services:
     # Pinned: was the bare "adminer" tag (:latest).
     image: adminer:5.4.2
     container_name: tinta-adminer
+    logging: *default-logging
     restart: always
     environment:
       # Adminer's own default is "db", which doesn't resolve on this network.
@@ -58,6 +70,7 @@ services:
     # Pinned: :latest meant whatever happened to be pulled last.
     image: grafana/grafana:13.0.0
     container_name: tinta-grafana
+    logging: *default-logging
     restart: always
     environment:
       # Only applied when grafana.db is first created — changing it later
