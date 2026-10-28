@@ -1,5 +1,6 @@
 'use client';
 import { create } from 'zustand';
+import { isAxiosError } from 'axios';
 import api from '@/lib/api';
 import { User, AuthResponse } from '@/types';
 
@@ -28,14 +29,22 @@ export const useAuth = create<AuthStore>((set, get) => ({
     set({ user: data.user });
   },
 
+  // The server revokes the whole session and clears the cookie. If it
+  // couldn't record the revocation (503) or wasn't reachable, local sign-out
+  // still happens, but the login page says the server didn't confirm it
+  // instead of implying a clean logout. A 401 means the session was already
+  // dead — nothing left to revoke.
   logout: async () => {
+    let unconfirmed = false;
     if (get().user) {
       try {
         await api.post('/auth/logout');
-      } catch { /* ignore — server-side blacklist best-effort */ }
+      } catch (e) {
+        unconfirmed = !(isAxiosError(e) && e.response?.status === 401);
+      }
     }
     localStorage.removeItem('user');
     set({ user: null });
-    window.location.href = '/auth/login';
+    window.location.href = unconfirmed ? '/auth/login?logout=unconfirmed' : '/auth/login';
   },
 }));

@@ -53,6 +53,19 @@ export default function LoginPage() {
 
   useEffect(() => { init(); }, [init]);
 
+  // Set by useAuth.logout when the server couldn't confirm the session was
+  // revoked. Shown once; the flag is dropped from the URL so a reload
+  // doesn't repeat it.
+  useEffect(() => {
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get('logout') !== 'unconfirmed') return;
+      toast.warning(t('logout_unconfirmed'), { duration: 15000 });
+      url.searchParams.delete('logout');
+      window.history.replaceState(null, '', url.pathname + url.search);
+    } catch { /* ignore */ }
+  }, [t]);
+
   useEffect(() => {
     if (user) router.push(destinationFor(user.role));
   }, [user, router]);

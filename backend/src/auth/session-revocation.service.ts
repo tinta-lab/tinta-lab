@@ -35,11 +35,24 @@ const REVOCATION_MARGIN_MS = 60_000;
 export class SessionRevocationService {
   private readonly logger = new Logger(SessionRevocationService.name);
 
+  // Notified after a revocation is recorded — the /servers WS gateway uses
+  // it to drop connections that were authenticated under that session
+  // (connect-time auth alone would let them run on). In-process only, which
+  // is enough while the backend runs as one PM2 fork-mode process; with
+  // several instances this needs a shared channel (e.g. Postgres
+  // LISTEN/NOTIFY).
+  private readonly revokedListeners = new Set<(sessionId: string) => void>();
+
   constructor(
     @InjectRepository(RevokedSession)
     private readonly revoked: Repository<RevokedSession>,
     private readonly usersService: UsersService,
   ) {}
+
+  onRevoked(listener: (sessionId: string) => void): () => void {
+    this.revokedListeners.add(listener);
+    return () => this.revokedListeners.delete(listener);
+  }
 
   async assertSessionValid(payload: SessionTokenPayload): Promise<void> {
     // Tokens issued before sessions existed (and any non-session JWT) carry
@@ -118,6 +131,16 @@ export class SessionRevocationService {
       throw new ServiceUnavailableException(
         'Logout could not be completed, please try again',
       );
+    }
+
+    for (const listener of this.revokedListeners) {
+      try {
+        listener(payload.sid);
+      } catch (err) {
+        this.logger.warn(
+          `revocation listener failed sid=${payload.sid}: ${errorMessage(err)}`,
+        );
+      }
     }
 
     // Housekeeping only — a failure here must not fail the logout.

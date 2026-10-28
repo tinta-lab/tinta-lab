@@ -87,9 +87,16 @@ describe('Session revocation (e2e)', () => {
     app.use(cookieParser());
     app.use(csrfOriginGuard(ORIGIN));
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     await app.init();
+    // Listen once: supertest otherwise starts a throwaway listener per
+    // request, and the parallel requests in the race test then hit ECONNRESET.
+    await app.listen(0);
 
     usersRepo = moduleFixture.get(getRepositoryToken(User));
     revokedRepo = moduleFixture.get(getRepositoryToken(RevokedSession));
@@ -108,10 +115,10 @@ describe('Session revocation (e2e)', () => {
     const sid = (jwt.decode(loginToken) as { sid?: string }).sid;
     expect(sid).toMatch(/^[0-9a-f-]{36}$/);
 
-    // The sliding session re-issues a token under the same sid.
+    // The sliding session re-issues a token under the same sid (byte-equal
+    // to the login token if both fall in the same second — iat is seconds).
     const slid = await probe(loginToken).expect(200);
     const renewed = cookieValue(authCookies(slid)[0]);
-    expect(renewed).not.toBe(loginToken);
     expect((jwt.decode(renewed) as { sid?: string }).sid).toBe(sid);
 
     const logout = await request(app.getHttpServer())
@@ -135,7 +142,9 @@ describe('Session revocation (e2e)', () => {
     const row = await revokedRepo.findOneByOrFail({ sessionId: sid! });
     expect(row.userId).toBe(admin.id);
     // kept until the newest possible token of the session has expired
-    expect(row.expiresAt.getTime()).toBeGreaterThan(Date.now() + 10 * 60 * 1000);
+    expect(row.expiresAt.getTime()).toBeGreaterThan(
+      Date.now() + 10 * 60 * 1000,
+    );
   });
 
   it("logging out one session leaves the user's other sessions working", async () => {
@@ -153,9 +162,36 @@ describe('Session revocation (e2e)', () => {
     await probe(b).expect(200);
   });
 
+  it('requests racing the logout cannot keep the session alive', async () => {
+    const admin = await createAdmin();
+    const token = await login(admin.email);
+
+    // Some of these are validated before the revocation lands and get a
+    // renewed cookie; whichever way the race goes, every token of the
+    // session must be dead once the logout has been recorded.
+    const [logout, ...raced] = await Promise.all([
+      request(app.getHttpServer())
+        .post('/auth/logout')
+        .set('Origin', ORIGIN)
+        .set('Cookie', `access_token=${token}`),
+      ...Array.from({ length: 8 }, () => probe(token)),
+    ]);
+    expect(logout.status).toBe(204);
+
+    const renewed = raced
+      .flatMap((r) => authCookies(r).map(cookieValue))
+      .filter(Boolean);
+    await probe(token).expect(401);
+    for (const t of renewed) await probe(t).expect(401);
+  });
+
   it('refuses tokens without a session id (issued before sessions existed)', async () => {
     const admin = await createAdmin();
-    const legacy = jwt.sign({ sub: admin.id, email: admin.email, role: admin.role });
+    const legacy = jwt.sign({
+      sub: admin.id,
+      email: admin.email,
+      role: admin.role,
+    });
     await probe(legacy).expect(401);
   });
 

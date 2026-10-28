@@ -131,4 +131,63 @@ describe('ServersGateway', () => {
       expect(assert).not.toHaveBeenCalled();
     });
   });
+
+  // Connect-time auth alone let a socket outlive its session's logout.
+  describe('revoked sessions', () => {
+    function setup() {
+      let onRevoked: (sid: string) => void = () => undefined;
+      const sessions = {
+        assertSessionValid: jest.fn().mockResolvedValue(undefined),
+        onRevoked: jest.fn((l: (sid: string) => void) => {
+          onRevoked = l;
+          return () => undefined;
+        }),
+      };
+      const verify = jest.fn();
+      const gateway = new ServersGateway(
+        { verify } as any,
+        { get: jest.fn() } as any,
+        sessions as any,
+        { markOnline: jest.fn(), markOffline: jest.fn() } as any,
+      );
+      gateway.onModuleInit();
+      async function connect(sid: string) {
+        verify.mockReturnValueOnce({ sub: 'user-1', sid, iat: 1, exp: 2 });
+        const client: any = {
+          id: `c-${sid}-${Math.random()}`,
+          handshake: { auth: { token: 'tok' }, headers: {} },
+          data: {},
+          emit: jest.fn(),
+          disconnect: jest.fn(),
+        };
+        await gateway.handleConnection(client);
+        return client;
+      }
+      return { gateway, connect, revoke: (sid: string) => onRevoked(sid) };
+    }
+
+    it('drops every live connection of the revoked session, and only those', async () => {
+      const { connect, revoke } = setup();
+      const a1 = await connect('sid-a');
+      const a2 = await connect('sid-a');
+      const b = await connect('sid-b');
+
+      revoke('sid-a');
+
+      for (const c of [a1, a2]) {
+        expect(c.emit).toHaveBeenCalledWith('error', { message: 'Session has been revoked' });
+        expect(c.disconnect).toHaveBeenCalledWith(true);
+      }
+      expect(b.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('forgets connections that already closed', async () => {
+      const { gateway, connect, revoke } = setup();
+      const a = await connect('sid-a');
+      gateway.handleDisconnect(a);
+
+      revoke('sid-a');
+      expect(a.disconnect).not.toHaveBeenCalled();
+    });
+  });
 });

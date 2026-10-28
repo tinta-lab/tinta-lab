@@ -5,7 +5,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { HttpException, Logger } from '@nestjs/common';
+import { HttpException, Logger, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
@@ -31,12 +31,16 @@ function readCookie(header: string | undefined, name: string): string | null {
   namespace: '/servers',
 })
 export class ServersGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
+  implements OnGatewayConnection, OnGatewayDisconnect, OnModuleInit
 {
   @WebSocketServer()
   server: Server;
 
   private readonly logger = new Logger(ServersGateway.name);
+
+  // Live connections by session id, so a logout can drop them — the session
+  // check only runs at connect time.
+  private readonly socketsBySession = new Map<string, Set<Socket>>();
 
   constructor(
     private readonly jwtService: JwtService,
@@ -44,6 +48,24 @@ export class ServersGateway
     private readonly sessions: SessionRevocationService,
     private readonly presence: PresenceService,
   ) {}
+
+  onModuleInit() {
+    this.sessions.onRevoked((sessionId) => this.disconnectSession(sessionId));
+  }
+
+  // Ends every live /servers connection of a revoked session.
+  disconnectSession(sessionId: string): void {
+    const sockets = this.socketsBySession.get(sessionId);
+    if (!sockets) return;
+    this.socketsBySession.delete(sessionId);
+    for (const socket of sockets) {
+      socket.emit('error', { message: 'Session has been revoked' });
+      socket.disconnect(true);
+    }
+    this.logger.log(
+      `WS session revoked: closed ${sockets.size} connection(s) sid=${sessionId}`,
+    );
+  }
 
   async handleConnection(client: Socket) {
     const token =
@@ -88,6 +110,11 @@ export class ServersGateway
     }
 
     client.data.user = payload;
+    if (payload.sid) {
+      const sockets = this.socketsBySession.get(payload.sid) ?? new Set<Socket>();
+      sockets.add(client);
+      this.socketsBySession.set(payload.sid, sockets);
+    }
     this.presence.markOnline(payload.sub);
     this.logger.log(
       `WS authenticated: ${client.id} user=${payload.sub} role=${payload.role}`,
@@ -95,6 +122,12 @@ export class ServersGateway
   }
 
   handleDisconnect(client: Socket) {
+    const sid = client.data?.user?.sid;
+    const sockets = sid ? this.socketsBySession.get(sid) : undefined;
+    if (sockets) {
+      sockets.delete(client);
+      if (!sockets.size) this.socketsBySession.delete(sid);
+    }
     const userId = client.data?.user?.sub;
     if (userId) this.presence.markOffline(userId);
     this.logger.log(`WS disconnected: ${client.id}`);

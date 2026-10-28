@@ -197,6 +197,32 @@ describe('SessionRevocationService', () => {
       expect(repo.delete).toHaveBeenCalled();
     });
 
+    it('notifies listeners (WS gateway) after the revocation is recorded', async () => {
+      const { service } = setup();
+      const listener = jest.fn();
+      service.onRevoked(listener);
+      await service.revoke(payload);
+      expect(listener).toHaveBeenCalledWith('sid-1');
+    });
+
+    it('does not notify listeners when the revocation could not be recorded', async () => {
+      const { service } = setup({ insertError: new Error('down') });
+      const listener = jest.fn();
+      service.onRevoked(listener);
+      await expect(service.revoke(payload)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it('a failing listener does not fail the logout', async () => {
+      const { service } = setup();
+      service.onRevoked(() => {
+        throw new Error('boom');
+      });
+      await expect(service.revoke(payload)).resolves.toBeUndefined();
+    });
+
     it('does nothing for a token without a session id', async () => {
       const { service, repo } = setup();
       await service.revoke({ sub: 'user-1' });
