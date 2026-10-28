@@ -4,11 +4,11 @@
 // real data. Every field here is kept, including the secrets
 // (agentToken/installToken/tunnelToken/agentInstallCommand): this endpoint's
 // whole purpose is handing a freshly-provisioned client's bootstrap
-// credentials to the caller, and it has two real consumers with different
-// field needs — the admin Hubs wizard (frontend/src/app/dashboard/admin/hubs/page.tsx,
-// reads only `installToken` today) and scripts/provision-client.sh (reads
-// agentToken/clientId/dashboardUrl/installUrl/tunnelToken) — so trimming to
-// "what one consumer currently uses" would silently break the other.
+// credentials to the caller. Its UI consumer, the admin Hubs wizard
+// (frontend/src/app/dashboard/admin/hubs/page.tsx), reads only
+// installToken/installUrl, but the endpoint is also a documented API for
+// curl/Swagger callers (scripts/provision-client.sh read the rest until it
+// was removed 2026-10-28), so the shape stays as is.
 export class ProvisionResultDto {
   clientId: string;
   serverId: string;

@@ -43,7 +43,7 @@ export class AuthController {
 
   // 10 attempts per 15 minutes per IP — prevents brute-force.
   // access_token is still returned in the body for non-browser callers
-  // (provision-client.sh, curl, Swagger "try it") that can't rely on cookies;
+  // (curl, scripts, Swagger "try it") that can't rely on cookies;
   // the browser dashboard ignores the body token and relies on the cookie.
   @Post('login')
   @HttpCode(200)

@@ -14,7 +14,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 // from the dashboard's own origin.
 //
 // Deliberately scoped to cookie-authenticated requests only: Bearer-token
-// callers (provision-client.sh, curl, Swagger "try it") never send an Origin
+// callers (curl, scripts, Swagger "try it") never send an Origin
 // header and are not vulnerable to CSRF in the first place — a foreign page
 // cannot read a value it was never given to attach as a header.
 export function csrfOriginGuard(allowedOrigin: string | undefined) {

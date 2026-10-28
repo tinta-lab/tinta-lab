@@ -24,7 +24,7 @@ import { AUTH_COOKIE, AUTH_COOKIE_MAX_AGE_MS, authCookieOptions } from './auth-c
 // for 15+ minutes still logs them out, which is the intended behavior.
 //
 // Deliberately scoped to cookie-authenticated requests only — Bearer-token
-// callers (provision-client.sh, curl, Swagger) never had a cookie to slide
+// callers (curl, scripts, Swagger) never had a cookie to slide
 // and shouldn't have one silently created for them.
 @Injectable()
 export class SlidingSessionInterceptor implements NestInterceptor {

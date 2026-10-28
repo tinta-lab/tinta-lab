@@ -7,7 +7,7 @@ import { TokenBlacklistService } from '../token-blacklist.service';
 import { UsersService } from '../../users/users.service';
 
 // Browser clients authenticate via the httpOnly `access_token` cookie;
-// the Bearer header stays supported for scripts/tools (e.g. provision-client.sh).
+// the Bearer header stays supported for scripts/tools (curl, Swagger).
 const cookieExtractor = (req: Request): string | null =>
   req?.cookies?.access_token ?? null;
 

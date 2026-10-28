@@ -321,28 +321,19 @@ Admin/Support → POST /tinta-core/execute/:clientId { entityType, haEntityId, a
 
 ## Добавление нового клиента
 
-```bash
-# 1. Провиженинг через Admin → Agents → "Новый клиент"
-#    (или вручную через скрипт)
-cd tinta-lab/scripts && ./provision-client.sh
+Через мастер в админке: **Хабы → «Создать хаб»** (`POST /provisioning/client`).
+Пошагово — [RUNBOOK.md §1](RUNBOOK.md#1-добавление-нового-клиента).
 
-# Скрипт создаёт:
-#   ✓ User + Client + Server в БД
-#   ✓ Cloudflare Tunnel + DNS (если настроен CF_API_TOKEN)
-#   ✓ Agent JWT (365 дней)
-#   ✓ Magic Install Link (48 часов)
+- Создаются User + Client + Server в БД, Cloudflare Tunnel + DNS (если настроен
+  `CF_API_TOKEN`), Agent JWT и Magic Install Link (7 дней, `INSTALL_LINK_TTL_MS`).
+- Клиент открывает ссылку и подтверждает согласие (§ 356 BGB) — до этого
+  `GET /install/:token` отвечает 403 и агент не может зарегистрироваться.
+- В HA Add-on вводится только код установки; `client_id`, `agent_token` и tunnel
+  token агент получает сам при enroll.
 
-# 2. Добавить агент на сервер
-cp /home/tinta/tinta-agent-pub/clients/.env.example \
-   /home/tinta/tinta-agent-pub/clients/SUBDOMAIN.env
-# Заполнить TINTA_CLIENT_ID, TINTA_AGENT_TOKEN, SUPERVISOR_TOKEN
-
-# 3. Запустить агент
-cd /home/tinta/tinta-agent-pub
-# Добавить  app('SUBDOMAIN')  в ecosystem.config.js
-pm2 start ecosystem.config.js --only tinta-agent-SUBDOMAIN
-pm2 save
-```
+Секреты провиженинга (пароль клиента, токены) не сохранять в файлы: прежний
+`scripts/provision-client.sh` писал их в `client-*-config.txt` в каталоге
+репозитория и удалён 2026-10-28.
 
 **Что меняем при добавлении клиента:**
 | Файл | Действие |

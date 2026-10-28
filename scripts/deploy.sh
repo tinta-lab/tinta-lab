@@ -68,14 +68,16 @@ fi
 # matched node_modules/caniuse-lite/data, the very dir that went missing in
 # incident #1), and Next's dev-server output / build cache (~500MB per
 # release, unused by `next start`). Used for both the copy and the file-count
-# check so the two always agree.
-EXCLUDES=(.env .env.local /data/ /.git/ .next/dev/ .next/cache/)
+# check so the two always agree. `.env.*` too: .gitignore keeps them out of
+# git but not out of rsync — backend/.env.staging (with the DB password) was
+# being copied into every release until 2026-10-28.
+EXCLUDES=(.env '.env.*' /data/ /.git/ .next/dev/ .next/cache/)
 RSYNC_EXCLUDES=()
 for e in "${EXCLUDES[@]}"; do RSYNC_EXCLUDES+=(--exclude="$e"); done
 
 count_files() {
   find "$1" \( -path '*/.next/dev' -o -path '*/.next/cache' \) -prune \
-    -o -type f ! -name .env ! -name .env.local -print 2>/dev/null | wc -l
+    -o -type f ! -name .env ! -name '.env.*' -print 2>/dev/null | wc -l
 }
 
 # Unchanged files (in practice: almost all of node_modules) are hardlinked
