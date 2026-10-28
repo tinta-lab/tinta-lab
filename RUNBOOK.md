@@ -582,6 +582,34 @@ SELECT client_id, status, last_heartbeat_at FROM agent_sessions;  -- агент�
 \q
 ```
 
+### Grafana
+
+Доступ только через https://monitor.tinta-lab.de (Cloudflare Access). Порт
+3003 слушается лишь на LAN-адресе `192.168.2.63` — туннель на ct200 ходит
+сюда по LAN. Пароль admin и роли БД — в `~/shared/grafana.credentials`
+(значения продублированы в `.env` для docker-compose).
+
+Источник данных работает под ролью `grafana_ro`: read-only транзакции,
+`statement_timeout` 15s, SELECT только на столбцы, которые читает дашборд
+(без хешей паролей, токенов агентов, телефонов и адресов). Если новой панели
+нужен ещё столбец — выдать точечно:
+
+```sql
+GRANT SELECT ("columnName") ON some_table TO grafana_ro;
+```
+
+Сменить пароль admin (`GF_SECURITY_ADMIN_PASSWORD` действует только при
+создании `grafana.db`, поэтому правка `.env` пароль не меняет):
+
+```bash
+NEW=$(openssl rand -hex 24)
+printf '%s' "$NEW" | docker exec -i tinta-grafana grafana cli admin reset-admin-password --password-from-stdin
+# затем заменить GRAFANA_ADMIN_PASSWORD в ~/shared/grafana.credentials и .env
+```
+
+Секреты в `docker-compose.yml` не писать: репозиторий публичный (старый пароль
+Grafana из истории git пришлось ротировать 2026-10-28).
+
 ---
 
 ## Контакты и ресурсы

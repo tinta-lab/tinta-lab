@@ -51,21 +51,32 @@ services:
       - "192.168.2.63:8080:8080"
 
   grafana:
-    image: grafana/grafana:latest
+    # Pinned: :latest meant whatever happened to be pulled last.
+    image: grafana/grafana:13.0.0
     container_name: tinta-grafana
     restart: always
     environment:
+      # Only applied when grafana.db is first created — changing it later
+      # does NOT change the admin password (use `grafana cli admin
+      # reset-admin-password` inside the container for that).
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_SERVER_ROOT_URL: https://monitor.tinta-lab.de
       GF_INSTALL_PLUGINS: ""
+      # Read-only Postgres role for the datasource (provisioning/datasources).
+      GRAFANA_DB_USER: ${GRAFANA_DB_USER}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
     volumes:
       - ./data/grafana/provisioning:/etc/grafana/provisioning
       - ./data/grafana/dashboards:/var/lib/grafana/dashboards
       - grafana-data:/var/lib/grafana
     ports:
-      - "3003:3000"
+      # Was "3003:3000" (0.0.0.0 and [::] — the public IPv6 too), which
+      # bypassed the Cloudflare Access app on monitor.tinta-lab.de. Same
+      # reasoning as adminer above: the tunnel on ct200 reaches this box
+      # over the LAN, so bind to the LAN IP, not loopback.
+      - "192.168.2.63:3003:3000"
     depends_on:
       - postgres
 
