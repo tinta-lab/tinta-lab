@@ -166,13 +166,11 @@ describe('NotificationsService', () => {
 
   it('never throws, stops after 3 attempts, and logs the final failure without the token', async () => {
     jest.useFakeTimers();
-    const sendMessage = jest
-      .fn()
-      .mockRejectedValue(
-        telegramError(`EFATAL: Error: connect ECONNREFUSED (bot${TOKEN})`, {
-          code: 'EFATAL',
-        }),
-      );
+    const sendMessage = jest.fn().mockRejectedValue(
+      telegramError(`EFATAL: Error: connect ECONNREFUSED (bot${TOKEN})`, {
+        code: 'EFATAL',
+      }),
+    );
     const { service } = setup(sendMessage);
 
     const done = service.notifyProvisioningComplete({
@@ -193,6 +191,59 @@ describe('NotificationsService', () => {
     ).toBe(true);
     expect(logs.join('\n')).not.toContain(TOKEN);
     expect(logs.join('\n')).toContain('<bot-token>');
+  });
+
+  // Repeated 429s can't stretch a send past its 45s budget.
+  it('stops when a second 429 wait would exceed the time budget', async () => {
+    jest.useFakeTimers();
+    const rateLimited = () =>
+      telegramError('ETELEGRAM: 429 Too Many Requests', {
+        response: { body: { parameters: { retry_after: 30 } } },
+      });
+    const sendMessage = jest
+      .fn()
+      .mockRejectedValueOnce(rateLimited())
+      .mockRejectedValueOnce(rateLimited());
+    const { service } = setup(sendMessage);
+
+    const done = service.notifySecurityAnomaly(anomaly);
+    await jest.advanceTimersByTimeAsync(30_000);
+    await done;
+
+    expect(sendMessage).toHaveBeenCalledTimes(2);
+    expect(
+      logs.some(
+        (l) =>
+          l.startsWith('error: telegram.failed') &&
+          l.includes('reason=budget_exhausted'),
+      ),
+    ).toBe(true);
+  });
+
+  it('finishes within the 45s budget in the worst mix (429 wait, then a hanging request)', async () => {
+    jest.useFakeTimers();
+    const start = Date.now();
+    const sendMessage = jest
+      .fn()
+      .mockRejectedValueOnce(
+        telegramError('ETELEGRAM: 429 Too Many Requests', {
+          response: { body: { parameters: { retry_after: 30 } } },
+        }),
+      )
+      .mockReturnValue(new Promise(() => undefined));
+    const { service } = setup(sendMessage);
+
+    let finished = false;
+    const done = service.notifySecurityAnomaly(anomaly).then(() => {
+      finished = true;
+    });
+    await jest.advanceTimersByTimeAsync(45_000);
+    expect(finished).toBe(true);
+    await done;
+
+    expect(Date.now() - start).toBeLessThanOrEqual(45_000);
+    expect(sendMessage).toHaveBeenCalledTimes(3);
+    expect(logs.some((l) => l.startsWith('error: telegram.failed'))).toBe(true);
   });
 
   it('provisioning notice carries no token fragments', async () => {
