@@ -53,6 +53,23 @@ describe('notification templates', () => {
     expect(html).toContain('• d');
   });
 
+  it('marks test notifications so they are not mistaken for real alerts', () => {
+    const payload = {
+      clientName: 'c',
+      serverName: 's',
+      accessLogId: 'a',
+      anomalies: [],
+    };
+    expect(
+      renderNotification('security_anomaly', payload, ID, true).startsWith(
+        '🧪 <b>ТЕСТ</b>',
+      ),
+    ).toBe(true);
+    expect(renderNotification('security_anomaly', payload, ID)).not.toContain(
+      'ТЕСТ',
+    );
+  });
+
   it('esc handles &, <, > and empty values', () => {
     expect(esc('a<b>&c')).toBe('a&lt;b&gt;&amp;c');
     expect(esc(null)).toBe('');

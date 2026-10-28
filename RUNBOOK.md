@@ -627,13 +627,32 @@ Grafana из истории git пришлось ротировать 2026-10-28
 доля успешных, возраст очереди, недоставленные). В логах backend: `notification.sent|retry|failed`
 и `telegram.sent|retry|failed`.
 
-**Окончательно недоставленные** (`failed`) остаются в таблице для разбора. Повторить вручную:
+**Окончательно недоставленные** (`failed`) остаются в таблице для разбора. Повторить вручную
+(Adminer или `docker exec -it tinta-postgres psql -U tinta tinta_lab`) — в два шага, чтобы не
+отправить повторно уже доставленный алерт:
 
 ```sql
--- через Adminer или psql; #id из Grafana / сообщения
+-- 1. Найти уведомление по #id из Grafana / сообщения и посмотреть его состояние
+SELECT id, "eventType", status, attempts, "lastErrorCode", "createdAt"
+  FROM notification_outbox WHERE id::text LIKE 'xxxxxxxx%';
+
+-- 2. Повторить — по ПОЛНОМУ id и только если оно всё ещё failed
 UPDATE notification_outbox
    SET status = 'pending', attempts = 0, "nextAttemptAt" = now(), "lastErrorCode" = NULL
- WHERE status = 'failed' AND id::text LIKE 'xxxxxxxx%';
+ WHERE id = '<полный uuid из шага 1>' AND status = 'failed'
+RETURNING '#' || left(id::text, 8) AS requeued;
+-- 0 строк = уведомление не в статусе failed (уже доставлено или ещё в очереди) — ничего не делать
+```
+
+**Проверить доставку тестовым сообщением** (после деплоя, смены токена и т.п.) — с флагом
+`isTest`: оно придёт с пометкой «🧪 ТЕСТ» и не попадёт в метрики (в Grafana — отдельная панель
+«Тестовые отправки»):
+
+```sql
+INSERT INTO notification_outbox ("eventType", priority, payload, "maxAttempts", "isTest")
+VALUES ('provisioning_complete', 2,
+        '{"clientName":"Проверка","clientEmail":"-","serverName":"-","subdomain":"-","dashboardUrl":"-"}',
+        1, true);
 ```
 
 Если Telegram не настроен (в логе при старте `Telegram not configured`), уведомления копятся

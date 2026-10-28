@@ -45,4 +45,8 @@ export class NotificationAttempt {
 
   @Column({ type: 'integer' })
   durationMs: number;
+
+  // Deliberate test send — excluded from the delivery metrics (sql/014).
+  @Column({ type: 'boolean', default: false })
+  isTest: boolean;
 }

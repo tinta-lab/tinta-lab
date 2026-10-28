@@ -52,4 +52,8 @@ export class NotificationOutbox {
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   lastErrorCode: string | null;
+
+  // Deliberate test send — excluded from the delivery metrics (sql/014).
+  @Column({ type: 'boolean', default: false })
+  isTest: boolean;
 }

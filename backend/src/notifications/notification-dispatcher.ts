@@ -19,6 +19,7 @@ interface ClaimedRow {
   payload: Record<string, unknown>;
   attempts: number;
   maxAttempts: number;
+  isTest: boolean;
 }
 
 // Delivers queued notifications (notification_outbox) to Telegram — see
@@ -87,7 +88,7 @@ export class NotificationDispatcher {
            ORDER BY priority, "nextAttemptAt"
            FOR UPDATE SKIP LOCKED
            LIMIT 1)
-        RETURNING id, "eventType", payload, attempts, "maxAttempts"`,
+        RETURNING id, "eventType", payload, attempts, "maxAttempts", "isTest"`,
       [LEASE_SECONDS],
     );
     // TypeORM returns [rows, affected] for UPDATE ... RETURNING on Postgres.
@@ -115,7 +116,7 @@ export class NotificationDispatcher {
     try {
       result = await this.sender.send(
         row.eventType,
-        renderNotification(row.eventType, row.payload, row.id),
+        renderNotification(row.eventType, row.payload, row.id, row.isTest),
       );
     } catch (err) {
       // TelegramSender never throws; a template bug must not wedge the row.
@@ -145,8 +146,8 @@ export class NotificationDispatcher {
     await this.dataSource.transaction(async (manager) => {
       await manager.query(
         `INSERT INTO notification_attempts
-           ("notificationId", "eventType", outcome, "httpAttempts", "errorCode", "durationMs")
-         VALUES ($1, $2, $3, $4, $5, $6)`,
+           ("notificationId", "eventType", outcome, "httpAttempts", "errorCode", "durationMs", "isTest")
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
         [
           row.id,
           row.eventType,
@@ -154,6 +155,7 @@ export class NotificationDispatcher {
           result.httpAttempts,
           result.errorCode,
           durationMs,
+          row.isTest,
         ],
       );
       await manager.query(
@@ -173,7 +175,7 @@ export class NotificationDispatcher {
       );
     });
 
-    const base = `kind=${row.eventType} id=${row.id.slice(0, 8)} attempt=${row.attempts}/${row.maxAttempts}`;
+    const base = `kind=${row.eventType} id=${row.id.slice(0, 8)} attempt=${row.attempts}/${row.maxAttempts}${row.isTest ? ' test=true' : ''}`;
     if (outcome === 'sent') {
       this.logger.log(`notification.sent ${base}`);
     } else if (outcome === 'retry') {

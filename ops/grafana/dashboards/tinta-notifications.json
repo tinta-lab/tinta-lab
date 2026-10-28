@@ -7,7 +7,7 @@
   ],
   "timezone": "browser",
   "schemaVersion": 40,
-  "version": 1,
+  "version": 2,
   "refresh": "1m",
   "time": {
     "from": "now-7d",
@@ -59,7 +59,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE outcome = 'sent' AND $__timeFilter(\"attemptedAt\")",
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE NOT \"isTest\" AND outcome = 'sent' AND $__timeFilter(\"attemptedAt\")",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -115,7 +115,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE outcome = 'failed' AND $__timeFilter(\"attemptedAt\")",
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE NOT \"isTest\" AND outcome = 'failed' AND $__timeFilter(\"attemptedAt\")",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -172,7 +172,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE outcome = 'retry' AND $__timeFilter(\"attemptedAt\")",
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE NOT \"isTest\" AND outcome = 'retry' AND $__timeFilter(\"attemptedAt\")",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -233,7 +233,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT CASE WHEN count(*) FILTER (WHERE outcome IN ('sent','failed')) = 0 THEN NULL\n       ELSE 100.0 * count(*) FILTER (WHERE outcome = 'sent') / count(*) FILTER (WHERE outcome IN ('sent','failed')) END AS value\n     FROM notification_attempts WHERE $__timeFilter(\"attemptedAt\")",
+          "rawSql": "SELECT CASE WHEN count(*) FILTER (WHERE outcome IN ('sent','failed')) = 0 THEN NULL\n       ELSE 100.0 * count(*) FILTER (WHERE outcome = 'sent') / count(*) FILTER (WHERE outcome IN ('sent','failed')) END AS value\n     FROM notification_attempts WHERE NOT \"isTest\" AND $__timeFilter(\"attemptedAt\")",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -295,7 +295,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT COALESCE(EXTRACT(epoch FROM now() - min(\"createdAt\")), 0) AS value\n     FROM notification_outbox WHERE status IN ('pending','processing')",
+          "rawSql": "SELECT COALESCE(EXTRACT(epoch FROM now() - min(\"createdAt\")), 0) AS value\n     FROM notification_outbox WHERE NOT \"isTest\" AND status IN ('pending','processing')",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -354,7 +354,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT count(*) FILTER (WHERE status = 'pending') AS pending,\n       count(*) FILTER (WHERE status = 'processing' AND \"lockedUntil\" >= now()) AS processing,\n       count(*) FILTER (WHERE status = 'processing' AND \"lockedUntil\" < now()) AS stale\n     FROM notification_outbox",
+          "rawSql": "SELECT count(*) FILTER (WHERE status = 'pending') AS pending,\n       count(*) FILTER (WHERE status = 'processing' AND \"lockedUntil\" >= now()) AS processing,\n       count(*) FILTER (WHERE status = 'processing' AND \"lockedUntil\" < now()) AS stale\n     FROM notification_outbox WHERE NOT \"isTest\"",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -444,7 +444,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT $__timeGroupAlias(\"attemptedAt\", 1h), outcome AS metric, count(*) AS value\n     FROM notification_attempts WHERE $__timeFilter(\"attemptedAt\") GROUP BY 1, 2 ORDER BY 1",
+          "rawSql": "SELECT $__timeGroupAlias(\"attemptedAt\", 1h), outcome AS metric, count(*) AS value\n     FROM notification_attempts WHERE NOT \"isTest\" AND $__timeFilter(\"attemptedAt\") GROUP BY 1, 2 ORDER BY 1",
           "format": "time_series",
           "refId": "A",
           "rawQuery": true
@@ -473,7 +473,7 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT \"errorCode\" AS \"код\", \"eventType\" AS \"тип\", count(*) AS \"попыток\"\n     FROM notification_attempts WHERE outcome <> 'sent' AND $__timeFilter(\"attemptedAt\")\n     GROUP BY 1, 2 ORDER BY 3 DESC",
+          "rawSql": "SELECT \"errorCode\" AS \"код\", \"eventType\" AS \"тип\", count(*) AS \"попыток\"\n     FROM notification_attempts WHERE NOT \"isTest\" AND outcome <> 'sent' AND $__timeFilter(\"attemptedAt\")\n     GROUP BY 1, 2 ORDER BY 3 DESC",
           "format": "table",
           "refId": "A",
           "rawQuery": true
@@ -503,7 +503,52 @@
             "uid": "tinta-postgres",
             "type": "grafana-postgresql-datasource"
           },
-          "rawSql": "SELECT '#' || left(id::text, 8) AS \"id\", \"eventType\" AS \"тип\", attempts AS \"попыток\",\n       \"lastErrorCode\" AS \"последняя ошибка\", \"createdAt\" AS \"создано\"\n     FROM notification_outbox WHERE status = 'failed' ORDER BY \"createdAt\" DESC LIMIT 50",
+          "rawSql": "SELECT '#' || left(id::text, 8) AS \"id\", \"eventType\" AS \"тип\", attempts AS \"попыток\",\n       \"lastErrorCode\" AS \"последняя ошибка\", \"createdAt\" AS \"создано\"\n     FROM notification_outbox WHERE NOT \"isTest\" AND status = 'failed' ORDER BY \"createdAt\" DESC LIMIT 50",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Тестовые отправки (за период)",
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "description": "Намеренные проверки доставки (isTest). Не входят ни в одну метрику выше. В Telegram помечены «🧪 ТЕСТ».",
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE \"isTest\" AND outcome = 'sent' AND $__timeFilter(\"attemptedAt\")",
           "format": "table",
           "refId": "A",
           "rawQuery": true

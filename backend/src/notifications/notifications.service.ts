@@ -37,6 +37,7 @@ export class NotificationsService {
       | AccessGrantedPayload
       | AccessRevokedPayload,
     manager?: EntityManager,
+    options: { test?: boolean } = {},
   ): Promise<string> {
     const policy = policyFor(eventType);
     const repo = manager
@@ -49,6 +50,7 @@ export class NotificationsService {
         payload: payload as unknown as Record<string, unknown>,
         maxAttempts: policy.maxAttempts,
         status: 'pending',
+        isTest: options.test ?? false,
       }),
     );
     if (!manager) this.dispatcher.kick();

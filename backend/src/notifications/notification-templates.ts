@@ -44,9 +44,13 @@ export function renderNotification(
   eventType: string,
   payload: Record<string, unknown>,
   id: string,
+  isTest = false,
 ): string {
   const body = renderBody(eventType, payload);
-  return `${body}\n\n<code>#${esc(id.slice(0, 8))}</code>`;
+  const prefix = isTest
+    ? `🧪 <b>ТЕСТ</b> — проверка доставки, действий не требуется\n\n`
+    : '';
+  return `${prefix}${body}\n\n<code>#${esc(id.slice(0, 8))}</code>`;
 }
 
 function renderBody(eventType: string, raw: Record<string, unknown>): string {

@@ -126,18 +126,16 @@ describe('Notification outbox (e2e)', () => {
             null,
             {},
             async (m) => {
-              await app
-                .get(NotificationsService)
-                .enqueue(
-                  'security_anomaly',
-                  {
-                    clientName: null,
-                    serverName: null,
-                    accessLogId,
-                    anomalies: [],
-                  },
-                  m,
-                );
+              await app.get(NotificationsService).enqueue(
+                'security_anomaly',
+                {
+                  clientName: null,
+                  serverName: null,
+                  accessLogId,
+                  anomalies: [],
+                },
+                m,
+              );
               throw new Error('boom after enqueue');
             },
           ),
@@ -242,6 +240,23 @@ describe('Notification outbox (e2e)', () => {
         'security_anomaly',
         'provisioning_complete',
       ]);
+    });
+
+    it('carries the test flag onto the attempt and marks the message, so metrics can exclude it', async () => {
+      const id = await app
+        .get(NotificationsService)
+        .enqueue('provisioning_complete', provisioning, undefined, {
+          test: true,
+        });
+      await dispatcher().tick();
+
+      const [attempt] = await ds.query(
+        `SELECT outcome, "isTest" FROM notification_attempts WHERE "notificationId" = $1`,
+        [id],
+      );
+      expect(attempt).toEqual({ outcome: 'sent', isTest: true });
+      expect((await rows())[0]).toMatchObject({ isTest: true, status: 'sent' });
+      expect(sender.send.mock.calls[0][1]).toMatch(/^🧪 <b>ТЕСТ<\/b>/);
     });
 
     it('leaves everything queued while Telegram is not configured', async () => {
