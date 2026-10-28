@@ -15,6 +15,7 @@ tinta-lab/
 ├── backend/           # NestJS API сервер (Node.js 20, TypeScript)
 ├── frontend/          # Next.js 15 веб-приложение (TypeScript, Tailwind)
 ├── tinta-agent/       # HA App — агент внутри клиентского HAOS (Node.js)
+├── ops/grafana/       # Grafana provisioning + дашборды (в git, монтируются read-only)
 ├── data/
 │   ├── postgres/      # PostgreSQL 16 data (docker volume)
 │   └── redis/         # Данные удалённого Redis (с 2026-10-28 не используется, сохранены до решения об очистке)

@@ -1,0 +1,514 @@
+{
+  "uid": "tinta-notifications",
+  "title": "Tinta Notifications",
+  "tags": [
+    "tinta",
+    "notifications"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 40,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Отправлено (за период)",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE outcome = 'sent' AND $__timeFilter(\"attemptedAt\")",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Окончательные отказы (за период)",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE outcome = 'failed' AND $__timeFilter(\"attemptedAt\")",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ],
+      "description": "Уведомления, которые так и не дошли до Telegram после всех попыток. Список — в таблице ниже."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Повторные попытки (за период)",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT count(*) AS value FROM notification_attempts WHERE outcome = 'retry' AND $__timeFilter(\"attemptedAt\")",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Доля успешных",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 90
+              },
+              {
+                "color": "green",
+                "value": 99
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "percent"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT CASE WHEN count(*) FILTER (WHERE outcome IN ('sent','failed')) = 0 THEN NULL\n       ELSE 100.0 * count(*) FILTER (WHERE outcome = 'sent') / count(*) FILTER (WHERE outcome IN ('sent','failed')) END AS value\n     FROM notification_attempts WHERE $__timeFilter(\"attemptedAt\")",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ],
+      "description": "Доставленные / (доставленные + окончательно не доставленные) за период."
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Возраст очереди",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 3600
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "unit": "s"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT COALESCE(EXTRACT(epoch FROM now() - min(\"createdAt\")), 0) AS value\n     FROM notification_outbox WHERE status IN ('pending','processing')",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ],
+      "description": "Сколько ждёт самое старое недоставленное уведомление. Растёт — Telegram недоступен или не настроен."
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Сейчас в очереди",
+      "gridPos": {
+        "x": 20,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "orientation": "vertical",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "description": "pending — ждёт отправки; processing — отправляется; stale — захвачено процессом, который не завершил отправку (будет подхвачено заново).",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT count(*) FILTER (WHERE status = 'pending') AS pending,\n       count(*) FILTER (WHERE status = 'processing' AND \"lockedUntil\" >= now()) AS processing,\n       count(*) FILTER (WHERE status = 'processing' AND \"lockedUntil\" < now()) AS stale\n     FROM notification_outbox",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Попытки доставки по часам",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 16,
+        "h": 8
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "sent"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "retry"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT $__timeGroupAlias(\"attemptedAt\", 1h), outcome AS metric, count(*) AS value\n     FROM notification_attempts WHERE $__timeFilter(\"attemptedAt\") GROUP BY 1, 2 ORDER BY 1",
+          "format": "time_series",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "table",
+      "title": "Ошибки по коду (за период)",
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 8,
+        "h": 8
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT \"errorCode\" AS \"код\", \"eventType\" AS \"тип\", count(*) AS \"попыток\"\n     FROM notification_attempts WHERE outcome <> 'sent' AND $__timeFilter(\"attemptedAt\")\n     GROUP BY 1, 2 ORDER BY 3 DESC",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Недоставленные уведомления (failed)",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 7
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "showHeader": true
+      },
+      "description": "Остаются в notification_outbox для диагностики. Содержимое (payload) здесь не показывается — только тип, попытки и код ошибки. #id совпадает с меткой в сообщении Telegram.",
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT '#' || left(id::text, 8) AS \"id\", \"eventType\" AS \"тип\", attempts AS \"попыток\",\n       \"lastErrorCode\" AS \"последняя ошибка\", \"createdAt\" AS \"создано\"\n     FROM notification_outbox WHERE status = 'failed' ORDER BY \"createdAt\" DESC LIMIT 50",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    }
+  ]
+}

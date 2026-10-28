@@ -75,8 +75,10 @@ services:
       GRAFANA_DB_USER: ${GRAFANA_DB_USER}
       GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD}
     volumes:
-      - ./data/grafana/provisioning:/etc/grafana/provisioning
-      - ./data/grafana/dashboards:/var/lib/grafana/dashboards
+      # Datasource + dashboard provisioning live in git (ops/grafana);
+      # read-only, so Grafana can't change what's reviewed there.
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     ports:
       # Was "3003:3000" (0.0.0.0 and [::] — the public IPv6 too), which

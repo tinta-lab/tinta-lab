@@ -1,0 +1,22 @@
+apiVersion: 1
+
+# Read-only role with column-level SELECT on exactly what the Tinta Agents
+# dashboard queries (RUNBOOK.md → Grafana). Was the superuser "tinta" until
+# 2026-10-28, so anyone with Grafana admin had full DB access. Credentials
+# come from .env via docker-compose (GRAFANA_DB_USER / GRAFANA_DB_PASSWORD).
+datasources:
+  - name: TintaDB
+    type: postgres
+    uid: tinta-postgres
+    url: tinta-postgres:5432
+    database: tinta_lab
+    user: $GRAFANA_DB_USER
+    secureJsonData:
+      password: $GRAFANA_DB_PASSWORD
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+      database: tinta_lab
+    isDefault: true
+    editable: false

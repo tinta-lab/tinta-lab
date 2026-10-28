@@ -569,6 +569,14 @@ SELECT client_id, status, last_heartbeat_at FROM agent_sessions;  -- агент�
 
 ### Grafana
 
+Дашборды и provisioning (источник данных, папка «Tinta Lab») лежат **в репозитории** в
+`ops/grafana/` и смонтированы в контейнер только для чтения. Сохранение дашбордов из интерфейса
+отключено (`allowUiUpdates: false`): чтобы изменить панель — правим JSON в
+`ops/grafana/dashboards/`, коммит, push; Grafana подхватывает изменения в течение 30 секунд.
+Набросать панель можно в Grafana на новом (не provisioned) дашборде и перенести JSON в файл.
+В этих файлах не должно быть секретов: пароль роли БД подставляется из `.env`
+(`$GRAFANA_DB_PASSWORD`).
+
 Доступ только через https://monitor.tinta-lab.de (Cloudflare Access). Порт
 3003 слушается лишь на LAN-адресе `192.168.2.63` — туннель на ct200 ходит
 сюда по LAN. Пароль admin и роли БД — в `~/shared/grafana.credentials`

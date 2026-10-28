@@ -1,0 +1,412 @@
+{
+  "id": null,
+  "uid": "tinta-agents",
+  "title": "Tinta Agents",
+  "tags": [
+    "tinta",
+    "agents"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 40,
+  "version": 1,
+  "refresh": "1m",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Agents Online",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT COUNT(*) as value FROM agent_sessions WHERE status = 'connected'",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total Agents",
+      "gridPos": {
+        "x": 4,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT COUNT(*) as value FROM agent_sessions",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total Devices (across all clients)",
+      "gridPos": {
+        "x": 8,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT COALESCE(SUM((metrics->>'deviceCount')::int), 0) as value FROM agent_sessions WHERE metrics IS NOT NULL",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total Automations",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "orange"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT COALESCE(SUM((metrics->>'automationCount')::int), 0) as value FROM agent_sessions WHERE metrics IS NOT NULL",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Open Tickets",
+      "gridPos": {
+        "x": 16,
+        "y": 0,
+        "w": 4,
+        "h": 4
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT COUNT(*) as value FROM tickets WHERE status != 'closed'",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Agent Status Overview",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 8
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "showHeader": true,
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "status"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "connected": {
+                        "text": "ONLINE",
+                        "color": "green"
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "disconnected": {
+                        "text": "OFFLINE",
+                        "color": "red"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "cpu_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "mem_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "disk_pct"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT\n  s.\"clientId\",\n  u.\"firstName\" || ' ' || u.\"lastName\" AS client_name,\n  s.status,\n  s.\"agentVersion\" AS agent_ver,\n  s.\"haVersion\" AS ha_ver,\n  ROUND((s.metrics->>'cpuPercent')::numeric, 1) AS cpu_pct,\n  ROUND((s.metrics->>'memPercent')::numeric, 1) AS mem_pct,\n  ROUND((s.metrics->>'diskPercent')::numeric, 1) AS disk_pct,\n  (s.metrics->>'deviceCount')::int AS devices,\n  (s.metrics->>'automationCount')::int AS automations,\n  s.\"lastHeartbeatAt\" AS last_seen\nFROM agent_sessions s\nLEFT JOIN clients c ON c.id = s.\"clientId\"\nLEFT JOIN users u ON u.id = c.\"userId\"\nORDER BY s.status DESC, s.\"lastHeartbeatAt\" DESC",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Recent Tickets",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 6
+      },
+      "datasource": {
+        "uid": "tinta-postgres"
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "uid": "tinta-postgres",
+            "type": "grafana-postgresql-datasource"
+          },
+          "rawSql": "SELECT\n  t.subject AS title,\n  t.status,\n  t.type,\n  t.\"createdAt\"\nFROM tickets t\nORDER BY t.\"createdAt\" DESC\nLIMIT 20",
+          "format": "table",
+          "refId": "A",
+          "rawQuery": true
+        }
+      ]
+    }
+  ]
+}

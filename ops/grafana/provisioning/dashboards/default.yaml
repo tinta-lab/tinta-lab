@@ -1,0 +1,18 @@
+apiVersion: 1
+
+# Dashboards are provisioned from ops/grafana/dashboards in the tinta-lab repo
+# (mounted read-only at /var/lib/grafana/dashboards). Git is the source of
+# truth: UI edits are disabled so a dashboard can't silently drift from what
+# is reviewed and committed. To change one: edit the JSON in the repo (or
+# build it in Grafana, Share → Export → "Export for sharing externally" off,
+# paste into the file), commit, push — Grafana reloads within 30s.
+providers:
+  - name: Tinta Lab
+    orgId: 1
+    folder: Tinta Lab
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      path: /var/lib/grafana/dashboards
