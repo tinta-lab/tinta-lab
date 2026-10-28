@@ -484,8 +484,13 @@ export class TintaAgentGateway
             serverName: server.name,
             anomalies: payload.anomalies,
           });
+          return;
         }
       }
+      // The anomaly is in audit_events either way; say when no alert went out.
+      this.logger.warn(
+        `security anomaly alert NOT sent for access ${payload.accessLogId}: no server/client found for it`,
+      );
     } catch (e) {
       this.logger.error('Failed to send security anomaly notification', e as Error);
     }

@@ -43,6 +43,7 @@ export class NotificationsService implements OnModuleInit {
     });
 
     await this.send(
+      'access_granted',
       `🟢 <b>Доступ открыт</b>\n\n` +
         `👤 Клиент: ${esc(clientName)} (${esc(clientEmail)})\n` +
         `🏠 Сервер: ${esc(serverName)}\n` +
@@ -64,6 +65,7 @@ export class NotificationsService implements OnModuleInit {
     const { clientName, clientEmail, serverName, subdomain, dashboardUrl } =
       params;
     await this.send(
+      'provisioning_complete',
       `🚀 <b>Новый клиент провижинен</b>\n\n` +
         `👤 ${esc(clientName)} (${esc(clientEmail)})\n` +
         `🏠 Сервер: ${esc(serverName)}\n` +
@@ -78,6 +80,7 @@ export class NotificationsService implements OnModuleInit {
     lastSeen: Date | null;
   }) {
     await this.send(
+      'agent_offline',
       `🔴 <b>Агент офлайн</b>\n\n` +
         `👤 ${esc(params.clientName)}\n` +
         `🆔 Client ID: <code>${esc(params.clientId)}</code>\n` +
@@ -96,6 +99,7 @@ export class NotificationsService implements OnModuleInit {
       reason === 'expired' ? 'истёк автоматически' : 'закрыт клиентом';
 
     await this.send(
+      'access_revoked',
       `${icon} <b>Доступ ${text}</b>\n\n` +
         `👤 Клиент: ${esc(clientName)}\n` +
         `🏠 Сервер: ${esc(serverName)}`,
@@ -114,6 +118,7 @@ export class NotificationsService implements OnModuleInit {
     const lines = anomalies.map((a) => `• ${esc(a.detail)}`).join('\n');
 
     await this.send(
+      'security_anomaly',
       `🚨 <b>ПОДОЗРИТЕЛЬНАЯ АКТИВНОСТЬ В SUPPORT-СЕССИИ</b>\n\n` +
         `👤 Клиент: ${esc(clientName)}\n` +
         `🏠 Сервер: ${esc(serverName)}\n\n` +
@@ -124,26 +129,71 @@ export class NotificationsService implements OnModuleInit {
     );
   }
 
-  // HTML with every interpolated value escaped. If Telegram still refuses
-  // the message, it's re-sent as plain text: an alert must not be lost to
-  // formatting.
-  private async send(html: string) {
-    if (!this.bot || !this.chatId) return;
-    try {
-      await this.bot.sendMessage(this.chatId, html, { parse_mode: 'HTML' });
+  // HTML with every interpolated value escaped. Never throws and never
+  // hangs: each attempt is bounded, a 429 waits out Telegram's retry_after
+  // (up to 30s) once, a rejected/failed formatted message is re-sent as
+  // plain text so an alert isn't lost to formatting. Every outcome is one
+  // structured log line (telegram.sent / .retry / .failed / .skipped), so
+  // "no alerts" can be told apart from "alerts not delivered".
+  private async send(kind: string, html: string): Promise<void> {
+    if (!this.bot || !this.chatId) {
+      this.logger.warn(`telegram.skipped kind=${kind} reason=not_configured`);
       return;
-    } catch (err) {
-      this.logger.warn(
-        `Telegram rejected the formatted message, retrying as plain text: ${errorMessage(err)}`,
-      );
     }
-    try {
-      await this.bot.sendMessage(this.chatId, htmlToPlain(html));
-    } catch (err) {
-      this.logger.error(`Telegram send failed: ${errorMessage(err)}`);
+    let plain = false;
+    for (let attempt = 1; attempt <= SEND_MAX_ATTEMPTS; attempt++) {
+      const mode = plain ? 'plain' : 'html';
+      try {
+        await withTimeout(
+          plain
+            ? this.bot.sendMessage(this.chatId, htmlToPlain(html))
+            : this.bot.sendMessage(this.chatId, html, { parse_mode: 'HTML' }),
+          SEND_TIMEOUT_MS,
+        );
+        this.logger.log(
+          `telegram.sent kind=${kind} mode=${mode} attempts=${attempt}`,
+        );
+        return;
+      } catch (err) {
+        const reason = describeError(err);
+        if (attempt === SEND_MAX_ATTEMPTS) {
+          this.logger.error(
+            `telegram.failed kind=${kind} mode=${mode} attempts=${attempt} error="${reason}"`,
+          );
+          return;
+        }
+        const retryAfter = retryAfterSeconds(err);
+        if (retryAfter !== null) {
+          if (retryAfter > MAX_RETRY_AFTER_S) {
+            this.logger.error(
+              `telegram.failed kind=${kind} mode=${mode} attempts=${attempt} error="${reason}" (retry_after ${retryAfter}s too long)`,
+            );
+            return;
+          }
+          this.logger.warn(
+            `telegram.retry kind=${kind} mode=${mode} attempt=${attempt} reason=rate_limited wait=${retryAfter}s`,
+          );
+          await sleep(retryAfter * 1000);
+        } else if (!plain) {
+          this.logger.warn(
+            `telegram.retry kind=${kind} mode=html attempt=${attempt} error="${reason}" next=plain`,
+          );
+          plain = true;
+        } else {
+          this.logger.warn(
+            `telegram.retry kind=${kind} mode=plain attempt=${attempt} error="${reason}"`,
+          );
+          await sleep(RETRY_PAUSE_MS);
+        }
+      }
     }
   }
 }
+
+const SEND_TIMEOUT_MS = 10_000;
+const SEND_MAX_ATTEMPTS = 3;
+const MAX_RETRY_AFTER_S = 30;
+const RETRY_PAUSE_MS = 2_000;
 
 // Telegram's HTML mode only needs &, < and > escaped in text.
 export function esc(value: unknown): string {
@@ -161,6 +211,29 @@ function htmlToPlain(html: string): string {
     .replace(/&amp;/g, '&');
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+// Only the message, never the error object: node-telegram-bot-api errors
+// carry the request URL — bot token included — in `cause`/`response`.
+// The token pattern is masked here too, in case it ever reaches a message.
+function describeError(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.replace(/\d{6,}:[A-Za-z0-9_-]{30,}/g, '<bot-token>');
+}
+
+function retryAfterSeconds(err: unknown): number | null {
+  const value = (
+    err as { response?: { body?: { parameters?: { retry_after?: unknown } } } }
+  )?.response?.body?.parameters?.retry_after;
+  return typeof value === 'number' && value >= 0 ? value : null;
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

@@ -163,10 +163,12 @@ export class ProvisioningService {
       }
     }
 
-    // 5. Notify admin via Telegram
+    // 5. Notify admin via Telegram — in the background: creating the hub must
+    // not wait on Telegram (a slow or unreachable API used to hold the
+    // admin's request). send() never throws; outcomes are logged there.
     const clientName = `${dto.firstName} ${dto.lastName}`;
 
-    await this.notifications.notifyProvisioningComplete({
+    void this.notifications.notifyProvisioningComplete({
       clientName,
       clientEmail: dto.email,
       serverName: dto.serverName,
