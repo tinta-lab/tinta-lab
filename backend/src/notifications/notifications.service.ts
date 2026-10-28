@@ -15,8 +15,11 @@ export class NotificationsService implements OnModuleInit {
     this.chatId = this.configService.get<string>('TELEGRAM_CHAT_ID') ?? null;
 
     if (!token || !this.chatId) {
+      // One line at startup, deliberately WARN: without Telegram, security
+      // anomaly alerts from agents reach no one (they're only in the
+      // access log), which is a real gap, not just a missing nicety.
       this.logger.warn(
-        'Telegram not configured — set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in .env',
+        'Telegram not configured (TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID unset): provisioning notices and security-anomaly alerts are not sent — check the access log',
       );
       return;
     }

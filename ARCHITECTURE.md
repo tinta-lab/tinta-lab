@@ -275,7 +275,7 @@ Admin → POST /provisioning/client
   ├── TintaCoreService.provisionAgent() → generate JWT (365d)
   ├── Apply default golden templates (non-blocking)
   ├── Generate installToken (UUID, 48h TTL) → installUrl = /install/:token
-  └── NotificationsService.notifyProvisioningComplete() → Telegram
+  └── NotificationsService.notifyProvisioningComplete() → Telegram (если настроен; с 2026-10-28 не настроен)
 Response: { clientId, agentToken, tunnelToken, dashboardUrl, installUrl }
 
 GET /install/:token (public, 48h)
@@ -395,7 +395,8 @@ AGENT_JWT_SECRET=...       # Agent tokens (365 days) — НИКОГДА не с�
 # CORS — обязательно, иначе фронтенд заблокируется браузером
 FRONTEND_URL=https://app.tinta-lab.de
 
-# Telegram notifications (необязательно)
+# Telegram notifications (необязательно; без них уведомления о провиженинге
+# и алерты аномалий безопасности не отправляются — только журнал доступа)
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
 
