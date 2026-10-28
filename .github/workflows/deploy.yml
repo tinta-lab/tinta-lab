@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
 
-# The job needs no GitHub API access at all (it fetches over the server's own
-# SSH deploy key), so the token gets nothing.
+# The deploy job needs no GitHub API access at all (it fetches over the
+# server's own SSH deploy key), so the token gets nothing by default; only
+# the CI checks get read access to check out the code.
 permissions: {}
 
 # One production deploy at a time. A newer push waiting in the queue replaces
@@ -16,7 +17,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Type-check, unit tests and builds on GitHub-hosted runners (ci.yml).
+  # Production is only touched if all of them pass.
+  checks:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   deploy:
+    needs: checks
     # Runs on tinta-backend-vm itself (registered as a self-hosted runner,
     # started via PM2 — no root/systemd on this box). Deliberately not an
     # SSH-from-a-hosted-runner setup: the server only has a private LAN
