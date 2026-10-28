@@ -32,9 +32,13 @@ services:
       - "127.0.0.1:6379:6379"
 
   adminer:
-    image: adminer
+    # Pinned: was the bare "adminer" tag (:latest).
+    image: adminer:5.4.2
     container_name: tinta-adminer
     restart: always
+    environment:
+      # Adminer's own default is "db", which doesn't resolve on this network.
+      ADMINER_DEFAULT_SERVER: tinta-postgres
     ports:
       # Was "8080:8080" (0.0.0.0 — reachable on the public IPv6 address
       # too, not just the LAN). Tried 127.0.0.1 first, which was wrong:
@@ -45,9 +49,9 @@ services:
       # the legitimate access path along with the unwanted one. Binding to
       # the LAN IP specifically removes the public-IPv6 exposure (the part
       # that actually mattered) while leaving the tunnel able to reach it.
-      # Direct-LAN access without going through Access is still technically
-      # possible from this specific address — closing that fully needs a
-      # host firewall rule scoped to ct200's IP, not a Docker port change.
+      # Direct-LAN access is closed by a DOCKER-USER rule in
+      # /etc/ufw/after.rules (Docker-published ports bypass UFW): only ct200
+      # (192.168.2.200) may reach 8080 and Grafana's 3003.
       - "192.168.2.63:8080:8080"
 
   grafana:
